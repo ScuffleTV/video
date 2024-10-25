@@ -37,7 +37,7 @@ pub trait Loader<S: BuildHasher + Default = RandomState> {
 		}
 	}
 
-	fn load(&self, keys: Vec<Self::Key>) -> impl std::future::Future<Output = LoaderOutput<Self, S>> + Send;
+	fn fetch(&self, keys: Vec<Self::Key>) -> impl std::future::Future<Output = LoaderOutput<Self, S>> + Send;
 }
 
 pub struct DataLoader<L: Loader<S>, S: BuildHasher + Default + Send + Sync = RandomState> {
@@ -90,7 +90,7 @@ impl<L: Loader<S>, S: BuildHasher + Default + Send + Sync> BatchOperation for Wr
 	where
 		Self: Send + Sync,
 	{
-		self.0.load(documents.into_iter().collect()).await.map_err(|()| Unit)
+		self.0.fetch(documents.into_iter().collect()).await.map_err(|()| Unit)
 	}
 }
 
@@ -117,7 +117,7 @@ mod tests {
 			self.config.clone()
 		}
 
-		async fn load(&self, keys: Vec<Self::Key>) -> LoaderOutput<Self> {
+		async fn fetch(&self, keys: Vec<Self::Key>) -> LoaderOutput<Self> {
 			tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
 			Ok((self.results)(keys))
 		}
