@@ -294,7 +294,7 @@ struct FieldVisitor<'a>(&'a mut Vec<opentelemetry::KeyValue>, &'a mut Cow<'stati
 impl FieldVisitor<'_> {
 	fn push(&mut self, name: &'static str, value: String) {
 		if name == "name" {
-			*self.1 = format!("{}::{}", self.1, value).into();
+			*self.1 = format!("{}::{}", value, self.1).into();
 		} else {
 			self.0.push(KeyValue::new(name, value));
 		}
