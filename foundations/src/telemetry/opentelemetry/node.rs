@@ -291,44 +291,50 @@ impl SpanNode {
 
 struct FieldVisitor<'a>(&'a mut Vec<opentelemetry::KeyValue>, &'a mut Cow<'static, str>);
 
+impl FieldVisitor<'_> {
+	fn push(&mut self, name: &'static str, value: String) {
+		if name == "name" {
+			*self.1 = format!("{}::{}", self.1, value).into();
+		} else {
+			self.0.push(KeyValue::new(name, value));
+		}
+	}
+}
+
 impl tracing::field::Visit for FieldVisitor<'_> {
 	fn record_bool(&mut self, field: &tracing::field::Field, value: bool) {
-		self.0.push(KeyValue::new(field.name(), value));
+		self.push(field.name(), value.to_string());
 	}
 
 	fn record_debug(&mut self, field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
-		self.0.push(KeyValue::new(field.name(), format!("{:?}", value)));
+		self.push(field.name(), format!("{:?}", value));
 	}
 
 	fn record_u64(&mut self, field: &tracing::field::Field, value: u64) {
-		self.0.push(KeyValue::new(field.name(), value.to_string()));
+		self.push(field.name(), value.to_string());
 	}
 
 	fn record_error(&mut self, field: &tracing::field::Field, value: &(dyn std::error::Error + 'static)) {
-		self.0.push(KeyValue::new(field.name(), value.to_string()));
+		self.push(field.name(), value.to_string());
 	}
 
 	fn record_f64(&mut self, field: &tracing::field::Field, value: f64) {
-		self.0.push(KeyValue::new(field.name(), value));
+		self.push(field.name(), value.to_string());
 	}
 
 	fn record_i128(&mut self, field: &tracing::field::Field, value: i128) {
-		self.0.push(KeyValue::new(field.name(), value.to_string()));
+		self.push(field.name(), value.to_string());
 	}
 
 	fn record_i64(&mut self, field: &tracing::field::Field, value: i64) {
-		self.0.push(KeyValue::new(field.name(), value));
+		self.push(field.name(), value.to_string());
 	}
 
 	fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
-		if field.name() == "name" {
-			*self.1 = format!("{}::{}", self.1, value).into();
-		} else {
-			self.0.push(KeyValue::new(field.name(), value.to_string()));
-		}
+		self.push(field.name(), value.to_string());
 	}
 
 	fn record_u128(&mut self, field: &tracing::field::Field, value: u128) {
-		self.0.push(KeyValue::new(field.name(), value.to_string()));
+		self.push(field.name(), value.to_string());
 	}
 }
