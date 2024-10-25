@@ -289,7 +289,7 @@ impl<E: std::error::Error> From<E> for BatcherError<E> {
 }
 
 impl<T: BatchOperation + 'static + Send + Sync> Batch<T> {
-	#[tracing::instrument(skip_all, fields(name = %inner.name))]
+	#[tracing::instrument(skip_all, fields(name = %inner.name), level = "debug")]
 	async fn run(self, inner: Arc<BatcherInner<T>>) {
 		self.results
 			.get_or_init(|| async move {
