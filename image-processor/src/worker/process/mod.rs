@@ -131,31 +131,32 @@ impl ProcessJob {
 
 		let result = loop {
 			tokio::select! {
-				_ = tokio::time::sleep(global.config().worker.refresh_interval) => {
-					match self.job.refresh(&global).await {
-						Ok(true) => {},
-						Ok(false) => {
-							tracing::warn!("lost job");
-							return;
-						}
-						Err(err) => {
-							tracing::error!("failed to refresh job: {err}");
-							return;
-						}
-					}
-				}
-				Some(_) = async {
-					if let Some(fut) = timeout_fut.as_mut() {
-						Some(fut.await)
-					} else {
-						None
-					}
-				} => {
-					tracing::warn!("timeout");
-					break Err(JobError::Internal("timeout"));
-				}
-				result = &mut future => break result,
-			}
+					  _ = tokio::time::sleep(global.config().worker.refresh_interval) => {
+						  match self.job.refresh(&global).await {
+							  Ok(true) => {},
+							  Ok(false) => {
+								  tracing::warn!("lost job");
+								  return;
+							  }
+							  Err(err) => {
+								  tracing::error!("failed to refresh job: {err}");
+								  return;
+							  }
+						  }
+					  }
+					  Some(_) = async {
+						  if let Some(fut) = timeout_fut.as_mut() {
+							  fut.await;
+			Some(())
+						  } else {
+							  None
+						  }
+					  } => {
+						  tracing::warn!("timeout");
+						  break Err(JobError::Internal("timeout"));
+					  }
+					  result = &mut future => break result,
+				  }
 		};
 
 		match result {

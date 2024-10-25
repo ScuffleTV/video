@@ -9,7 +9,7 @@ impl<T: std::fmt::Debug> std::fmt::Debug for Const<'_, T> {
 	}
 }
 
-impl<'a, T> Const<'a, T> {
+impl<T> Const<'_, T> {
 	pub(crate) fn new(value: T) -> Self {
 		Self(value, std::marker::PhantomData)
 	}
@@ -32,7 +32,7 @@ impl<T: std::fmt::Debug> std::fmt::Debug for MutConst<'_, T> {
 	}
 }
 
-impl<'a, T> MutConst<'a, T> {
+impl<T> MutConst<'_, T> {
 	pub(crate) fn new(value: T) -> Self {
 		Self(value, std::marker::PhantomData)
 	}

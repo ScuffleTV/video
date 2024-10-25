@@ -268,7 +268,7 @@ pub struct FutureWithContext<'a, F> {
 	ctx: ContextRef<'a>,
 }
 
-impl<'a, F: Future> Future for FutureWithContext<'a, F> {
+impl<F: Future> Future for FutureWithContext<'_, F> {
 	type Output = Option<F::Output>;
 
 	fn poll(mut self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> std::task::Poll<Self::Output> {
@@ -290,7 +290,7 @@ pub struct StreamWithContext<'a, F> {
 	ctx: ContextRef<'a>,
 }
 
-impl<'a, F: Stream> Stream for StreamWithContext<'a, F> {
+impl<F: Stream> Stream for StreamWithContext<'_, F> {
 	type Item = F::Item;
 
 	fn poll_next(mut self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Option<Self::Item>> {

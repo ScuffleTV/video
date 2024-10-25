@@ -23,15 +23,15 @@ impl<S> SettingsParser<S> {
 
 	fn merge(&mut self, incoming: toml::Value) {
 		let root = self.root.take().unwrap();
-		self.root = Some(self.merge_loop(root, incoming));
+		self.root = Some(Self::merge_loop(root, incoming));
 	}
 
-	fn merge_loop(&self, root: toml::Value, incoming: toml::Value) -> toml::Value {
+	fn merge_loop(root: toml::Value, incoming: toml::Value) -> toml::Value {
 		match (root, incoming) {
 			(toml::Value::Table(mut first_map), toml::Value::Table(second_map)) => {
 				for (key, value) in second_map {
 					let combined_value = if let Some(existing_value) = first_map.remove(&key) {
-						self.merge_loop(existing_value, value)
+						Self::merge_loop(existing_value, value)
 					} else {
 						value
 					};

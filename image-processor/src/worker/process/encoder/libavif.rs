@@ -1,6 +1,6 @@
 use std::ptr::NonNull;
 
-use libavif_sys::{AVIF_QUALITY_LOSSLESS, AVIF_QUANTIZER_BEST_QUALITY, AVIF_SPEED_FASTEST, AVIF_SPEED_SLOWEST};
+use libavif_sys::{AVIF_QUALITY_BEST, AVIF_QUALITY_LOSSLESS, AVIF_SPEED_FASTEST, AVIF_SPEED_SLOWEST};
 use scuffle_image_processor_proto::OutputQuality;
 
 use super::{Encoder, EncoderError, EncoderInfo, EncoderSettings};
@@ -27,27 +27,19 @@ impl AvifEncoder {
 
 		encoder.as_mut().maxThreads = 1;
 		encoder.as_mut().timescale = settings.timescale;
-		encoder.as_mut().autoTiling = 1;
 		encoder.as_mut().quality = match settings.quality {
-			OutputQuality::Auto => encoder.as_mut().quality,
+			OutputQuality::Auto => 75_i32,
 			OutputQuality::Lossless => AVIF_QUALITY_LOSSLESS as i32,
-			OutputQuality::High => 75,
-			OutputQuality::Medium => 50,
-			OutputQuality::Low => 25_i32,
+			OutputQuality::High => AVIF_QUALITY_BEST as i32,
+			OutputQuality::Medium => 75,
+			OutputQuality::Low => 50,
 		};
-		encoder.as_mut().qualityAlpha = encoder.as_mut().quality;
-		encoder.as_mut().minQuantizer = match settings.quality {
-			OutputQuality::Auto => encoder.as_mut().minQuantizer,
-			OutputQuality::Lossless => AVIF_QUANTIZER_BEST_QUALITY as i32,
-			OutputQuality::High => 5,
-			OutputQuality::Medium => 15,
-			OutputQuality::Low => 30,
-		};
+		encoder.as_mut().qualityAlpha = AVIF_QUALITY_LOSSLESS as i32;
 		encoder.as_mut().speed = match settings.quality {
-			OutputQuality::Auto => 8,
+			OutputQuality::Auto => 5_i32,
 			OutputQuality::Lossless => AVIF_SPEED_SLOWEST as i32,
-			OutputQuality::High => 5,
-			OutputQuality::Medium => 8,
+			OutputQuality::High => 4,
+			OutputQuality::Medium => 7,
 			OutputQuality::Low => AVIF_SPEED_FASTEST as i32,
 		};
 

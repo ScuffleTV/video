@@ -51,14 +51,20 @@ impl<L: Loader<S> + 'static + Send + Sync, S: BuildHasher + Default + Send + Syn
 		}
 	}
 
+	#[tracing::instrument(skip_all, fields(name = %self.batcher.inner.name))]
 	pub async fn load(&self, key: L::Key) -> Result<Option<L::Value>, ()> {
-		self.load_many(std::iter::once(key.clone()))
+		self.internal_load_many(std::iter::once(key.clone()))
 			.await
 			.map(|mut map| map.remove(&key))
 	}
 
+	#[tracing::instrument(skip_all, fields(name = %self.batcher.inner.name))]
 	pub async fn load_many(&self, keys: impl IntoIterator<Item = L::Key>) -> Result<HashMap<L::Key, L::Value, S>, ()> {
-		self.batcher.execute_many(keys).await.map_err(|err| match err {
+		self.internal_load_many(keys).await
+	}
+
+	async fn internal_load_many(&self, keys: impl IntoIterator<Item = L::Key>) -> LoaderOutput<L, S> {
+		self.batcher.internal_execute_many(keys).await.map_err(|err| match err {
 			BatcherError::Batch(Unit) => {}
 			err => tracing::error!("failed to load data: {err}"),
 		})
@@ -77,14 +83,14 @@ impl<L: Loader<S>, S: BuildHasher + Default + Send + Sync> BatchOperation for Wr
 		self.0.config()
 	}
 
-	fn process(
+	async fn process(
 		&self,
 		documents: <Self::Mode as super::BatchMode<Self>>::Input,
-	) -> impl std::future::Future<Output = Result<<Self::Mode as super::BatchMode<Self>>::OperationOutput, Self::Error>> + Send + '_
+	) -> Result<<Self::Mode as super::BatchMode<Self>>::OperationOutput, Self::Error>
 	where
 		Self: Send + Sync,
 	{
-		async move { self.0.load(documents.into_iter().collect()).await.map_err(|()| Unit) }
+		self.0.load(documents.into_iter().collect()).await.map_err(|()| Unit)
 	}
 }
 

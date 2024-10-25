@@ -13,7 +13,7 @@ pub struct FrameRef<'a> {
 }
 
 impl FrameRef<'_> {
-	pub fn to_owned(&self) -> Frame {
+	pub fn to_owned(self) -> Frame {
 		Frame {
 			image: Img::new(self.image.buf().to_vec(), self.image.width(), self.image.height()),
 			duration_ts: self.duration_ts,

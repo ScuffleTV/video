@@ -240,6 +240,7 @@ struct Batch<T: BatchOperation> {
 	expires_at: tokio::time::Instant,
 	done: DropGuardCancellationToken,
 	ops: <T::Mode as BatchMode<T>>::Input,
+	#[allow(clippy::type_complexity)]
 	results: Arc<OnceCell<Result<<T::Mode as BatchMode<T>>::OperationOutput, BatcherError<T::Error>>>>,
 }
 
@@ -265,6 +266,7 @@ struct BatchInsertWaiter<T: BatchOperation> {
 	id: u64,
 	done: tokio_util::sync::CancellationToken,
 	tracker: <T::Mode as BatchMode<T>>::Tracker,
+	#[allow(clippy::type_complexity)]
 	results: Arc<OnceCell<Result<<T::Mode as BatchMode<T>>::OperationOutput, BatcherError<T::Error>>>>,
 }
 
@@ -297,7 +299,7 @@ impl<T: BatchOperation + 'static + Send + Sync> Batch<T> {
 					.instrument(tracing::debug_span!("Semaphore"))
 					.await
 					.map_err(|_| BatcherError::AcquireSemaphore)?;
-				Ok(inner.operation.process(self.ops).await.map_err(BatcherError::Batch)?)
+				inner.operation.process(self.ops).await.map_err(BatcherError::Batch)
 			})
 			.await;
 	}
@@ -411,14 +413,22 @@ impl<T: BatchOperation + 'static + Send + Sync> Batcher<T> {
 		}
 	}
 
+	#[tracing::instrument(skip_all, fields(name = %self.inner.name))]
 	pub async fn execute(&self, document: T::Item) -> Result<T::Response, BatcherError<T::Error>> {
-		let output = self.execute_many(std::iter::once(document)).await;
+		let output = self.internal_execute_many(std::iter::once(document)).await;
 		let iter = T::Mode::final_output_into_iter(output)?;
 		T::Mode::output_item_to_result(iter.into_iter().next().ok_or(BatcherError::MissingResult)?)
 	}
 
 	#[tracing::instrument(skip_all, fields(name = %self.inner.name))]
 	pub async fn execute_many(
+		&self,
+		documents: impl IntoIterator<Item = T::Item>,
+	) -> <T::Mode as BatchMode<T>>::FinalOutput {
+		self.internal_execute_many(documents).await
+	}
+
+	pub async fn internal_execute_many(
 		&self,
 		documents: impl IntoIterator<Item = T::Item>,
 	) -> <T::Mode as BatchMode<T>>::FinalOutput {

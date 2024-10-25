@@ -91,12 +91,14 @@ async fn main(settings: Matches<HttpServerSettings>) {
 	struct NoTlsService;
 
 	impl ServiceHandler for NormalService {
-		async fn on_request(&self, _: Request) -> Response {
-			Response::builder()
-				.status(StatusCode::OK)
-				.header("Alt-Svc", "h3=\":18080\"; ma=2592000")
-				.body("Hello, World!".into())
-				.unwrap()
+		fn on_request(&self, _: Request) -> impl std::future::Future<Output = impl IntoResponse> + Send {
+			std::future::ready(
+				Response::builder()
+					.status(StatusCode::OK)
+					.header("Alt-Svc", "h3=\":18080\"; ma=2592000")
+					.body(axum::body::Body::from("Hello, World!"))
+					.unwrap(),
+			)
 		}
 	}
 
@@ -144,11 +146,14 @@ async fn main(settings: Matches<HttpServerSettings>) {
 	}
 
 	impl MakeService for ServiceFactory {
-		async fn make_service(&self, incoming: &impl IncomingConnection) -> Option<AnyService> {
+		fn make_service(
+			&self,
+			incoming: &impl IncomingConnection,
+		) -> impl std::future::Future<Output = Option<impl ServiceHandler>> + Send {
 			if incoming.socket_kind() == SocketKind::Tcp {
-				Some(AnyService::NoTls(NoTlsService))
+				std::future::ready(Some(AnyService::NoTls(NoTlsService)))
 			} else {
-				Some(AnyService::Normal(NormalService))
+				std::future::ready(Some(AnyService::Normal(NormalService)))
 			}
 		}
 	}

@@ -39,7 +39,7 @@ mod datetime {
 		serializer: S,
 	) -> Result<S::Ok, S::Error> {
 		match value {
-			Some(value) => bson::DateTime::from(value.clone()).serialize(serializer),
+			Some(value) => bson::DateTime::from(*value).serialize(serializer),
 			None => None::<bson::DateTime>.serialize(serializer),
 		}
 	}

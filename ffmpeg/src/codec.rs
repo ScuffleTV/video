@@ -8,7 +8,7 @@ impl std::fmt::Debug for DecoderCodec {
 		if self.0.is_null() {
 			return f
 				.debug_struct("DecoderCodec")
-				.field("name", &std::ffi::CStr::from_bytes_with_nul(b"null\0").unwrap())
+				.field("name", &c"null")
 				.field("id", &AVCodecID::AV_CODEC_ID_NONE)
 				.finish();
 		}
@@ -67,7 +67,7 @@ impl std::fmt::Debug for EncoderCodec {
 		if self.0.is_null() {
 			return f
 				.debug_struct("EncoderCodec")
-				.field("name", &std::ffi::CStr::from_bytes_with_nul(b"null\0").unwrap())
+				.field("name", &c"null")
 				.field("id", &AVCodecID::AV_CODEC_ID_NONE)
 				.finish();
 		}

@@ -199,7 +199,7 @@ impl ImageResizer {
 				})
 				.collect(),
 			output::Resize::Scaling(scaling) => {
-				let (base_width, base_height) = match scaling.base.clone().ok_or(ResizeError::MissingResize)? {
+				let (base_width, base_height) = match scaling.base.ok_or(ResizeError::MissingResize)? {
 					scaling::Base::FixedBase(scale) => {
 						let input = cropped_dims.convert_aspect_ratio(target_aspect_ratio);
 

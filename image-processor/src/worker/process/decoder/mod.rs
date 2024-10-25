@@ -38,6 +38,8 @@ pub enum DecoderError {
 	TooManyFrames(i64),
 	#[error("exceeded maximum input duration: {0}")]
 	TooLong(i64),
+	#[error("malformed input")]
+	MalformedInput,
 }
 
 #[derive(Debug, Clone, Copy)]

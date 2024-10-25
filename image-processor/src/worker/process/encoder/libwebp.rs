@@ -38,25 +38,23 @@ impl WebpEncoder {
 
 		config.lossless = if settings.quality == OutputQuality::Lossless { 1 } else { 0 };
 		config.quality = match settings.quality {
-			OutputQuality::Auto => 90.0,
+			OutputQuality::Auto => 75.0,
 			OutputQuality::High => 95.0,
 			OutputQuality::Lossless => 100.0,
 			OutputQuality::Medium => 75.0,
 			OutputQuality::Low => 50.0,
 		};
+		config.alpha_quality = 100;
 		config.method = match settings.quality {
 			OutputQuality::Auto => 4,
-			OutputQuality::High => 4,
+			OutputQuality::High => 5,
 			OutputQuality::Lossless => 6,
 			OutputQuality::Medium => 3,
 			OutputQuality::Low => 2,
 		};
 		config.thread_level = 1;
-
-		wrap_error(
-			unsafe { libwebp_sys::WebPConfigInit(&mut config) },
-			"failed to initialize webp config",
-		)?;
+		config.qmin = 75;
+		config.qmax = 100;
 
 		let mut picture = SmartObject::new(zero_memory_default::<libwebp_sys::WebPPicture>(), |ptr| unsafe {
 			libwebp_sys::WebPPictureFree(ptr);
@@ -136,12 +134,6 @@ impl Encoder for WebpEncoder {
 							libwebp_sys::WebPAnimEncoderOptionsInit(&mut config),
 							"failed to initialize webp anim encoder options",
 						)?;
-
-						config.allow_mixed = 1;
-						// TOOD(troy): open a libwebp issue to report that images are being encoded
-						// incorrectly unless this is set to 1. However this forces every frame to be a
-						// keyframe and thus the size of the file is much larger.
-						config.kmax = 1;
 
 						config.anim_params.loop_count = match self.settings.loop_count {
 							LoopCount::Finite(count) => count as _,

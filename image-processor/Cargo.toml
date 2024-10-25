@@ -24,7 +24,7 @@ file-format = "0.25"
 scopeguard = "1.2"
 rgb = "0.8"
 imgref = "1.10"
-libavif-sys = { version = "0.17.0", features = ["codec-aom"], default-features = false }
+libavif-sys = { version = "0.17.0", features = ["codec-dav1d", "codec-rav1e"], default-features = false }
 libwebp-sys2 = { version = "0.1", features = ["1_2", "demux", "mux", "static"] }
 sha2 = "0.10"
 gifski = "1.13"

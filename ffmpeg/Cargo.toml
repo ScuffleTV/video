@@ -11,6 +11,7 @@ bytes = { optional = true, version = "1" }
 tokio = { optional = true, version = "1" }
 crossbeam-channel = { optional = true, version = "0.5" }
 tracing = { optional = true, version = "0.1" }
+arc-swap = { version = "1.7.1" }
 
 [features]
 default = []

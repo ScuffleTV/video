@@ -1,6 +1,7 @@
 use std::ffi::CStr;
-use std::sync::RwLock;
+use std::sync::Arc;
 
+use arc_swap::ArcSwap;
 use ffmpeg_sys_next::*;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -20,15 +21,15 @@ pub enum LogLevel {
 impl LogLevel {
 	pub const fn from_i32(value: i32) -> Self {
 		match value {
-			AV_LOG_QUIET => Self::Quiet,
-			AV_LOG_PANIC => Self::Panic,
-			AV_LOG_FATAL => Self::Fatal,
-			AV_LOG_ERROR => Self::Error,
-			AV_LOG_WARNING => Self::Warning,
-			AV_LOG_INFO => Self::Info,
-			AV_LOG_VERBOSE => Self::Verbose,
-			AV_LOG_DEBUG => Self::Debug,
-			AV_LOG_TRACE => Self::Trace,
+			-8 => Self::Quiet,
+			0 => Self::Panic,
+			8 => Self::Fatal,
+			16 => Self::Error,
+			24 => Self::Warning,
+			32 => Self::Info,
+			40 => Self::Verbose,
+			48 => Self::Debug,
+			56 => Self::Trace,
 			_ => Self::Info,
 		}
 	}
@@ -54,9 +55,9 @@ pub fn set_log_level(level: LogLevel) {
 	}
 }
 
-pub fn log_callback_set<F: Fn(LogLevel, Option<String>, String) + 'static>(callback: F) {
-	type Function = Box<dyn Fn(LogLevel, Option<String>, String)>;
-	static mut LOG_CALLBACK: RwLock<Option<Function>> = RwLock::new(None);
+pub fn log_callback_set<F: Fn(LogLevel, Option<String>, String) + Send + Sync + 'static>(callback: F) {
+	type Function = Box<dyn Fn(LogLevel, Option<String>, String) + Send + Sync>;
+	static LOG_CALLBACK: std::sync::OnceLock<ArcSwap<Option<Function>>> = std::sync::OnceLock::new();
 
 	unsafe extern "C" fn log_cb(
 		ptr: *mut libc::c_void,
@@ -80,11 +81,17 @@ pub fn log_callback_set<F: Fn(LogLevel, Option<String>, String) + 'static>(callb
 
 		let msg = CStr::from_ptr(buf.as_ptr() as *const i8).to_string_lossy().trim().to_owned();
 
-		(LOG_CALLBACK.read().unwrap().as_deref().unwrap())(level, class, msg)
+		if let Some(cb) = LOG_CALLBACK.get() {
+			if let Some(cb) = cb.load().as_ref() {
+				cb(level, class, msg);
+			}
+		}
 	}
 
 	unsafe {
-		*LOG_CALLBACK.write().unwrap() = Some(Box::new(callback));
+		LOG_CALLBACK
+			.get_or_init(|| ArcSwap::new(Arc::new(None)))
+			.store(Arc::new(Some(Box::new(callback))));
 		av_log_set_callback(Some(log_cb));
 	}
 }

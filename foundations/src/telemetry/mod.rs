@@ -7,7 +7,7 @@ pub use env_filter::{EnvFilter, EnvFilterBuilder};
 #[cfg(feature = "opentelemetry")]
 pub mod opentelemetry;
 
-#[cfg(any(feature = "pprof-cpu"))]
+#[cfg(feature = "pprof-cpu")]
 pub mod pprof;
 
 #[cfg(feature = "metrics")]

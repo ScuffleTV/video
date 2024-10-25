@@ -552,7 +552,7 @@ pub fn validate_input_metadata(mut fragment: Fragment, metadata: Option<&InputMe
 	})?;
 
 	match (metadata.static_frame_index, metadata.frame_count) {
-		(None, Some(frame_count)) if frame_count == 0 => {
+		(None, Some(0)) => {
 			return Err(Error {
 				code: ErrorCode::InvalidInput as i32,
 				message: format!("{}: frame_count must be non 0", fragment),

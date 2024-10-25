@@ -100,7 +100,7 @@ impl<'a> Iterator for StreamIter<'a> {
 	}
 }
 
-impl<'a> std::iter::ExactSizeIterator for StreamIter<'a> {}
+impl std::iter::ExactSizeIterator for StreamIter<'_> {}
 
 pub struct Stream<'a>(&'a mut AVStream, &'a AVFormatContext);
 

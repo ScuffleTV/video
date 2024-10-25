@@ -50,7 +50,7 @@ struct IncomingTcpConnection<'a> {
 	connection: &'a TcpStream,
 }
 
-impl<'a> IncomingConnection for IncomingTcpConnection<'a> {
+impl IncomingConnection for IncomingTcpConnection<'_> {
 	fn socket_kind(&self) -> SocketKind {
 		SocketKind::Tcp
 	}

@@ -12,6 +12,7 @@ use tracing::{span, Metadata};
 pub struct SpanNode {
 	pub id: span::Id,
 	pub status: Status,
+	pub name: Cow<'static, str>,
 	pub trace_id: TraceId,
 	pub mapped_id: SpanId,
 	pub metadata: &'static Metadata<'static>,
@@ -36,6 +37,7 @@ pub enum RootNode {
 #[derive(Debug, Clone)]
 pub struct SpanEvent {
 	pub time: std::time::SystemTime,
+	pub name: Cow<'static, str>,
 	pub metadata: &'static Metadata<'static>,
 	pub attributes: Vec<opentelemetry::KeyValue>,
 }
@@ -53,7 +55,7 @@ impl SpanEvent {
 		}
 		self.attributes.push(KeyValue::new("level", self.metadata.level().as_str()));
 
-		opentelemetry::trace::Event::new(self.metadata.name(), self.time, self.attributes, 0)
+		opentelemetry::trace::Event::new(self.name, self.time, self.attributes, 0)
 	}
 }
 
@@ -78,6 +80,7 @@ impl SpanNode {
 			trace_id: trace_id.unwrap_or_else(gen_trace_id),
 			mapped_id,
 			metadata: attrs.metadata(),
+			name: attrs.metadata().name().into(),
 			attributes: Vec::new(),
 			start: Some(std::time::SystemTime::now()),
 			end: None,
@@ -90,7 +93,7 @@ impl SpanNode {
 			root: root_child.map(RootNode::Child),
 		};
 
-		attrs.record(&mut FieldVisitor(&mut this.attributes));
+		attrs.record(&mut FieldVisitor(&mut this.attributes, &mut this.name));
 
 		this
 	}
@@ -118,8 +121,10 @@ impl SpanNode {
 
 	pub fn event(&mut self, event: &tracing::Event<'_>) {
 		let mut attributes = Vec::new();
-		event.record(&mut FieldVisitor(&mut attributes));
+		let mut name = event.metadata().name().into();
+		event.record(&mut FieldVisitor(&mut attributes, &mut name));
 		self.events.push(SpanEvent {
+			name,
 			metadata: event.metadata(),
 			time: std::time::SystemTime::now(),
 			attributes,
@@ -127,7 +132,7 @@ impl SpanNode {
 	}
 
 	pub fn record(&mut self, record: &span::Record<'_>) {
-		record.record(&mut FieldVisitor(&mut self.attributes));
+		record.record(&mut FieldVisitor(&mut self.attributes, &mut self.name));
 	}
 
 	pub fn follows_from(&mut self, id: SpanId, span: Option<&SpanNode>) {
@@ -273,7 +278,7 @@ impl SpanNode {
 		span.start_time = self.start.unwrap();
 		span.end_time = self.end.unwrap();
 		span.dropped_attributes_count = 0;
-		span.name = self.metadata.name().into();
+		span.name = self.name;
 		span.attributes = self.attributes;
 		span.parent_span_id = self.mapped_parent_id.unwrap_or(SpanId::INVALID);
 		span.span_context = SpanContext::new(self.trace_id, self.mapped_id, TraceFlags::SAMPLED, false, TraceState::NONE);
@@ -284,7 +289,7 @@ impl SpanNode {
 	}
 }
 
-struct FieldVisitor<'a>(&'a mut Vec<opentelemetry::KeyValue>);
+struct FieldVisitor<'a>(&'a mut Vec<opentelemetry::KeyValue>, &'a mut Cow<'static, str>);
 
 impl tracing::field::Visit for FieldVisitor<'_> {
 	fn record_bool(&mut self, field: &tracing::field::Field, value: bool) {
@@ -316,7 +321,11 @@ impl tracing::field::Visit for FieldVisitor<'_> {
 	}
 
 	fn record_str(&mut self, field: &tracing::field::Field, value: &str) {
-		self.0.push(KeyValue::new(field.name(), value.to_string()));
+		if field.name() == "name" {
+			*self.1 = format!("{}::{}", self.1, value).into();
+		} else {
+			self.0.push(KeyValue::new(field.name(), value.to_string()));
+		}
 	}
 
 	fn record_u128(&mut self, field: &tracing::field::Field, value: u128) {

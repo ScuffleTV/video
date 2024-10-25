@@ -173,8 +173,6 @@ pub struct StructArgs {
 
 impl Args for StructArgs {
 	fn apply_meta(&mut self, meta: &Meta) -> syn::Result<bool> {
-		match meta {
-			meta => self.global.apply_meta(meta),
-		}
+		self.global.apply_meta(meta)
 	}
 }

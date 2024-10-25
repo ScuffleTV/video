@@ -94,6 +94,10 @@ impl<'data> FfmpegDecoder<'data> {
 			}
 		}
 
+		if decoder.pixel_format() == scuffle_ffmpeg::ffi::AVPixelFormat::AV_PIX_FMT_NONE {
+			return Err(DecoderError::MalformedInput);
+		}
+
 		let scaler = scuffle_ffmpeg::scalar::Scalar::new(
 			decoder.width(),
 			decoder.height(),
@@ -168,14 +172,12 @@ impl Decoder for FfmpegDecoder<'_> {
 					.transpose()?;
 
 				if let Some(packet) = packet {
-					self.decoder.send_packet(&packet).map_err(|err| {
+					self.decoder.send_packet(&packet).inspect_err(|_| {
 						self.done = true;
-						err
 					})?;
 				} else {
-					self.decoder.send_eof().map_err(|err| {
+					self.decoder.send_eof().inspect_err(|_| {
 						self.done = true;
-						err
 					})?;
 					self.eof = true;
 				}
@@ -183,15 +185,13 @@ impl Decoder for FfmpegDecoder<'_> {
 				self.send_packet = false;
 			}
 
-			let frame = self.decoder.receive_frame().map_err(|err| {
+			let frame = self.decoder.receive_frame().inspect_err(|_| {
 				self.done = true;
-				err
 			})?;
 
 			if let Some(frame) = frame {
-				let frame = self.scaler.process(&frame).map_err(|err| {
+				let frame = self.scaler.process(&frame).inspect_err(|_| {
 					self.done = true;
-					err
 				})?;
 
 				// The frame has padding, so we need to copy the data.

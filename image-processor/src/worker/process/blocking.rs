@@ -112,7 +112,9 @@ struct BlockingTask<'a> {
 	loop_count: LoopCount,
 }
 
-fn split_formats(output: &Output) -> (Vec<(usize, &OutputFormatOptions)>, Vec<(usize, &OutputFormatOptions)>) {
+type IdxFormatOptions<'a> = (usize, &'a OutputFormatOptions);
+
+fn split_formats(output: &Output) -> (Vec<IdxFormatOptions>, Vec<IdxFormatOptions>) {
 	output
 		.formats
 		.iter()
@@ -173,7 +175,7 @@ impl<'a> BlockingTask<'a> {
 		}
 
 		let file_format = FileFormat::from_bytes(input);
-		let decoder = DecoderFrontend::from_format(file_format.clone())?.build(task, Cow::Borrowed(input))?;
+		let decoder = DecoderFrontend::from_format(file_format)?.build(task, Cow::Borrowed(input))?;
 
 		let decoder_info = decoder.info();
 

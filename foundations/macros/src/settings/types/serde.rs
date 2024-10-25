@@ -6,14 +6,14 @@ use syn::Meta;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RenameAll {
-	LowerCase,
-	UpperCase,
-	PascalCase,
-	CamelCase,
-	SnakeCase,
-	ScreamingSnakeCase,
-	KebabCase,
-	ScreamingKebabCase,
+	Lower,
+	Upper,
+	Pascal,
+	Camel,
+	Snake,
+	ScreamingSnake,
+	Kebab,
+	ScreamingKebab,
 }
 
 impl FromStr for RenameAll {
@@ -21,14 +21,14 @@ impl FromStr for RenameAll {
 
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
 		match s {
-			"lowercase" => Ok(Self::LowerCase),
-			"UPPERCASE" => Ok(Self::UpperCase),
-			"PascalCase" => Ok(Self::PascalCase),
-			"camelCase" => Ok(Self::CamelCase),
-			"snake_case" => Ok(Self::SnakeCase),
-			"SCREAMING_SNAKE_CASE" => Ok(Self::ScreamingSnakeCase),
-			"kebab-case" => Ok(Self::KebabCase),
-			"SCREAMING-KEBAB-CASE" => Ok(Self::ScreamingKebabCase),
+			"lowercase" => Ok(Self::Lower),
+			"UPPERCASE" => Ok(Self::Upper),
+			"PascalCase" => Ok(Self::Pascal),
+			"camelCase" => Ok(Self::Camel),
+			"snake_case" => Ok(Self::Snake),
+			"SCREAMING_SNAKE_CASE" => Ok(Self::ScreamingSnake),
+			"kebab-case" => Ok(Self::Kebab),
+			"SCREAMING-KEBAB-CASE" => Ok(Self::ScreamingKebab),
 			_ => Err(()),
 		}
 	}
@@ -57,14 +57,14 @@ impl RenameAll {
 
 	pub fn apply(&self, name: &str) -> String {
 		let case = match self {
-			Self::LowerCase => Case::Lower,
-			Self::UpperCase => Case::Upper,
-			Self::PascalCase => Case::Pascal,
-			Self::CamelCase => Case::Camel,
-			Self::SnakeCase => Case::Snake,
-			Self::ScreamingSnakeCase => Case::ScreamingSnake,
-			Self::KebabCase => Case::Kebab,
-			Self::ScreamingKebabCase => Case::UpperKebab,
+			Self::Lower => Case::Lower,
+			Self::Upper => Case::Upper,
+			Self::Pascal => Case::Pascal,
+			Self::Camel => Case::Camel,
+			Self::Snake => Case::Snake,
+			Self::ScreamingSnake => Case::ScreamingSnake,
+			Self::Kebab => Case::Kebab,
+			Self::ScreamingKebab => Case::UpperKebab,
 		};
 
 		name.to_case(case)
