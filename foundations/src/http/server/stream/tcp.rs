@@ -15,7 +15,7 @@ use tracing::Instrument;
 
 use super::{Backend, IncomingConnection, MakeService, ServiceHandler, SocketKind};
 use crate::context::ContextFutExt;
-use crate::http::server::stream::{jitter, ActiveRequestsGuard};
+use crate::http::server::stream::{is_fatal_tcp_error, jitter, ActiveRequestsGuard};
 #[cfg(feature = "runtime")]
 use crate::runtime::spawn;
 #[cfg(feature = "opentelemetry")]
@@ -83,8 +83,19 @@ impl Backend for TcpBackend {
 
 			tracing::trace!("waiting for incoming connection");
 
-			let Some((connection, addr)) = self.listener.accept().with_context(&ctx).await.transpose()? else {
+			let Some(stream) = self.listener.accept().with_context(&ctx).await else {
 				break;
+			};
+
+			let (connection, addr) = match stream {
+				Ok((connection, addr)) => (connection, addr),
+				Err(err) if is_fatal_tcp_error(&err) => {
+					return Err(err.into());
+				}
+				Err(err) => {
+					tracing::error!(err = %err, "failed to accept connection");
+					continue;
+				}
 			};
 
 			let span = tracing::trace_span!("connection", remote_addr = %addr);

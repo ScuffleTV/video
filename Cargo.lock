@@ -3963,6 +3963,7 @@ dependencies = [
  "hyper 1.5.0",
  "hyper-util",
  "itertools 0.13.0",
+ "libc",
  "matchers",
  "minijinja",
  "num_cpus",

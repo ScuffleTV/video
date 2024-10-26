@@ -177,3 +177,15 @@ impl ActiveRequestsGuard {
 		Self(active_requests)
 	}
 }
+
+fn is_fatal_tcp_error(err: &std::io::Error) -> bool {
+	matches!(
+		err.raw_os_error(),
+		Some(libc::EFAULT)
+			| Some(libc::EINVAL)
+			| Some(libc::ENFILE)
+			| Some(libc::EMFILE)
+			| Some(libc::ENOBUFS)
+			| Some(libc::ENOMEM)
+	)
+}
