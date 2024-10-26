@@ -13,9 +13,9 @@ pub struct FfmpegDecoder<'data> {
 	scaler: scuffle_ffmpeg::scalar::Scalar,
 	info: DecoderInfo,
 	input_stream_index: i32,
-	average_frame_duration: u64,
+	average_frame_duration_ts: u64,
 	duration_ms: i64,
-	previous_timestamp: Option<u64>,
+	previous_timestamp_ts: Option<u64>,
 	send_packet: bool,
 	eof: bool,
 	done: bool,
@@ -45,7 +45,7 @@ impl<'data> FfmpegDecoder<'data> {
 		let input_stream_index = input_stream.index();
 
 		let input_stream_time_base = input_stream.time_base();
-		let input_stream_duration = input_stream.duration().unwrap_or(0);
+		let input_stream_duration_ts = input_stream.duration().unwrap_or(0);
 		let input_stream_frames = input_stream.nb_frames().ok_or(DecoderError::NoFrameCount)?.max(1);
 
 		if input_stream_time_base.den == 0 || input_stream_time_base.num == 0 {
@@ -78,7 +78,7 @@ impl<'data> FfmpegDecoder<'data> {
 		}
 
 		let duration_ms =
-			(input_stream_duration * input_stream_time_base.num as i64 * 1000) / input_stream_time_base.den as i64;
+			(input_stream_duration_ts * input_stream_time_base.num as i64 * 1000) / input_stream_time_base.den as i64;
 
 		if duration_ms < 0 {
 			return Err(DecoderError::InvalidTimeBase);
@@ -113,14 +113,16 @@ impl<'data> FfmpegDecoder<'data> {
 			frame_count: input_stream_frames as usize,
 			// TODO: Support loop count from ffmpeg.
 			loop_count: LoopCount::Infinite,
-			timescale: input_stream_time_base.den as u64,
+			// TODO: This is a rough estimate of the timescale. We store it as a single integer but perhaps we should,
+			// store it as a fraction instead. Would require changes throughout the codebase.
+			timescale: (input_stream_time_base.den as f64 / input_stream_time_base.num as f64).round() as u64,
 		};
 
-		let average_frame_duration = (input_stream_duration / input_stream_frames) as u64;
+		let average_frame_duration_ts = (input_stream_duration_ts / input_stream_frames) as u64;
 
 		let frame = Frame {
 			image: Img::new(vec![RGBA8::default(); info.width * info.height], info.width, info.height),
-			duration_ts: average_frame_duration,
+			duration_ts: average_frame_duration_ts,
 		};
 
 		Ok(Self {
@@ -133,9 +135,9 @@ impl<'data> FfmpegDecoder<'data> {
 			eof: false,
 			send_packet: true,
 			frame,
-			average_frame_duration,
+			average_frame_duration_ts,
 			duration_ms,
-			previous_timestamp: Some(0),
+			previous_timestamp_ts: Some(0),
 		})
 	}
 }
@@ -209,13 +211,23 @@ impl Decoder for FfmpegDecoder<'_> {
 					}
 				}
 
-				let timestamp = frame
-					.best_effort_timestamp()
-					.and_then(|ts| if ts > 0 { Some(ts as u64) } else { None });
-				self.frame.duration_ts = timestamp
-					.map(|ts| ts - self.previous_timestamp.unwrap_or_default())
-					.unwrap_or(self.average_frame_duration);
-				self.previous_timestamp = timestamp;
+				fn map_num(num: i64) -> Option<u64> {
+					if num < 0 {
+						None
+					} else {
+						Some(num as u64)
+					}
+				}
+
+				let best_effort_ts = frame.best_effort_timestamp().and_then(map_num);
+
+				self.frame.duration_ts = frame.duration().and_then(map_num).or_else(|| {
+					let current_ts = best_effort_ts?;
+					let previous_ts = self.previous_timestamp_ts?;
+					Some(current_ts.checked_sub(previous_ts)?)
+				}).unwrap_or(self.average_frame_duration_ts);
+
+				self.previous_timestamp_ts = best_effort_ts;
 
 				return Ok(Some(self.frame.as_ref()));
 			} else if self.eof {
