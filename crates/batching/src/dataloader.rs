@@ -19,6 +19,7 @@ pub trait DataLoaderFetcher {
 #[must_use = "builders must be used to create a dataloader"]
 pub struct DataLoaderBuilder {
 	batch_size: usize,
+	concurrency: usize,
 	delay: std::time::Duration,
 }
 
@@ -32,8 +33,9 @@ impl DataLoaderBuilder {
 	/// Create a new builder
 	pub fn new() -> Self {
 		Self {
-			batch_size: 100,
-			delay: std::time::Duration::from_millis(50),
+			batch_size: 1000,
+			concurrency: 50,
+			delay: std::time::Duration::from_millis(5),
 		}
 	}
 
@@ -54,7 +56,7 @@ impl DataLoaderBuilder {
 	where
 		E: DataLoaderFetcher + Send + Sync + 'static,
 	{
-		DataLoader::new(executor, self.batch_size, self.delay)
+		DataLoader::new(executor, self.batch_size, self.concurrency, self.delay)
 	}
 }
 
@@ -78,8 +80,8 @@ where
 	E: DataLoaderFetcher + Send + Sync + 'static,
 {
 	/// Create a new dataloader
-	pub fn new(executor: E, batch_size: usize, delay: std::time::Duration) -> Self {
-		let semaphore = Arc::new(tokio::sync::Semaphore::new(batch_size.min(1)));
+	pub fn new(executor: E, batch_size: usize, concurrency: usize, delay: std::time::Duration) -> Self {
+		let semaphore = Arc::new(tokio::sync::Semaphore::new(concurrency.min(1)));
 		let notify = Arc::new(tokio::sync::Notify::new());
 		let current_batch = Arc::new(tokio::sync::Mutex::new(None));
 		let executor = Arc::new(executor);
@@ -92,7 +94,7 @@ where
 			notify,
 			semaphore,
 			current_batch,
-			batch_size,
+			batch_size: batch_size.min(1),
 			batch_id: AtomicU64::new(0),
 		}
 	}
@@ -117,7 +119,10 @@ where
 	///
 	/// Returns a map of keys to values which may be incomplete if any of the
 	/// keys were not found
-	pub async fn load_many(&self, items: impl IntoIterator<Item = E::Key>) -> Result<HashMap<E::Key, E::Value>, ()> {
+	pub async fn load_many<I>(&self, items: I) -> Result<HashMap<E::Key, E::Value>, ()>
+	where
+		for<'a> I: IntoIterator<Item = E::Key> + 'a + Send,
+	{
 		let mut batch = self.current_batch.lock().await;
 
 		struct BatchWaiting<K, V> {
