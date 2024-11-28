@@ -173,7 +173,7 @@ where
 	/// Execute many requests
 	pub async fn execute_many<I>(&self, items: I) -> Vec<Option<E::Response>>
 	where
-		for<'a> I: IntoIterator<Item = E::Request> + 'a + Send,
+		I: IntoIterator<Item = E::Request> + Send,
 	{
 		let mut batch = self.current_batch.lock().await;
 

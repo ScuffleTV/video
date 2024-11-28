@@ -121,7 +121,7 @@ where
 	/// keys were not found
 	pub async fn load_many<I>(&self, items: I) -> Result<HashMap<E::Key, E::Value>, ()>
 	where
-		for<'a> I: IntoIterator<Item = E::Key> + 'a + Send,
+		I: IntoIterator<Item = E::Key> + Send,
 	{
 		let mut batch = self.current_batch.lock().await;
 
