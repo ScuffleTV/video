@@ -123,6 +123,10 @@ where
 	where
 		I: IntoIterator<Item = E::Key> + Send,
 	{
+		// Currently we need to collect this into a hashset because of lifetime issues when holding a iterator over an await point.
+		// TODO(troy): explore if this can be avoided
+		let items = items.into_iter().collect::<HashSet<_>>();
+
 		let mut batch = self.current_batch.lock().await;
 
 		struct BatchWaiting<K, V> {

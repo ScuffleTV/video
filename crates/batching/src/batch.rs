@@ -173,8 +173,12 @@ where
 	/// Execute many requests
 	pub async fn execute_many<I>(&self, items: I) -> Vec<Option<E::Response>>
 	where
-		I: IntoIterator<Item = E::Request> + Send,
+		I: IntoIterator<Item = E::Request>,
 	{
+		// Currently we need to collect this into a vec because of lifetime issues when holding a iterator over an await point.
+		// TODO(troy): explore if this can be avoided
+		let items = items.into_iter().collect::<Vec<_>>();
+
 		let mut batch = self.current_batch.lock().await;
 
 		let mut responses = Vec::new();
