@@ -1,8 +1,8 @@
 # Contributor Covenant Code of Conduct
 
-This Code of Conduct applies to all of the projects under the [Scuffle organization on GitHub](https://github.com/orgs/ScuffleTV) and the Scuffle community at large (Twitter, YouTube etc.).
+This Code of Conduct applies to all of the projects under the [Scuffle organization on GitHub](https://github.com/scufflecloud) and the Scuffle community at large (Twitter, YouTube etc.).
 
-See the [contributing guidelines](https://github.com/ScuffleTV/scuffle/blob/main/CONTRIBUTING.md) for technical details of contributing to Scuffle or its satellite projects.
+See the [contributing guidelines](https://github.com/scufflecloud/scuffle/blob/main/CONTRIBUTING.md) for technical details of contributing to Scuffle or its satellite projects.
 
 ## Our Pledge
 
@@ -43,7 +43,7 @@ Examples of unacceptable behavior include:
 ## Enforcement Responsibilities
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported by contacting the Scuffle team at conduct@scuffle.tv. All
+reported by contacting the Scuffle team at conduct@scuffle.cloud. All
 complaints will be reviewed and investigated and will result in a response that
 is deemed necessary and appropriate to the circumstances. The Scuffle team
 will maintain confidentiality with regard to the reporter of an incident.

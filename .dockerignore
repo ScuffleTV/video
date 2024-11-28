@@ -1,6 +1,11 @@
+target/
 .vscode/
+!.vscode/extensions.json
 node_modules/
 .env*
-Dockerfile
-dev-stack/
-.dockerignore
+*.log
+.DS_Store
+*.lcov
+lcov.info
+local/
+coverage/

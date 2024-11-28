@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package scuffle.video.v1.types;
+
+// Rendition is the type of rendition of the video.
+enum Rendition {
+  // VIDEO_SOURCE is the original video file that was streamed.
+  VIDEO_SOURCE = 0;
+  // VIDEO_HD is the high definition rendition of the video.
+  VIDEO_HD = 1;
+  // VIDEO_SD is the standard definition rendition of the video.
+  VIDEO_SD = 2;
+  // VIDEO_LD is the low definition rendition of the video.
+  VIDEO_LD = 3;
+
+  // AUDIO_SOURCE is the original audio file that was streamed.
+  AUDIO_SOURCE = 4;
+}

@@ -1,0 +1,109 @@
+syntax = "proto3";
+
+package scuffle.video.v1;
+
+import "scuffle/video/v1/types/playback_session.proto";
+import "scuffle/video/v1/types/playback_session_target.proto";
+import "scuffle/types/ulid.proto";
+import "scuffle/video/v1/types/search_options.proto";
+
+// This service allows for the retrieval of playback sessions, as well as the
+// revocation of playback sessions. We also allow for the counting of playback
+// sessions to get a sense of how many playback sessions are active.
+service PlaybackSession {
+  // Get a list of playback sessions.
+  rpc Get(PlaybackSessionGetRequest) returns (PlaybackSessionGetResponse);
+
+  // Revoke playback sessions.
+  rpc Revoke(PlaybackSessionRevokeRequest)
+      returns (PlaybackSessionRevokeResponse);
+
+  // Count the number playback sessions.
+  rpc Count(PlaybackSessionCountRequest) returns (PlaybackSessionCountResponse);
+}
+
+// The request payload for PlaybackSession.Get.
+message PlaybackSessionGetRequest {
+  // A list of ids to retrieve. If empty, all playback sessions will be
+  // returned. If not empty, only the playback sessions with the specified ids
+  // will be returned. This will be filtered by the other options. (max: 100,
+  // min: 0)
+  repeated scuffle.types.Ulid ids = 1;
+
+  // Filter by the user id of the playback session. (this is the value specified
+  // when you create a playback session)
+  optional string user_id = 2;
+
+  // Filter by if the playback session was authorized or not.
+  optional bool authorized = 4;
+
+  // Filter by the ip address of the playback session.
+  optional string ip_address = 3;
+
+  // Filter by the playback key pair that was used to create the playback
+  // session. This implies that the playback session was authorized.
+  optional scuffle.types.Ulid playback_key_pair_id = 7;
+
+  // Filter by the target of the playback session.
+  optional types.PlaybackSessionTarget target = 5;
+
+  // The options to use when searching for playback sessions.
+  optional types.SearchOptions search_options = 6;
+}
+
+// The response payload for PlaybackSession.Get.
+message PlaybackSessionGetResponse {
+  // The list of playback sessions that were retrieved.
+  repeated types.PlaybackSession sessions = 1;
+}
+
+// The request payload for PlaybackSession.Revoke.
+message PlaybackSessionRevokeRequest {
+  // A list of ids to revoke. If empty, one of the other options must be
+  // specified. If ids are provided only the playback sessions with the
+  // specified ids will be revoked. This will be filtered by the other options.
+  // Meaning, if you specify 10 ids here and specify a user_id, only the
+  // playback sessions with the specified ids and user_id will be revoked. (max:
+  // 100)
+  repeated scuffle.types.Ulid ids = 1;
+
+  // Revoke all playback sessions for the specified user id.
+  optional string user_id = 2;
+
+  // Revoke all playback sessions for the specified target.
+  optional types.PlaybackSessionTarget target = 3;
+
+  // Revoke all playback sessions that are authorized or not authorized.
+  // Cannot be used with user_id.
+  optional bool authorized = 4;
+
+  // Revoke all playback sessions that were created before the specified
+  // timestamp.
+  optional int64 before = 5;
+}
+
+// The response payload for PlaybackSession.Revoke.
+message PlaybackSessionRevokeResponse {
+  // The number of playback sessions that were revoked.
+  uint64 revoked = 1;
+}
+
+// The request payload for PlaybackSession.Count.
+message PlaybackSessionCountRequest {
+  // Filter by the user id of the playback session or the target of the playback
+  // session.
+  oneof filter {
+    string user_id = 1;
+    types.PlaybackSessionTarget target = 2;
+  }
+}
+
+// The response payload for PlaybackSession.Count.
+message PlaybackSessionCountResponse {
+  // The number of playback sessions that were counted.
+  uint64 count = 1;
+  // The number of playback sessions that were deduplicated.
+  // This will deduplicate the playback sessions by the user id or ip address if
+  // no user id is specified.
+  uint64 deduplicated_count = 2;
+}

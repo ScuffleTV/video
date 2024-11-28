@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package scuffle.video.v1.types;
+
+import "scuffle/video/v1/types/rendition.proto";
+
+// A video configuration contains a friendly name, as well as the
+// bitrate, fps, height, width and codec of the video.
+message VideoConfig {
+  // The rendition of the video configuration.
+  Rendition rendition = 1;
+  // The bitrate of the video.
+  int64 bitrate = 2;
+  // The fps of the video.
+  int32 fps = 3;
+  // The height of the video.
+  int32 height = 4;
+  // The width of the video.
+  int32 width = 5;
+  // The codec of the video.
+  string codec = 6;
+}

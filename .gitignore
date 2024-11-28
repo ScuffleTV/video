@@ -8,3 +8,4 @@ node_modules/
 *.lcov
 lcov.info
 local/
+coverage/

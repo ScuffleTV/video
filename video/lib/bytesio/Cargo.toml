@@ -1,0 +1,22 @@
+[package]
+name = "bytesio"
+version = "0.0.1"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[features]
+tokio = ["dep:tokio-util", "dep:tokio-stream", "dep:tokio", "dep:futures", "dep:scuffle-utils"]
+default = ["tokio"]
+
+[dependencies]
+byteorder = "1.5"
+bytes = "1.5"
+
+futures = { version = "0.3", optional = true }
+tokio-util = { version = "0.7", features = ["codec"], optional = true  }
+tokio-stream = { version = "0.1", optional = true  }
+tokio = { version = "1.36", optional = true  }
+scuffle-utils = { workspace = true, default-features = false, features = ["prelude"], optional = true  }
+
+[dev-dependencies]
+tokio = { version = "1.36", features = ["full"] }

@@ -1,0 +1,270 @@
+syntax = "proto3";
+
+package scuffle.video.v1.types;
+
+import "scuffle/types/ulid.proto";
+
+// An event that occurred and is sent to the client via the event stream.
+message Event {
+  // A recording event.
+  message Recording {
+    // The ULID of the recording that this event is for.
+    scuffle.types.Ulid recording_id = 1;
+
+    // A recording was started.
+    message Started {
+      // The room id that the recording is for.
+      scuffle.types.Ulid room_id = 1;
+      // The recording config that the recording is using.
+      scuffle.types.Ulid recording_config_id = 2;
+    }
+
+    // If the recording was completed.
+    // Emitted when the recording has finished after the room has disconnected.
+    message Finished {}
+
+    // If the recording was modified.
+    // Emitted when the recording has been modified, this is when an API request
+    // modifies the recording.
+    message Modified {}
+
+    // If the recording has started to be deleted.
+    // Emitted when the recording has been deleted, this is when an API request
+    // deletes the recording or the recording has been deleted due to a
+    // lifecycle policy.
+    message Deleted {
+      message Started {
+        // If the delete was automatically started due to a recording_config
+        // lifecycle policy. The recording config id will be populated if this
+        // is true.
+        optional scuffle.types.Ulid recording_config_id = 1;
+      }
+
+      message Finished {}
+
+      message Failed {
+        // The error that occurred.
+        // Typically this is because the S3 bucket credentials are invalid.
+        string error = 1;
+      }
+
+      // The event that occurred.
+      oneof event {
+        Started started = 2;
+        Finished finished = 3;
+        Failed failed = 4;
+      }
+    }
+
+    // If the recording failed to be created.
+    // Emitted when the recording has failed to be created. This is usually when
+    // s3 bucket credentials are invalid.
+    message Failed {
+      // The error that occurred.
+      string error = 1;
+    }
+
+    // The event that occurred.
+    oneof event {
+      Started started = 2;
+      Finished finished = 3;
+      Modified modified = 4;
+      Deleted deleted = 5;
+      Failed failed = 6;
+    }
+  }
+
+  // A room event.
+  message Room {
+    // The ULID of the room that this event is for.
+    scuffle.types.Ulid room_id = 1;
+
+    message Created {}
+
+    // If the room was connected to.
+    // ie. the room went live.
+    message Connected {
+      // The ULID of the connection that was connected.
+      // This is a unique identifier for the connection.
+      scuffle.types.Ulid connection_id = 1;
+    }
+
+    // If the room was disconnected from.
+    message Disconnected {
+      // The ULID of the connection that was disconnected.
+      scuffle.types.Ulid connection_id = 1;
+      // If the disconnection was clean. Meaning the client disconnected and it
+      // was handled gracefully.
+      bool clean = 2;
+      // The cause of the disconnection.
+      optional string cause = 3;
+    }
+
+    // If the room is ready to be watched.
+    message Ready {
+      // The ULID of the connection that is ready.
+      scuffle.types.Ulid connection_id = 1;
+    }
+
+    // If the room was deleted.
+    message Deleted {}
+
+    // If the room was modified.
+    message Modified {}
+
+    // If the room failed to be go live.
+    message Failed {
+      scuffle.types.Ulid connection_id = 1;
+      // The error that occurred.
+      string error = 2;
+    }
+
+    // If the transcoder was disconnected.
+    message TranscoderDisconnected {
+      // The ULID of the connection that the transcoder was disconnected from.
+      scuffle.types.Ulid connection_id = 1;
+      // If the disconnection was clean. Meaning everything was transferred
+      // correctly.
+      bool clean = 2;
+    }
+
+    // The event that occurred.
+    oneof event {
+      Created created = 2;
+      Connected connected = 3;
+      Disconnected disconnected = 4;
+      Ready ready = 5;
+      Deleted deleted = 6;
+      Modified modified = 7;
+      Failed failed = 8;
+      TranscoderDisconnected transcoder_disconnected = 9;
+    }
+  }
+
+  // An access_token event.
+  message AccessToken {
+    // The ULID of the access_token that this event is for.
+    scuffle.types.Ulid access_token_id = 1;
+
+    // If the access_token was created.
+    message Created {}
+
+    // If the access_token was deleted.
+    message Deleted {}
+
+    // If the access_token was modified.
+    message Modified {}
+
+    // The event that occurred.
+    oneof event {
+      Created created = 2;
+      Deleted deleted = 3;
+      Modified modified = 4;
+    }
+  }
+
+  // A playback key pair event.
+  message PlaybackKeyPair {
+    // The ULID of the playback key pair that this event is for.
+    scuffle.types.Ulid playback_key_pair_id = 1;
+
+    // If the playback key pair was created.
+    message Created {}
+
+    // If the playback key pair was deleted.
+    message Deleted {}
+
+    // If the playback key pair was modified.
+    message Modified {}
+
+    // The event that occurred.
+    oneof event {
+      Created created = 2;
+      Deleted deleted = 3;
+      Modified modified = 4;
+    }
+  }
+
+  // A recording config event.
+  message RecordingConfig {
+    // The ULID of the recording config that this event is for.
+    scuffle.types.Ulid recording_config_id = 1;
+
+    // If the recording config was created.
+    message Created {}
+
+    // If the recording config was deleted.
+    message Deleted {}
+
+    // If the recording config was modified.
+    message Modified {}
+
+    // The event that occurred.
+    oneof event {
+      Created created = 2;
+      Deleted deleted = 3;
+      Modified modified = 4;
+    }
+  }
+
+  // A transcoding config event.
+  message TranscodingConfig {
+    // The ULID of the transcoding config that this event is for.
+    scuffle.types.Ulid transcoding_config_id = 1;
+
+    // If the transcoding config was created.
+    message Created {}
+
+    // If the transcoding config was deleted.
+    message Deleted {}
+
+    // If the transcoding config was modified.
+    message Modified {}
+
+    // The event that occurred.
+    oneof event {
+      Created created = 2;
+      Deleted deleted = 3;
+      Modified modified = 4;
+    }
+  }
+
+  // S3 Bucket event.
+  message S3Bucket {
+    // The ULID of the S3 Buckets that this event is for.
+    scuffle.types.Ulid s3_bucket_id = 1;
+
+    // If the S3 Buckets was created.
+    message Created {}
+
+    // If the S3 Buckets was deleted.
+    message Deleted {}
+
+    // If the S3 Buckets was modified.
+    message Modified {}
+
+    // The event that occurred.
+    oneof event {
+      Created created = 2;
+      Deleted deleted = 3;
+      Modified modified = 4;
+    }
+  }
+
+  // The timestamp of the event. In milliseconds since the UNIX epoch.
+  int64 timestamp = 1;
+
+  // The ULID of the event. This is a unique identifier for the event.
+  // Used for acknowledge the event.
+  scuffle.types.Ulid event_id = 2;
+
+  oneof event {
+    Recording recording = 3;
+    Room room = 4;
+    AccessToken access_token = 5;
+    PlaybackKeyPair playback_key_pair = 6;
+    RecordingConfig recording_config = 7;
+    TranscodingConfig transcoding_config = 8;
+    S3Bucket s3_bucket = 9;
+  }
+}

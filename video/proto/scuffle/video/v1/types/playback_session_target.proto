@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package scuffle.video.v1.types;
+
+import "scuffle/types/ulid.proto";
+
+// PlaybackSessionTarget is a union type that can be either a room name or a
+// recording id
+message PlaybackSessionTarget {
+  // Either a room name or recording id
+  oneof target {
+    scuffle.types.Ulid room_id = 1;
+    scuffle.types.Ulid recording_id = 2;
+  }
+}

@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package scuffle.video.v1.types;
+
+import "scuffle/types/ulid.proto";
+import "scuffle/video/v1/types/rendition.proto";
+import "scuffle/video/v1/types/tags.proto";
+import "scuffle/video/v1/types/visibility.proto";
+
+// A recording is a collection of renditions of a recorded room.
+// It created when a room is goes live using and contains a recording
+// configuration. and is deleted manually or by a lifecycle policy.
+message Recording {
+  // Unique ID of the recording
+  scuffle.types.Ulid id = 1;
+
+  // The id of the room that was recorded
+  optional scuffle.types.Ulid room_id = 2;
+
+  // The id of the recording configuration that was used
+  optional scuffle.types.Ulid recording_config_id = 3;
+
+  // The id of the S3 bucket that the recording is stored in
+  scuffle.types.Ulid s3_bucket_id = 4;
+
+  // The renditions of the recording
+  // If a lifecycle policy has removed some of the renditions, they will not be
+  // included here. If a lifecycle policy has removed all renditions this
+  // recording object will be deleted.
+  repeated Rendition renditions = 5;
+
+  // The visibility of the recording
+  Visibility visibility = 6;
+
+  // The size of the recording in bytes
+  // If the recording is not finished, this will be the current size of the
+  // recording that is saved. If the recording has been deleted, this will be 0.
+  int64 byte_size = 7;
+
+  // The duration of the recording in seconds
+  // If the recording is not finished, this will be the current duration
+  // of the recording that is saved. if the recording has been deleted, this
+  // will be 0.
+  float duration = 8;
+
+  // The time the recording was created
+  int64 created_at = 9;
+
+  // When the recording was last modified
+  int64 updated_at = 10;
+
+  // The time the recording was finished
+  optional int64 ended_at = 11;
+
+  // The time the recording was deleted
+  optional int64 deleted_at = 12;
+
+  // The tags associated with the recording
+  Tags tags = 13;
+}

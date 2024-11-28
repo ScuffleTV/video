@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package scuffle.image_processor;
+
+import "scuffle/image_processor/types.proto";
+
+message EventCallback {
+    message Success {
+        string drive = 1;
+        repeated OutputFile files = 2;
+        InputFileMetadata input_metadata = 3;
+    }
+
+    message Fail {
+        Error error = 1;
+    }
+
+    message Cancel {}
+
+    message Start {}
+
+    string id = 1;
+    uint64 timestamp = 2;
+    map<string, string> metadata = 3;
+
+    oneof event {
+        Success success = 4;
+        Fail fail = 5;
+        Cancel cancel = 6;
+        Start start = 7;
+    }
+}

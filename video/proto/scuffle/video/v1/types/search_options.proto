@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package scuffle.video.v1.types;
+
+import "scuffle/types/ulid.proto";
+import "scuffle/video/v1/types/tags.proto";
+
+// SearchOptions are the options for searching
+message SearchOptions {
+  // The number of recording to return. (default 100, max 1000)
+  int32 limit = 1;
+
+  // The id to start from (exclusive)
+  optional scuffle.types.Ulid after_id = 2;
+
+  // The tags to filter by.
+  // If multiple tags are provided, they will be combined with AND.
+  // If the object does not support tags, this will be ignored.
+  optional Tags tags = 3;
+
+  // Whether to reverse the order of the results.
+  // Results are usually sorted by time, ascending. (oldest first)
+  bool reverse = 4;
+}

@@ -1,0 +1,32 @@
+[package]
+name = "scuffle-image-processor-proto"
+version = "0.0.0"
+edition = "2021"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/scuffle-image-processor-proto"
+license = "MIT OR Apache-2.0"
+description = "Protocol buffers for the Image Processor service."
+keywords = ["protobuf", "grpc", "image", "processor"]
+
+[dependencies]
+prost = "0.13"
+tonic = "0.12"
+pbjson = { version = "0.7", optional = true }
+serde = { version = "1.0", optional = true }
+
+[build-dependencies]
+prost-build = "0.13"
+tonic-build = "0.12"
+pbjson-build = { version = "0.7", optional = true }
+
+[features]
+server = []
+client = []
+serde = [
+    "dep:serde",
+    "pbjson-build",
+    "pbjson",
+]
+

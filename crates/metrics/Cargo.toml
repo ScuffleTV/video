@@ -1,0 +1,26 @@
+[package]
+name = "scuffle-metrics"
+version = "0.0.0"
+edition = "2021"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/scuffle-metrics"
+license = "MIT OR Apache-2.0"
+description = "Helper crate to instrument your code with metrics."
+keywords = ["metrics", "prometheus", "opentelemetry"]
+
+[dependencies]
+thiserror = "2"
+prometheus = { version = "0.13", optional = true }
+opentelemetry = { version = "0.27.0", default-features = false, features = ["metrics"] }
+opentelemetry_sdk = { version = "0.27.0", default-features = false, features = ["metrics"] }
+itoa = "1"
+ryu = "1"
+# Prometheus uses protobuf 2.x, so we need to use the same version.
+protobuf = { version = "^2", optional = true }
+scuffle-metrics-derive = { version = "0.0.0", path = "./derive" }
+
+[features]
+prometheus = ["dep:prometheus", "protobuf"]
+default = ["prometheus"]

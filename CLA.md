@@ -1,6 +1,6 @@
-### Scuffle Individual Contributor License Agreement
+# Scuffle Individual Contributor License Agreement
 
-Thank you for your interest in contributing to open source software projects (“Projects”) made available by Scuffle or its affiliates (“ScuffleTV”). This Individual Contributor License Agreement (“Agreement”) sets out the terms governing any source code, object code, bug fixes, configuration changes, tools, specifications, documentation, data, materials, feedback, information or other works of authorship that you submit or have submitted, in any form and in any manner, to Scuffle in respect of any of the Projects (collectively “Contributions”). If you have any questions respecting this Agreement, please contact opensource@scuffle.tv.
+Thank you for your interest in contributing to open source software projects (“Projects”) made available by Scuffle or its affiliates (“Scuffle”). This Individual Contributor License Agreement (“Agreement”) sets out the terms governing any source code, object code, bug fixes, configuration changes, tools, specifications, documentation, data, materials, feedback, information or other works of authorship that you submit or have submitted, in any form and in any manner, to Scuffle in respect of any of the Projects (collectively “Contributions”). If you have any questions respecting this Agreement, please contact opensource@scuffle.cloud.
 
 You agree that the following terms apply to all of your past, present and future Contributions. Except for the licenses granted in this Agreement, you retain all of your right, title and interest in and to your Contributions.
 

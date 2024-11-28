@@ -1,0 +1,20 @@
+[package]
+name = "scuffle-bootstrap-derive"
+version = "0.0.0"
+edition = "2021"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/scuffle-bootstrap-derive"
+license = "MIT OR Apache-2.0"
+description = "Derive macros for scuffle-bootstrap."
+keywords = ["bootstrap", "derive", "macros"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "2"
+proc-macro2 = "1"
+quote = "1"
+darling = "0.20"

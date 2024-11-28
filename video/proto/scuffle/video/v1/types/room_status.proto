@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package scuffle.video.v1.types;
+
+enum RoomStatus {
+  ROOM_STATUS_OFFLINE = 0;
+  ROOM_STATUS_WAITING_FOR_TRANSCODER = 1;
+  ROOM_STATUS_READY = 2;
+}

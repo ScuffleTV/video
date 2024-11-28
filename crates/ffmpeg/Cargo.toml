@@ -1,0 +1,27 @@
+[package]
+name = "scuffle-ffmpeg"
+version = "0.0.0"
+edition = "2021"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/scuffle-ffmpeg"
+license = "MIT OR Apache-2.0"
+description = "FFmpeg bindings for Rust."
+keywords = ["ffmpeg", "video", "audio", "media"]
+
+[dependencies]
+ffmpeg-sys-next = "7.1.0"
+libc = "0.2"
+bytes = { optional = true, version = "1.8.0" }
+tokio = { optional = true, version = "1.41.1" }
+crossbeam-channel = { optional = true, version = "0.5.13" }
+tracing = { optional = true, version = "0.1.40" }
+arc-swap = { version = "1.7.1" }
+
+[features]
+default = []
+channel = ["dep:bytes"]
+tokio-channel = ["channel", "dep:tokio"]
+crossbeam-channel = ["channel", "dep:crossbeam-channel"]
+tracing = ["dep:tracing"]

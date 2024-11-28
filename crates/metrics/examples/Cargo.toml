@@ -1,0 +1,24 @@
+[package]
+name = "scuffle-metrics-examples"
+version = "0.0.0"
+edition = "2021"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+
+[[example]]
+name = "scuffle-metrics-derive"
+path = "src/derive.rs"
+
+[[example]]
+name = "scuffle-metrics-prometheus"
+path = "src/prometheus.rs"
+
+[dependencies]
+scuffle-metrics = { path = "../" }
+opentelemetry-stdout = "0.27.0"
+opentelemetry_sdk = { version = "0.27.0", features = ["rt-tokio"] }
+opentelemetry = "0.27.0"
+prometheus = "0.13"
+tokio = { version = "1", features = ["full"] }

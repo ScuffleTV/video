@@ -1,174 +1,83 @@
-use crate::{
-    connection_manager::{GrpcRequest, WatchStreamEvent},
-    global::GlobalState,
-    pb::scuffle::video::{
-        ingest_server, transcoder_event_request, watch_stream_response, ShutdownStreamRequest,
-        ShutdownStreamResponse, TranscoderEventRequest, TranscoderEventResponse,
-        WatchStreamRequest, WatchStreamResponse,
-    },
-};
-use std::{
-    pin::Pin,
-    sync::{Arc, Weak},
-};
+use std::pin::Pin;
+use std::sync::{Arc, Weak};
+use std::time::Duration;
 
 use async_stream::try_stream;
-use futures::Stream;
-use tokio::sync::mpsc;
-use tonic::{async_trait, Request, Response, Status};
-use uuid::Uuid;
+use futures_util::Stream;
+use pb::ext::UlidExt;
+use pb::scuffle::video::internal::{ingest_server, ingest_watch_request, IngestWatchRequest, IngestWatchResponse};
+use scuffle_utils::prelude::FutureTimeout;
+use tonic::{async_trait, Request, Response, Status, Streaming};
 
-pub struct IngestServer {
-    global: Weak<GlobalState>,
+use crate::global::{IncomingTranscoder, IngestGlobal};
+
+pub struct IngestServer<G: IngestGlobal> {
+	global: Weak<G>,
 }
 
-impl IngestServer {
-    pub fn new(global: &Arc<GlobalState>) -> Self {
-        Self {
-            global: Arc::downgrade(global),
-        }
-    }
+impl<G: IngestGlobal> IngestServer<G> {
+	pub fn new(global: &Arc<G>) -> ingest_server::IngestServer<Self> {
+		ingest_server::IngestServer::new(Self {
+			global: Arc::downgrade(global),
+		})
+	}
 }
 
 type Result<T> = std::result::Result<T, Status>;
 
 #[async_trait]
-impl ingest_server::Ingest for IngestServer {
-    type WatchStreamStream =
-        Pin<Box<dyn Stream<Item = Result<WatchStreamResponse>> + 'static + Send>>;
+impl<G: IngestGlobal> ingest_server::Ingest for IngestServer<G> {
+	/// Server streaming response type for the Watch method.
+	type WatchStream = Pin<Box<dyn Stream<Item = Result<IngestWatchResponse>> + Send + Sync>>;
 
-    async fn watch_stream(
-        &self,
-        request: Request<WatchStreamRequest>,
-    ) -> Result<Response<Self::WatchStreamStream>> {
-        let global = self
-            .global
-            .upgrade()
-            .ok_or_else(|| Status::internal("Global state is gone"))?;
+	async fn watch(&self, request: Request<Streaming<IngestWatchRequest>>) -> Result<Response<Self::WatchStream>> {
+		let global = self
+			.global
+			.upgrade()
+			.ok_or_else(|| Status::internal("Global state was dropped, cannot handle ingest request"))?;
 
-        let request = request.into_inner();
+		let mut request = request.into_inner();
 
-        let request_id = Uuid::parse_str(&request.request_id)
-            .map_err(|_| Status::invalid_argument("Invalid request ID"))?;
-        let stream_id = Uuid::parse_str(&request.stream_id)
-            .map_err(|_| Status::invalid_argument("Invalid stream ID"))?;
+		let Some(message) = request.message().await? else {
+			return Err(Status::invalid_argument("No message provided"));
+		};
 
-        let (channel_tx, mut channel_rx) = mpsc::channel(256);
+		let open_req = match &message.message {
+			Some(ingest_watch_request::Message::Open(message)) => message,
+			Some(_) => return Err(Status::invalid_argument("Invalid message type")),
+			None => return Err(Status::invalid_argument("No message provided")),
+		};
 
-        let request = GrpcRequest::WatchStream {
-            id: request_id,
-            channel: channel_tx,
-        };
+		let ulid = open_req.request_id.into_ulid();
 
-        if !global
-            .connection_manager
-            .submit_request(stream_id, request)
-            .await
-        {
-            return Err(Status::not_found("Stream not found"));
-        }
+		let Some(handler) = global.requests().lock().await.remove(&ulid) else {
+			return Err(Status::not_found("No ingest request found with that UUID"));
+		};
 
-        let output = try_stream!({
-            while let Some(event) = channel_rx.recv().await {
-                let event = match event {
-                    WatchStreamEvent::InitSegment(data) => WatchStreamResponse {
-                        data: Some(watch_stream_response::Data::InitSegment(data)),
-                    },
-                    WatchStreamEvent::MediaSegment(ms) => WatchStreamResponse {
-                        data: Some(watch_stream_response::Data::MediaSegment(
-                            watch_stream_response::MediaSegment {
-                                data: ms.data,
-                                keyframe: ms.keyframe,
-                                timestamp: ms.timestamp,
-                                data_type: match ms.ty {
-                                    transmuxer::MediaType::Audio => {
-                                        watch_stream_response::media_segment::DataType::Audio.into()
-                                    }
-                                    transmuxer::MediaType::Video => {
-                                        watch_stream_response::media_segment::DataType::Video.into()
-                                    }
-                                },
-                            },
-                        )),
-                    },
-                    WatchStreamEvent::ShuttingDown(stream_shutdown) => WatchStreamResponse {
-                        data: Some(watch_stream_response::Data::ShuttingDown(stream_shutdown)),
-                    },
-                };
+		let (tx, mut rx) = tokio::sync::mpsc::channel(16);
 
-                yield event;
-            }
-        });
+		handler
+			.send(IncomingTranscoder {
+				ulid,
+				message,
+				streaming: request,
+				transcoder: tx,
+			})
+			.await
+			.map_err(|_| Status::internal("Failed to send request to handler"))?;
 
-        Ok(Response::new(Box::pin(output)))
-    }
+		let Ok(Some(message)) = rx.recv().timeout(Duration::from_secs(1)).await else {
+			return Err(Status::internal("Failed to receive response from handler"));
+		};
 
-    async fn transcoder_event(
-        &self,
-        request: Request<TranscoderEventRequest>,
-    ) -> Result<Response<TranscoderEventResponse>> {
-        let global = self
-            .global
-            .upgrade()
-            .ok_or_else(|| Status::internal("Global state is gone"))?;
+		let output = try_stream!({
+			yield message;
 
-        let request = request.into_inner();
+			while let Some(message) = rx.recv().await {
+				yield message;
+			}
+		});
 
-        let request_id = Uuid::parse_str(&request.request_id)
-            .map_err(|_| Status::invalid_argument("Invalid request ID"))?;
-        let stream_id = Uuid::parse_str(&request.stream_id)
-            .map_err(|_| Status::invalid_argument("Invalid stream ID"))?;
-
-        let request = match request.event {
-            Some(transcoder_event_request::Event::Started(_)) => {
-                GrpcRequest::TranscoderStarted { id: request_id }
-            }
-            Some(transcoder_event_request::Event::ShuttingDown(_)) => {
-                GrpcRequest::TranscoderShuttingDown { id: request_id }
-            }
-            Some(transcoder_event_request::Event::Error(error)) => GrpcRequest::TranscoderError {
-                id: request_id,
-                message: error.message,
-                fatal: error.fatal,
-            },
-            None => return Err(Status::invalid_argument("Invalid event")),
-        };
-
-        if !global
-            .connection_manager
-            .submit_request(stream_id, request)
-            .await
-        {
-            return Err(Status::not_found("Stream not found"));
-        }
-
-        Ok(Response::new(TranscoderEventResponse {}))
-    }
-
-    async fn shutdown_stream(
-        &self,
-        request: Request<ShutdownStreamRequest>,
-    ) -> Result<Response<ShutdownStreamResponse>> {
-        let global = self
-            .global
-            .upgrade()
-            .ok_or_else(|| Status::internal("Global state is gone"))?;
-
-        let request = request.into_inner();
-
-        let stream_id = Uuid::parse_str(&request.stream_id)
-            .map_err(|_| Status::invalid_argument("Invalid stream ID"))?;
-
-        let request = GrpcRequest::ShutdownStream;
-
-        if !global
-            .connection_manager
-            .submit_request(stream_id, request)
-            .await
-        {
-            return Err(Status::not_found("Stream not found"));
-        }
-
-        Ok(Response::new(ShutdownStreamResponse {}))
-    }
+		Ok(Response::new(Box::pin(output)))
+	}
 }

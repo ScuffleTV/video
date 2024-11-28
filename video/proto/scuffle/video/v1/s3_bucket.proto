@@ -1,0 +1,159 @@
+syntax = "proto3";
+
+package scuffle.video.v1;
+
+import "scuffle/video/v1/types/s3_bucket.proto";
+import "scuffle/types/ulid.proto";
+import "scuffle/video/v1/types/tags.proto";
+import "scuffle/video/v1/types/search_options.proto";
+import "scuffle/video/v1/types/failed_resource.proto";
+
+// This service allows for creating, modifying, and deleting s3 buckets.
+service S3Bucket {
+  // Get a list of s3 buckets.
+  rpc Get(S3BucketGetRequest) returns (S3BucketGetResponse);
+
+  // Create a new s3 bucket.
+  rpc Create(S3BucketCreateRequest) returns (S3BucketCreateResponse);
+
+  // Modify an existing s3 bucket.
+  rpc Modify(S3BucketModifyRequest) returns (S3BucketModifyResponse);
+
+  // Delete existing s3 buckets.
+  rpc Delete(S3BucketDeleteRequest) returns (S3BucketDeleteResponse);
+
+  // Tag an existing s3 bucket.
+  rpc Tag(S3BucketTagRequest) returns (S3BucketTagResponse);
+
+  // Untag an existing s3 bucket.
+  rpc Untag(S3BucketUntagRequest) returns (S3BucketUntagResponse);
+}
+
+// The request payload for S3Bucket.Get.
+message S3BucketGetRequest {
+  // A list of ids to retrieve. If empty, all s3 buckets will be returned.
+  // If not empty, only the s3 buckets with the specified ids will be returned.
+  // This will be filtered by the search_options. (max: 100, min: 0)
+  repeated scuffle.types.Ulid ids = 1;
+
+  // An optional set of search options to filter the results by.
+  optional types.SearchOptions search_options = 2;
+}
+
+// The response payload for S3Bucket.Get.
+message S3BucketGetResponse {
+  // The list of s3 buckets that were retrieved.
+  repeated types.S3Bucket s3_buckets = 1;
+}
+
+// The request payload for S3Bucket.Create.
+message S3BucketCreateRequest {
+  // The access key id for the s3 bucket.
+  string access_key_id = 1;
+
+  // The secret access key for the s3 bucket.
+  string secret_access_key = 2;
+
+  // The name of the s3 bucket.
+  string name = 3;
+
+  // The region for the s3 bucket.
+  string region = 4;
+
+  // The endpoint for the s3 bucket.
+  optional string endpoint = 5;
+
+  // The public url for the s3 bucket. (optional, to allow for watching
+  // recordings and DVR)
+  optional string public_url = 6;
+
+  // The tags to apply to the s3 bucket.
+  types.Tags tags = 7;
+}
+
+// The response payload for S3Bucket.Create.
+message S3BucketCreateResponse {
+  // The s3 bucket that was created.
+  types.S3Bucket s3_bucket = 1;
+}
+
+// The request payload for S3Bucket.Modify.
+// Note you are now allowed to modify the name, endpoint, or region of an s3
+// bucket. If you want to change any of those, you must delete the s3 bucket and
+// create a new one.
+message S3BucketModifyRequest {
+  // The id of the s3 bucket to modify.
+  scuffle.types.Ulid id = 1;
+
+  // The access token for the s3 bucket.
+  optional string access_key_id = 2;
+
+  // The secret token for the s3 bucket.
+  optional string secret_access_key = 3;
+
+  optional string name = 4;
+
+  optional string region = 5;
+
+  optional string endpoint = 6;
+
+  // The public url for the s3 bucket. (optional, to allow for watching
+  // recordings and DVR) If you want to remove the public url, set this to an
+  // empty string.
+  optional string public_url = 7;
+
+  // New tags to apply to the s3 bucket. (this will replace the existing tags)
+  optional types.Tags tags = 8;
+}
+
+// The response payload for S3Bucket.Modify.
+message S3BucketModifyResponse {
+  // The s3 bucket that was modified. (this will include the new values)
+  types.S3Bucket s3_bucket = 1;
+}
+
+// The request payload for S3Bucket.Delete.
+// Note: deleting an s3 bucket will NOT delete recordings in the s3 bucket.
+message S3BucketDeleteRequest {
+  // The ids of the s3 buckets to delete.
+  repeated scuffle.types.Ulid ids = 1;
+}
+
+// The response payload for S3Bucket.Delete.
+message S3BucketDeleteResponse {
+  // The ids of the s3 buckets that were deleted.
+  repeated scuffle.types.Ulid ids = 1;
+
+  // The s3 buckets that failed to be deleted.
+  repeated types.FailedResource failed_deletes = 2;
+}
+
+// The request payload for S3Bucket.Tag.
+message S3BucketTagRequest {
+  // The id of the s3 bucket to tag.
+  scuffle.types.Ulid id = 1;
+
+  // The tags to apply to the s3 bucket.
+  types.Tags tags = 2;
+}
+
+// The response payload for S3Bucket.Tag.
+message S3BucketTagResponse {
+  // The new tags on the s3 bucket.
+  types.Tags tags = 1;
+}
+
+// The request payload for S3Bucket.Untag.
+message S3BucketUntagRequest {
+  // The id of the s3 bucket to untag.
+  scuffle.types.Ulid id = 1;
+
+  // The tags to remove from the s3 bucket.
+  repeated string tags = 2;
+}
+
+// The response payload for S3Bucket.Untag.
+message S3BucketUntagResponse {
+  // The new tags on the s3 bucket.
+  types.Tags tags = 1;
+}

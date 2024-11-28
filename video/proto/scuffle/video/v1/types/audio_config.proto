@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package scuffle.video.v1.types;
+
+import "scuffle/video/v1/types/rendition.proto";
+
+// An audio configuration contains a friendly name, as well as the
+// bitrate, channels, sample rate and codec of the audio.
+message AudioConfig {
+  // The name of the audio configuration.
+  Rendition rendition = 1;
+  // The bitrate of the audio.
+  int64 bitrate = 2;
+  // The number of channels of the audio.
+  int32 channels = 3;
+  // The sample rate of the audio.
+  int32 sample_rate = 4;
+  // The codec of the audio.
+  string codec = 5;
+}

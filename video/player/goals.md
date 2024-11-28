@@ -1,0 +1,12 @@
+- [x] buffer management (clearing old buffered ranges)
+- [x] ABR calculation
+- [x] variant switching
+- [x] handle discontinuity
+- [x] seek thumbnail
+- [x] when playback is frozen due to tab switch & is playing realtime, seek back to real time when tab is active again.
+- [x] better error handling
+- [x] switch to audio only when video is not visible
+- [x] better logging
+- [x] handle player events
+- [x] investigate bandwidth calculation issues (4w3 reported)
+- [x] handle recordings

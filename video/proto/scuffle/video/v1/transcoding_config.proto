@@ -1,0 +1,132 @@
+syntax = "proto3";
+
+package scuffle.video.v1;
+
+import "scuffle/video/v1/types/rendition.proto";
+import "scuffle/video/v1/types/transcoding_config.proto";
+import "scuffle/types/ulid.proto";
+import "scuffle/video/v1/types/tags.proto";
+import "scuffle/video/v1/types/search_options.proto";
+import "scuffle/video/v1/types/failed_resource.proto";
+
+// This service allows for the creation, modification, and deletion of
+// transcoding configurations.
+service TranscodingConfig {
+  // Get a list of transcoding configurations.
+  rpc Get(TranscodingConfigGetRequest) returns (TranscodingConfigGetResponse) {}
+
+  // Create a transcoding configuration.
+  rpc Create(TranscodingConfigCreateRequest)
+      returns (TranscodingConfigCreateResponse) {}
+
+  // Modify a transcoding configuration.
+  rpc Modify(TranscodingConfigModifyRequest)
+      returns (TranscodingConfigModifyResponse) {}
+
+  // Delete a transcoding configuration.
+  rpc Delete(TranscodingConfigDeleteRequest)
+      returns (TranscodingConfigDeleteResponse) {}
+
+  // Tag a transcoding configuration.
+  rpc Tag(TranscodingConfigTagRequest) returns (TranscodingConfigTagResponse) {}
+
+  // Untag a transcoding configuration.
+  rpc Untag(TranscodingConfigUntagRequest)
+      returns (TranscodingConfigUntagResponse) {}
+}
+
+// The request payload for TranscodingConfig.Get.
+message TranscodingConfigGetRequest {
+  // A list of ids to retrieve. If empty, all transcoding configs will be
+  // returned. If not empty, only the transcoding configs with the specified ids
+  // will be returned. This will be filtered by the other options. (max: 100,
+  // min: 0)
+  repeated scuffle.types.Ulid ids = 1;
+
+  // The options to use when searching for transcoding configs.
+  optional types.SearchOptions search_options = 2;
+}
+
+// The response payload for TranscodingConfig.Get.
+message TranscodingConfigGetResponse {
+  // The list of transcoding configs that were retrieved.
+  repeated types.TranscodingConfig transcoding_configs = 1;
+}
+
+// The request payload for TranscodingConfig.Create.
+message TranscodingConfigCreateRequest {
+  // The renditions to transcode to. Must be at least one.
+  repeated types.Rendition renditions = 2;
+
+  // The tags to apply to the transcoding config.
+  types.Tags tags = 3;
+}
+
+// The response payload for TranscodingConfig.Create.
+message TranscodingConfigCreateResponse {
+  // The transcoding config that was created.
+  types.TranscodingConfig transcoding_config = 1;
+}
+
+// The request payload for TranscodingConfig.Modify.
+message TranscodingConfigModifyRequest {
+  // The transcoding config to modify.
+  scuffle.types.Ulid id = 1;
+
+  message RenditionList {
+    repeated types.Rendition items = 1;
+  }
+
+  optional RenditionList renditions = 2;
+  optional types.Tags tags = 3;
+}
+
+// The response payload for TranscodingConfig.Modify.
+message TranscodingConfigModifyResponse {
+  // The transcoding config that was modified.
+  types.TranscodingConfig transcoding_config = 1;
+}
+
+// The request payload for TranscodingConfig.Delete.
+message TranscodingConfigDeleteRequest {
+  repeated scuffle.types.Ulid ids = 1;
+}
+
+// The response payload for TranscodingConfig.Delete.
+message TranscodingConfigDeleteResponse {
+  // The transcoding configs that were deleted.
+  repeated scuffle.types.Ulid ids = 1;
+
+  // The transcoding configs that failed to be deleted.
+  repeated types.FailedResource failed_deletes = 2;
+}
+
+// The request payload for TranscodingConfig.Tag.
+message TranscodingConfigTagRequest {
+  // The id of the transcoding config to tag.
+  scuffle.types.Ulid id = 1;
+
+  // The tags to apply to the transcoding config.
+  types.Tags tags = 2;
+}
+
+// The response payload for TranscodingConfig.Tag.
+message TranscodingConfigTagResponse {
+  // The new tags on the transcoding config.
+  types.Tags tags = 1;
+}
+
+// The request payload for TranscodingConfig.Untag.
+message TranscodingConfigUntagRequest {
+  // The id of the transcoding config to untag.
+  scuffle.types.Ulid id = 1;
+
+  // The tags to remove from the transcoding config.
+  repeated string tags = 2;
+}
+
+// The response payload for TranscodingConfig.Untag.
+message TranscodingConfigUntagResponse {
+  // The new tags on the transcoding config.
+  types.Tags tags = 1;
+}

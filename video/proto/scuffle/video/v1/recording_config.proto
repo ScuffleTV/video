@@ -1,0 +1,144 @@
+syntax = "proto3";
+
+package scuffle.video.v1;
+
+import "scuffle/video/v1/types/rendition.proto";
+import "scuffle/video/v1/types/recording_lifecycle_policy.proto";
+import "scuffle/video/v1/types/recording_config.proto";
+import "scuffle/types/ulid.proto";
+import "scuffle/video/v1/types/tags.proto";
+import "scuffle/video/v1/types/search_options.proto";
+import "scuffle/video/v1/types/failed_resource.proto";
+
+// This service allows for the creation, modification, and deletion of recording
+// configs.
+service RecordingConfig {
+  // Get a list of recording configs.
+  rpc Get(RecordingConfigGetRequest) returns (RecordingConfigGetResponse) {}
+
+  // Create a new recording config.
+  rpc Create(RecordingConfigCreateRequest)
+      returns (RecordingConfigCreateResponse) {}
+
+  // Modify an existing recording config.
+  rpc Modify(RecordingConfigModifyRequest)
+      returns (RecordingConfigModifyResponse) {}
+
+  // Delete existing recording configs.
+  rpc Delete(RecordingConfigDeleteRequest)
+      returns (RecordingConfigDeleteResponse) {}
+
+  // Tag an existing recording config.
+  rpc Tag(RecordingConfigTagRequest) returns (RecordingConfigTagResponse) {}
+
+  // Untag an existing recording config.
+  rpc Untag(RecordingConfigUntagRequest)
+      returns (RecordingConfigUntagResponse) {}
+}
+
+// The request payload for RecordingConfig.Get.
+message RecordingConfigGetRequest {
+  // A list of ids to retrieve. If empty, all recording configs will be
+  // returned. If not empty, only the recording configs with the specified ids
+  // will be returned. This will be filtered by the other options. (max: 100,
+  // min: 0)
+  repeated scuffle.types.Ulid ids = 1;
+
+  // The options to use when searching for recording configs.
+  optional types.SearchOptions search_options = 2;
+}
+
+// The response payload for RecordingConfig.Get.
+message RecordingConfigGetResponse {
+  // The list of recording configs that were retrieved.
+  repeated types.RecordingConfig recording_configs = 1;
+}
+
+// The request payload for RecordingConfig.Create.
+message RecordingConfigCreateRequest {
+  // The renditions to store. Must contain at least one audio and one video
+  // rendition.
+  repeated types.Rendition stored_renditions = 1;
+
+  // The lifecycle policies to apply to the recording config.
+  repeated types.RecordingLifecyclePolicy lifecycle_policies = 2;
+
+  // The id of the s3 bucket to store the recordings in. If not specified, the
+  // managed bucket will be used.
+  optional scuffle.types.Ulid s3_bucket_id = 3;
+
+  // The tags to apply to the recording config.
+  types.Tags tags = 4;
+}
+
+// The response payload for RecordingConfig.Create.
+message RecordingConfigCreateResponse {
+  types.RecordingConfig recording_config = 1;
+}
+
+// The request payload for RecordingConfig.Modify.
+message RecordingConfigModifyRequest {
+  message RenditionList {
+    repeated types.Rendition items = 1;
+  }
+
+  message LifecyclePolicyList {
+    repeated types.RecordingLifecyclePolicy items = 1;
+  }
+
+  scuffle.types.Ulid id = 1;
+  optional RenditionList stored_renditions = 2;
+  optional LifecyclePolicyList lifecycle_policies = 3;
+  optional scuffle.types.Ulid s3_bucket_id = 4;
+  optional types.Tags tags = 5;
+}
+
+// The response payload for RecordingConfig.Modify.
+message RecordingConfigModifyResponse {
+  types.RecordingConfig recording_config = 1;
+}
+
+// The request payload for RecordingConfig.Delete.
+message RecordingConfigDeleteRequest {
+  // The ids of the recording configs to delete.
+  repeated scuffle.types.Ulid ids = 1;
+}
+
+// The response payload for RecordingConfig.Delete.
+message RecordingConfigDeleteResponse {
+  // The ids of the recording configs that were deleted.
+  repeated scuffle.types.Ulid ids = 1;
+
+  // The recording configs that failed to deleted.
+  repeated types.FailedResource failed_deletes = 2;
+}
+
+// The request payload for RecordingConfig.Tag.
+message RecordingConfigTagRequest {
+  // The id of the recording config to tag.
+  scuffle.types.Ulid id = 1;
+
+  // The tags to apply to the recording config.
+  types.Tags tags = 2;
+}
+
+// The response payload for RecordingConfig.Tag.
+message RecordingConfigTagResponse {
+  // The new tags on the recording config.
+  types.Tags tags = 1;
+}
+
+// The request payload for RecordingConfig.Untag.
+message RecordingConfigUntagRequest {
+  // The id of the recording config to untag.
+  scuffle.types.Ulid id = 1;
+
+  // The tags to remove from the recording config.
+  repeated string tags = 2;
+}
+
+// The response payload for RecordingConfig.Untag.
+message RecordingConfigUntagResponse {
+  // The new tags on the recording config.
+  types.Tags tags = 1;
+}

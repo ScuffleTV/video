@@ -1,0 +1,58 @@
+[package]
+name = "scuffle-image-processor"
+version = "0.0.0"
+edition = "2021"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/scuffle-image-processor"
+license = "AGPL-3.0"
+description = "Image Processor service for Scuffle."
+keywords = ["image", "processor", "service"]
+
+[dependencies]
+tracing = "0.1"
+tokio = { version = "1.34", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+prost = "0.13"
+aws-config = "1.1"
+aws-sdk-s3 = { version = "1.12", features = ["behavior-version-latest"] }
+async-trait = "0.1"
+anyhow = "1.0"
+async-nats = "0.38.0"
+tonic = "0.12"
+thiserror = "2.0.3"
+file-format = "0.26.0"
+rgb = "0.8"
+imgref = "1.10"
+libavif-sys = { version = "0.17.0", features = ["codec-dav1d", "codec-rav1e"], default-features = false }
+libwebp-sys2 = { version = "0.1", features = ["1_2", "demux", "mux", "static"] }
+gifski = { version = "1.13", default-features = false, features = ["gifsicle"] }
+png = "0.17"
+bytes = "1.0"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+fast_image_resize = "5.0.0"
+chrono = { version = "0.4", features = ["serde"] }
+url = { version = "2", features = ["serde"] }
+http = "1"
+humantime-serde = "1"
+smart-default = "0.7.1"
+axum = { version = "0.7" }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+mongodb = { version = "3" }
+bson = { version = "2", features = ["chrono-0_4"] }
+aws-smithy-types = "1"
+aws-smithy-runtime-api = "1"
+fred = "9.0.3"
+strfmt = "0.2"
+opentelemetry-otlp = { version = "0.27", features = ["metrics", "logs"] }
+opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
+
+scuffle-bootstrap = { version = "0.0.0", path = "../../crates/bootstrap" }
+scuffle-bootstrap-telemetry = { version = "0.0.0", path = "../../crates/bootstrap/telemetry", features = ["prometheus", "opentelemetry-metrics", "opentelemetry-logs", "opentelemetry-traces"] }
+scuffle-ffmpeg = { version = "0.0.0", path = "../../crates/ffmpeg", features = ["tracing"] }
+scuffle-http = { version = "0.0.0", path = "../../crates/http", features = ["axum"]}
+scuffle-context = { version = "0.0.0", path = "../../crates/context" }
+scuffle-image-processor-proto = { version = "0.0.0", path = "./proto", features = ["server", "serde"]}
+scuffle-metrics = { version = "0.0.0", path = "../../crates/metrics" }

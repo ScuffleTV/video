@@ -1,0 +1,19 @@
+[package]
+name = "scuffle-pprof-examples"
+version = "0.0.0"
+edition = "2021"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+description = "Examples for the scuffle-pprof crate."
+keywords = ["pprof", "cpu"]
+
+[[example]]
+name = "scuffle-pprof-cpu"
+path = "src/cpu.rs"
+
+[dependencies]
+scuffle-pprof = { path = ".." }
+flate2 = "1.0"
+rand = "0.8"

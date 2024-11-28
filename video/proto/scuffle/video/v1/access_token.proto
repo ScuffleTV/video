@@ -1,0 +1,117 @@
+syntax = "proto3";
+
+package scuffle.video.v1;
+
+import "scuffle/types/ulid.proto";
+import "scuffle/video/v1/types/tags.proto";
+import "scuffle/video/v1/types/access_token.proto";
+import "scuffle/video/v1/types/access_token_scope.proto";
+import "scuffle/video/v1/types/search_options.proto";
+import "scuffle/video/v1/types/failed_resource.proto";
+
+// This service allows for the creation, modification, and deletion of access
+// tokens.
+service AccessToken {
+  // Get a list of recording configs.
+  rpc Get(AccessTokenGetRequest) returns (AccessTokenGetResponse) {}
+
+  // Create a new recording config.
+  rpc Create(AccessTokenCreateRequest) returns (AccessTokenCreateResponse) {}
+
+  // Delete existing recording configs.
+  rpc Delete(AccessTokenDeleteRequest) returns (AccessTokenDeleteResponse) {}
+
+  // Tag an existing recording config.
+  rpc Tag(AccessTokenTagRequest) returns (AccessTokenTagResponse) {}
+
+  // Untag an existing recording config.
+  rpc Untag(AccessTokenUntagRequest) returns (AccessTokenUntagResponse) {}
+}
+
+// The request payload for AccessToken.Get.
+message AccessTokenGetRequest {
+  // A list of ids to retrieve. If empty, all access tokens will be returned.
+  // If not empty, only the access tokens with the specified ids will be
+  // returned. This will be filtered by the other options. (max: 100, min: 0)
+  repeated scuffle.types.Ulid ids = 1;
+
+  // The options to use when searching for access tokens.
+  optional types.SearchOptions search_options = 2;
+}
+
+// The response payload for AccessToken.Get.
+message AccessTokenGetResponse {
+  // The list of access tokens that were retrieved.
+  repeated types.AccessToken access_tokens = 1;
+}
+
+// The request payload for AccessToken.Create.
+message AccessTokenCreateRequest {
+  // The scopes to apply to the access token. Cannot be empty.
+  // Also cannot have more scopes than then the scope of the current access
+  // token.
+  repeated types.AccessTokenScope scopes = 1;
+
+  // The time at which the access token will expire. If not specified, the
+  // access token will not expire.
+  optional int64 expires_at = 2;
+
+  // The tags to apply to the access token.
+  types.Tags tags = 3;
+}
+
+// The response payload for AccessToken.Create.
+message AccessTokenCreateResponse {
+  // The access token that was created.
+  types.AccessToken access_token = 1;
+
+  // The secret of the access token that was created.
+  string secret = 2;
+}
+
+// The request payload for AccessToken.Delete.
+message AccessTokenDeleteRequest {
+  // The ids of the access tokens to delete.
+  repeated scuffle.types.Ulid ids = 1;
+}
+
+// The response payload for AccessToken.Delete.
+message AccessTokenDeleteResponse {
+  // The ids of the access tokens that were deleted.
+  // The access token cannot delete the master access token or itself.
+  // It also cannot delete access tokens with a higher scopes than itself.
+  repeated scuffle.types.Ulid ids = 1;
+
+  // The access tokens which failed to be deleted.
+  repeated types.FailedResource failed_deletes = 2;
+}
+
+// The request payload for AccessToken.Tag.
+message AccessTokenTagRequest {
+  // The id of the access token to tag.
+  scuffle.types.Ulid id = 1;
+
+  // The tags to apply to the access token.
+  types.Tags tags = 2;
+}
+
+// The response payload for AccessToken.Tag.
+message AccessTokenTagResponse {
+  // The new tags on the access token.
+  types.Tags tags = 1;
+}
+
+// The request payload for AccessToken.Untag.
+message AccessTokenUntagRequest {
+  // The id of the access token to untag.
+  scuffle.types.Ulid id = 1;
+
+  // The tags to remove from the access token.
+  repeated string tags = 2;
+}
+
+// The response payload for AccessToken.Untag.
+message AccessTokenUntagResponse {
+  // The new tags on the access token.
+  types.Tags tags = 1;
+}

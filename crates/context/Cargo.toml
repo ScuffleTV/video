@@ -1,0 +1,17 @@
+[package]
+name = "scuffle-context"
+version = "0.0.0"
+edition = "2021"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/scuffle-context"
+license = "MIT OR Apache-2.0"
+description = "Go-like context utilities for Rust."
+keywords = ["context", "async"]
+
+[dependencies]
+futures-lite = "2"
+pin-project-lite = "0.2"
+tokio-util = "0.7"
+tokio = "1"

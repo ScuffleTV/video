@@ -1,0 +1,19 @@
+[package]
+name = "scuffle-signal"
+version = "0.0.0"
+edition = "2021"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/scuffle-signal"
+license = "MIT OR Apache-2.0"
+description = "Ergonomic async signal handling."
+keywords = ["signal", "async"]
+
+[dependencies]
+tokio = { version = "1.41.1", default-features = false, features = ["signal"] }
+
+[dev-dependencies]
+tokio = { version = "1.41.1", features = ["macros", "rt", "time"] }
+libc = "0.2"
+futures = "0.3"

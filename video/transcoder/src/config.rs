@@ -1,107 +1,64 @@
-use std::net::SocketAddr;
+use std::collections::HashMap;
+use std::time::Duration;
 
-use anyhow::Result;
-use common::config::{LoggingConfig, RedisConfig, RmqConfig, TlsConfig};
-
-#[derive(Debug, Clone, PartialEq, config::Config, serde::Deserialize)]
-#[serde(default)]
-pub struct GrpcConfig {
-    /// The bind address for the gRPC server
-    pub bind_address: SocketAddr,
-
-    /// If we should use TLS for the gRPC server
-    pub tls: Option<TlsConfig>,
-}
-
-impl Default for GrpcConfig {
-    fn default() -> Self {
-        Self {
-            bind_address: "[::]:50053".to_string().parse().unwrap(),
-            tls: None,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Default, PartialEq, config::Config, serde::Deserialize)]
-#[serde(default)]
-pub struct IngestConfig {
-    /// If we should use TLS for the API server
-    pub tls: Option<TlsConfig>,
-}
+use binary_helper::config::TlsConfig;
 
 #[derive(Debug, Clone, PartialEq, config::Config, serde::Deserialize)]
 #[serde(default)]
 pub struct TranscoderConfig {
-    /// The direcory to create unix sockets in
-    pub socket_dir: String,
+	/// Events stream name
+	pub events_stream_name: String,
 
-    /// The name of the RMQ queue to use
-    pub rmq_queue: String,
+	/// The name of the transcoder requests queue to use
+	pub transcoder_request_subject: String,
 
-    /// The uid to use for the unix socket and ffmpeg process
-    pub uid: u32,
+	/// The NATS KV bucket to use for metadata
+	pub metadata_kv_store: String,
 
-    /// The gid to use for the unix socket and ffmpeg process
-    pub gid: u32,
+	/// The NATS ObjectStore bucket to use for media
+	pub media_ob_store: String,
+
+	/// The target segment length
+	pub min_segment_duration: Duration,
+
+	/// The target part length
+	pub target_part_duration: Duration,
+
+	/// The maximum part length
+	pub max_part_duration: Duration,
+
+	/// The TLS config to use when connecting to ingest
+	pub ingest_tls: Option<TlsConfig>,
+
+	/// The number of segments to keep in the playlist
+	pub playlist_segments: usize,
+
+	/// The interval to take screenshots at
+	pub screenshot_interval: Duration,
+
+	/// The encoder to use for h264
+	pub h264_encoder: Option<String>,
+
+	/// H264 encoder options
+	#[config(cli(skip), env(skip))]
+	pub h264_encoder_options: HashMap<String, String>,
 }
 
 impl Default for TranscoderConfig {
-    fn default() -> Self {
-        Self {
-            rmq_queue: "transcoder".to_string(),
-            socket_dir: format!("/tmp/{}", std::process::id()),
-            uid: 1000,
-            gid: 1000,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, config::Config, serde::Deserialize)]
-#[serde(default)]
-pub struct AppConfig {
-    /// Name of this instance
-    pub name: String,
-
-    /// The path to the config file.
-    pub config_file: Option<String>,
-
-    /// The log level to use, this is a tracing env filter
-    pub logging: LoggingConfig,
-
-    /// gRPC server configuration
-    pub grpc: GrpcConfig,
-
-    /// RMQ configuration
-    pub rmq: RmqConfig,
-
-    /// Redis configuration
-    pub redis: RedisConfig,
-
-    /// Transcoder configuration
-    pub transcoder: TranscoderConfig,
-}
-
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            name: "scuffle-transcoder".to_string(),
-            config_file: Some("config".to_string()),
-            grpc: GrpcConfig::default(),
-            logging: LoggingConfig::default(),
-            rmq: RmqConfig::default(),
-            redis: RedisConfig::default(),
-            transcoder: TranscoderConfig::default(),
-        }
-    }
-}
-
-impl AppConfig {
-    pub fn parse() -> Result<Self> {
-        let (mut config, config_file) =
-            common::config::parse::<Self>(!cfg!(test), Self::default().config_file)?;
-
-        config.config_file = config_file;
-
-        Ok(config)
-    }
+	fn default() -> Self {
+		Self {
+			events_stream_name: "scuffle-video-events".to_string(),
+			transcoder_request_subject: "scuffle-video-transcoder_requests".to_string(),
+			metadata_kv_store: "scuffle-video-transcoder_metadata".to_string(),
+			media_ob_store: "scuffle-video-transcoder_media".to_string(),
+			min_segment_duration: Duration::from_secs(2),
+			target_part_duration: Duration::from_millis(250),
+			max_part_duration: Duration::from_millis(500),
+			screenshot_interval: Duration::from_secs(5),
+			ingest_tls: None,
+			playlist_segments: 5,
+			h264_encoder: Some("libx264".to_string()),
+			h264_encoder_options: vec![("tune".into(), "zerolatency".into())].into_iter().collect(),
+		}
+	}
 }

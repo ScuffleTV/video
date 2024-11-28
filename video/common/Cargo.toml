@@ -1,0 +1,25 @@
+[package]
+name = "video-common"
+version = "0.0.1"
+edition = "2021"
+license = "BSL-1.0"
+
+[dependencies]
+tracing = "0.1"
+tokio = { version = "1.36", features = ["full"] }
+tokio-postgres = { version = "0.7" }
+postgres-types = { version = "0.2", features = ["derive"] }
+postgres-from-row = { version = "0.5" }
+prost = "0.12"
+uuid = { version = "1.6", features = ["v4"] }
+ulid = { version = "1.1", features = ["uuid"] }
+serde = { version = "1.0", features = ["derive"] }
+chrono = { version = "0.4", default-features = false, features = ["serde", "clock"] }
+futures = "0.3"
+futures-util = "0.3"
+bytes = "1.5"
+async-trait = "0.1"
+async-nats = "0.34"
+
+pb = { workspace = true }
+scuffle-utils = { workspace = true, features = ["all"] }

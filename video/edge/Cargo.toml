@@ -1,46 +1,49 @@
 [package]
-name = "edge"
-version = "0.1.0"
+name = "video-edge"
+version = "0.0.1"
 edition = "2021"
+license = "BSL-1.0"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "video-edge"
+path = "src/main.rs"
 
 [dependencies]
-anyhow = "1"
-tracing = "0"
-native-tls = "0"
-tokio-native-tls = "0"
-tokio = { version = "1", features = ["full"] }
-serde = { version = "1", features = ["derive"] }
-hyper = { version = "0", features = ["full"] }
-tonic = { version = "0", features = ["tls"] }
-chrono = { version = "0", default-features = false, features = ["clock"] }
-prost = "0"
-async-stream = "0"
-futures = "0"
-futures-util = "0"
-bytes = "1"
-async-trait = "0"
-fred = { version = "6", features = ["enable-native-tls", "sentinel-client", "sentinel-auth", "subscriber-client"] }
-url-parse = "1"
-nix = "0"
-sha2 = "0"
-tokio-util = "0"
-tokio-stream = "0"
-serde_json = "1"
-routerify = "3"
-uuid = "1"
-url = "2"
+anyhow = "1.0"
+tracing = "0.1"
+rustls = "0.23"
+rustls-pemfile = "2.0"
+tokio-rustls = "0.26"
+postgres-from-row = "0.5"
+tokio = { version = "1.36", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+hyper = { version = "1.1", features = ["full"] }
+tonic = { version = "0.11", features = ["tls"] }
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+prost = "0.12"
+async-stream = "0.3"
+futures = "0.3"
+futures-util = "0.3"
+bytes = "1.5"
+async-trait = "0.1"
+sha2 = "0.10"
+tokio-util = "0.7"
+tokio-stream = "0.1"
+serde_json = "1.0"
+uuid = { version = "1.6", features = ["v4"] }
+url = "2.5"
+async-nats = "0.34"
+hmac = "0.12"
+jwt-next = "0.17"
+ulid = { version = "1.1", features = ["uuid", "serde"] }
+itertools = "0.12"
+thiserror = "1.0"
+http-body-util = "0.1"
+hyper-util = "0.1"
 
-common = { path = "../../common" }
-config = { path = "../../config/config" }
-
-[build-dependencies]
-tonic-build = "0"
-prost-build = "0"
-
-[dev-dependencies]
-dotenvy = "0"
-portpicker = "0"
-serial_test = "2"
-tempfile = "3"
+scuffle-utils = { workspace = true, features = ["all"] }
+config = { workspace = true }
+pb = { workspace = true }
+video-common = { workspace = true }
+video-player-types = { workspace = true }
+binary-helper = { workspace = true }

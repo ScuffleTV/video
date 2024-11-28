@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package scuffle.platform.internal.two_fa;
+
+import "scuffle/types/ulid.proto";
+
+message TwoFaRequestAction {
+  message Login {
+    uint32 login_duration = 1;
+    bool update_context = 2;
+  }
+
+  message ChangePassword {
+    string new_password_hash = 1;
+    // We need that here because all sessions except this will get deleted after
+    // the password change
+    scuffle.types.Ulid current_session_id = 2;
+  }
+
+  oneof action {
+    Login login = 1;
+    ChangePassword change_password = 2;
+  }
+}

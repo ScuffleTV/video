@@ -1,554 +1,1465 @@
-// TODO: This is the test stub for the transcoder service. It is not yet implemented.
-#![allow(unused_imports)]
-#![allow(dead_code)]
-
-use core::panic;
-use std::{
-    collections::HashMap, io::Cursor, net::SocketAddr, path::PathBuf, pin::Pin, sync::Arc,
-    time::Duration,
-};
+use std::io::{Cursor, Write};
+use std::net::SocketAddr;
+use std::path::PathBuf;
+use std::pin::Pin;
+use std::process::Stdio;
+use std::sync::Arc;
+use std::time::Duration;
 
 use async_trait::async_trait;
-use bytes::{Buf, Bytes};
-use chrono::Utc;
-use common::{config::LoggingConfig, logging, prelude::FutureTimeout};
-use fred::prelude::{HashesInterface, KeysInterface};
+use binary_helper::global::*;
+use bytes::Bytes;
 use futures_util::Stream;
-use lapin::BasicProperties;
-use mp4::DynBox;
-use prost::Message;
-use tokio::sync::{mpsc, oneshot};
-use tokio_stream::wrappers::ReceiverStream;
-use tonic::{Request, Response};
-use transmuxer::{MediaType, TransmuxResult, Transmuxer};
-use uuid::Uuid;
-
-use crate::{
-    config::{AppConfig, TranscoderConfig},
-    global::{self, GlobalState},
-    pb::scuffle::{
-        events::{self, transcoder_message},
-        types::{stream_state, StreamState},
-        video::{
-            ingest_server::{Ingest, IngestServer},
-            transcoder_event_request, watch_stream_response, ShutdownStreamRequest,
-            ShutdownStreamResponse, TranscoderEventRequest, TranscoderEventResponse,
-            WatchStreamRequest, WatchStreamResponse,
-        },
-    },
-    transcoder::{
-        self,
-        job::variant::state::{PlaylistState, SegmentState},
-    },
+use pb::ext::UlidExt;
+use pb::scuffle::video::internal::events::TranscoderRequestTask;
+use pb::scuffle::video::internal::ingest_server::{Ingest, IngestServer};
+use pb::scuffle::video::internal::{
+	ingest_watch_request, ingest_watch_response, IngestWatchRequest, IngestWatchResponse, LiveRenditionManifest,
 };
+use pb::scuffle::video::v1::events_fetch_request::Target;
+use pb::scuffle::video::v1::types::{event, AudioConfig, Event, Rendition, VideoConfig};
+use prost::Message;
+use scuffle_utils::prelude::FutureTimeout;
+use tokio::process::Command;
+use tokio::sync::mpsc;
+use tokio_stream::wrappers::ReceiverStream;
+use tokio_stream::StreamExt;
+use tonic::Response;
+use transmuxer::{TransmuxResult, Transmuxer};
+use ulid::Ulid;
+use video_common::database::{Room, RoomStatus};
+use video_common::ext::AsyncReadExt as _;
+
+use super::global::GlobalState;
+use crate::config::TranscoderConfig;
+use crate::global::TranscoderState;
+use crate::transcoder;
+
+type IngestRequest = (
+	mpsc::Sender<Result<IngestWatchResponse>>,
+	tonic::Streaming<IngestWatchRequest>,
+);
 
 struct ImplIngestServer {
-    tx: mpsc::Sender<IngestRequest>,
-}
-
-#[derive(Debug)]
-enum IngestRequest {
-    WatchStream {
-        request: WatchStreamRequest,
-        tx: mpsc::Sender<Result<WatchStreamResponse>>,
-    },
-    TranscoderEvent {
-        request: TranscoderEventRequest,
-        tx: oneshot::Sender<TranscoderEventResponse>,
-    },
-    Shutdown {
-        request: ShutdownStreamRequest,
-        tx: oneshot::Sender<ShutdownStreamResponse>,
-    },
+	tx: mpsc::Sender<IngestRequest>,
 }
 
 type Result<T> = std::result::Result<T, tonic::Status>;
 
 #[async_trait]
 impl Ingest for ImplIngestServer {
-    type WatchStreamStream =
-        Pin<Box<dyn Stream<Item = Result<WatchStreamResponse>> + 'static + Send>>;
+	type WatchStream = Pin<Box<dyn Stream<Item = Result<IngestWatchResponse>> + 'static + Send>>;
 
-    async fn watch_stream(
-        &self,
-        request: tonic::Request<WatchStreamRequest>,
-    ) -> Result<Response<Self::WatchStreamStream>> {
-        let (tx, rx) = mpsc::channel(256);
-        let request = IngestRequest::WatchStream {
-            request: request.into_inner(),
-            tx,
-        };
-        self.tx.send(request).await.unwrap();
-        Ok(Response::new(Box::pin(ReceiverStream::new(rx))))
-    }
-
-    async fn transcoder_event(
-        &self,
-        request: Request<TranscoderEventRequest>,
-    ) -> Result<Response<TranscoderEventResponse>> {
-        let (tx, rx) = oneshot::channel();
-        let request = IngestRequest::TranscoderEvent {
-            request: request.into_inner(),
-            tx,
-        };
-
-        self.tx.send(request).await.unwrap();
-        Ok(Response::new(rx.await.unwrap()))
-    }
-
-    async fn shutdown_stream(
-        &self,
-        request: Request<ShutdownStreamRequest>,
-    ) -> Result<Response<ShutdownStreamResponse>> {
-        let (tx, rx) = oneshot::channel();
-        let request = IngestRequest::Shutdown {
-            request: request.into_inner(),
-            tx,
-        };
-
-        self.tx.send(request).await.unwrap();
-        Ok(Response::new(rx.await.unwrap()))
-    }
+	async fn watch(
+		&self,
+		request: tonic::Request<tonic::Streaming<IngestWatchRequest>>,
+	) -> Result<Response<Self::WatchStream>> {
+		let (tx, rx) = mpsc::channel(16);
+		self.tx.send((tx, request.into_inner())).await.unwrap();
+		Ok(Response::new(Box::pin(ReceiverStream::new(rx))))
+	}
 }
 
-fn setup_ingest_server(
-    global: Arc<GlobalState>,
-    bind: impl Into<SocketAddr>,
-) -> mpsc::Receiver<IngestRequest> {
-    let (tx, rx) = mpsc::channel(256);
-    let server = ImplIngestServer { tx };
-    let bind = bind.into();
+fn setup_ingest_server(global: Arc<GlobalState>, bind: impl Into<SocketAddr>) -> mpsc::Receiver<IngestRequest> {
+	let (tx, rx) = mpsc::channel(256);
+	let server = ImplIngestServer { tx };
+	let bind = bind.into();
 
-    tokio::spawn(async move {
-        tonic::transport::Server::builder()
-            .add_service(IngestServer::new(server))
-            .serve_with_shutdown(bind, async move {
-                global.ctx.done().await;
-            })
-            .await
-            .unwrap();
-    });
+	tokio::spawn(async move {
+		tonic::transport::Server::builder()
+			.add_service(IngestServer::new(server))
+			.serve_with_shutdown(bind, async move {
+				global.ctx().done().await;
+			})
+			.await
+			.unwrap();
+	});
 
-    rx
+	rx
 }
 
 #[tokio::test]
 async fn test_transcode() {
-    let port = portpicker::pick_unused_port().unwrap();
+	let port = portpicker::pick_unused_port().unwrap();
 
-    let (global, handler) = crate::tests::global::mock_global_state(AppConfig {
-        transcoder: TranscoderConfig {
-            rmq_queue: Uuid::new_v4().to_string(),
-            ..Default::default()
-        },
-        logging: LoggingConfig {
-            level: "info,transcoder=debug".to_string(),
-            mode: logging::Mode::Default,
-        },
-        ..Default::default()
-    })
-    .await;
+	let (global, handler) = crate::tests::global::mock_global_state(TranscoderConfig {
+		events_stream_name: Ulid::new().to_string(),
+		transcoder_request_subject: Ulid::new().to_string(),
+		metadata_kv_store: Ulid::new().to_string(),
+		media_ob_store: Ulid::new().to_string(),
+		..Default::default()
+	})
+	.await;
 
-    global::init_rmq(&global, true).await;
+	let org_id = Ulid::new();
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], port));
+	let mut event_stream = global
+		.nats()
+		.subscribe(video_common::keys::event_subject(
+			&global.config().events_stream_name,
+			org_id,
+			Target::Room,
+		))
+		.await
+		.unwrap();
 
-    let mut rx = setup_ingest_server(global.clone(), addr);
+	let addr = SocketAddr::from(([127, 0, 0, 1], port));
 
-    let transcoder_run_handle = tokio::spawn(transcoder::run(global.clone()));
+	let mut rx = setup_ingest_server(global.clone(), addr);
 
-    let channel = global.rmq.aquire().await.unwrap();
+	let transcoder_run_handle = tokio::spawn(transcoder::run(global.clone()));
 
-    let req_id = Uuid::new_v4();
+	let req_id = Ulid::new();
 
-    let source_video_id = Uuid::new_v4();
-    let aac_audio_id = Uuid::new_v4();
-    let opus_audio_id = Uuid::new_v4();
-    let video_id_360p = Uuid::new_v4();
+	let room_id = Ulid::new();
+	let connection_id = Ulid::new();
 
-    channel
-        .basic_publish(
-            "",
-            &global.config.transcoder.rmq_queue,
-            lapin::options::BasicPublishOptions::default(),
-            events::TranscoderMessage {
-                id: req_id.to_string(),
-                timestamp: Utc::now().timestamp() as u64,
-                data: Some(transcoder_message::Data::NewStream(
-                    events::TranscoderMessageNewStream {
-                        request_id: req_id.to_string(),
-                        stream_id: req_id.to_string(),
-                        ingest_address: addr.to_string(),
-                        state: Some(StreamState {
-                            transcodes: vec![
-                                stream_state::Transcode {
-                                    bitrate: 1000,
-                                    codec: "avc1.64002a".to_string(),
-                                    id: source_video_id.to_string(),
-                                    copy: true,
-                                    settings: Some(stream_state::transcode::Settings::Video(
-                                        stream_state::transcode::VideoSettings {
-                                            framerate: 30,
-                                            height: 1080,
-                                            width: 1920,
-                                        },
-                                    )),
-                                },
-                                stream_state::Transcode {
-                                    bitrate: 1024 * 1024,
-                                    codec: "avc1.64002a".to_string(),
-                                    id: video_id_360p.to_string(),
-                                    copy: false,
-                                    settings: Some(stream_state::transcode::Settings::Video(
-                                        stream_state::transcode::VideoSettings {
-                                            framerate: 30,
-                                            height: 360,
-                                            width: 640,
-                                        },
-                                    )),
-                                },
-                                stream_state::Transcode {
-                                    bitrate: 96 * 1024,
-                                    codec: "opus".to_string(),
-                                    id: opus_audio_id.to_string(),
-                                    copy: false,
-                                    settings: Some(stream_state::transcode::Settings::Audio(
-                                        stream_state::transcode::AudioSettings {
-                                            channels: 2,
-                                            sample_rate: 48000,
-                                        },
-                                    )),
-                                },
-                                stream_state::Transcode {
-                                    bitrate: 96 * 1024,
-                                    codec: "mp4a.40.2".to_string(),
-                                    id: aac_audio_id.to_string(),
-                                    copy: false,
-                                    settings: Some(stream_state::transcode::Settings::Audio(
-                                        stream_state::transcode::AudioSettings {
-                                            channels: 2,
-                                            sample_rate: 48000,
-                                        },
-                                    )),
-                                },
-                            ],
-                            variants: vec![
-                                stream_state::Variant {
-                                    name: "source".to_string(),
-                                    group: "aac".to_string(),
-                                    transcode_ids: vec![
-                                        source_video_id.to_string(),
-                                        aac_audio_id.to_string(),
-                                    ],
-                                },
-                                stream_state::Variant {
-                                    name: "source".to_string(),
-                                    group: "opus".to_string(),
-                                    transcode_ids: vec![
-                                        source_video_id.to_string(),
-                                        opus_audio_id.to_string(),
-                                    ],
-                                },
-                                stream_state::Variant {
-                                    name: "360p".to_string(),
-                                    group: "aac".to_string(),
-                                    transcode_ids: vec![
-                                        video_id_360p.to_string(),
-                                        aac_audio_id.to_string(),
-                                    ],
-                                },
-                                stream_state::Variant {
-                                    name: "360p".to_string(),
-                                    group: "opus".to_string(),
-                                    transcode_ids: vec![
-                                        video_id_360p.to_string(),
-                                        opus_audio_id.to_string(),
-                                    ],
-                                },
-                                stream_state::Variant {
-                                    name: "audio-only".to_string(),
-                                    group: "aac".to_string(),
-                                    transcode_ids: vec![aac_audio_id.to_string()],
-                                },
-                                stream_state::Variant {
-                                    name: "audio-only".to_string(),
-                                    group: "opus".to_string(),
-                                    transcode_ids: vec![opus_audio_id.to_string()],
-                                },
-                            ],
-                            groups: vec![
-                                stream_state::Group {
-                                    name: "opus".to_string(),
-                                    priority: 1,
-                                },
-                                stream_state::Group {
-                                    name: "aac".to_string(),
-                                    priority: 2,
-                                },
-                            ],
-                        }),
-                    },
-                )),
-            }
-            .encode_to_vec()
-            .as_slice(),
-            BasicProperties::default()
-                .with_message_id(req_id.to_string().into())
-                .with_content_type("application/octet-stream".into())
-                .with_expiration("60000".into()),
-        )
-        .await
-        .unwrap();
+	scuffle_utils::database::query(
+		r#"
+    INSERT INTO organizations (
+        id,
+        name
+    ) VALUES (
+        $1,
+        $2
+    )"#,
+	)
+	.bind(org_id)
+	.bind(room_id.to_string())
+	.build()
+	.execute(global.db())
+	.await
+	.unwrap();
 
-    let watch_stream_req = match rx
-        .recv()
-        .timeout(Duration::from_secs(2))
-        .await
-        .unwrap()
-        .unwrap()
-    {
-        IngestRequest::WatchStream { request, tx } => {
-            assert_eq!(request.stream_id, req_id.to_string());
-            assert_eq!(request.request_id, req_id.to_string());
+	scuffle_utils::database::query(
+		r#"
+    INSERT INTO rooms (
+        id,
+        organization_id,
+        active_ingest_connection_id,
+        stream_key,
+        video_input,
+        audio_input
+    ) VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6
+    )"#,
+	)
+	.bind(room_id)
+	.bind(org_id)
+	.bind(connection_id)
+	.bind(room_id.to_string())
+	.bind(
+		VideoConfig {
+			bitrate: 7358 * 1024,
+			codec: "avc1.64002a".to_string(),
+			fps: 60,
+			height: 2160,
+			width: 3840,
+			rendition: Rendition::VideoSource.into(),
+		}
+		.encode_to_vec(),
+	)
+	.bind(
+		AudioConfig {
+			bitrate: 130 * 1024,
+			codec: "mp4a.40.2".to_string(),
+			channels: 2,
+			sample_rate: 48000,
+			rendition: Rendition::AudioSource.into(),
+		}
+		.encode_to_vec(),
+	)
+	.build()
+	.execute(global.db())
+	.await
+	.unwrap();
 
-            tx
-        }
-        _ => panic!("unexpected request"),
-    };
+	let config = global.config::<TranscoderConfig>();
 
-    // This is now a stream we can write frames to.
-    // We now need to demux the video into fragmnts to send to the transcoder.
-    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../assets");
-    let data = std::fs::read(dir.join("avc_aac.flv").to_str().unwrap()).unwrap();
+	global
+		.nats()
+		.publish(
+			config.transcoder_request_subject.clone(),
+			TranscoderRequestTask {
+				room_id: Some(room_id.into()),
+				organization_id: Some(org_id.into()),
+				request_id: Some(req_id.into()),
+				connection_id: Some(connection_id.into()),
+				grpc_endpoint: format!("localhost:{}", port),
+			}
+			.encode_to_vec()
+			.into(),
+		)
+		.await
+		.unwrap();
 
-    let mut cursor = Cursor::new(Bytes::from(data));
-    let mut transmuxer = Transmuxer::new();
+	let (sender, receiver) = rx.recv().timeout(Duration::from_secs(2)).await.unwrap().unwrap();
 
-    let flv = flv::Flv::demux(&mut cursor).unwrap();
+	// This is now a stream we can write frames to.
+	// We now need to demux the video into fragmnts to send to the transcoder.
+	let flv_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+		.join("../assets")
+		.join("avc_aac.flv");
+	let data = std::fs::read(&flv_path).unwrap();
 
-    for tag in flv.tags {
-        transmuxer.add_tag(tag);
-        tracing::debug!("added tag");
-        // We dont want to send too many frames at once, so we sleep a bit.
-        tokio::time::sleep(Duration::from_millis(10)).await;
-        if let Some(data) = transmuxer.mux().unwrap() {
-            match data {
-                TransmuxResult::InitSegment { data, .. } => {
-                    watch_stream_req
-                        .send(Ok(WatchStreamResponse {
-                            data: Some(watch_stream_response::Data::InitSegment(data)),
-                        }))
-                        .await
-                        .unwrap();
-                }
-                TransmuxResult::MediaSegment(ms) => {
-                    watch_stream_req
-                        .send(Ok(WatchStreamResponse {
-                            data: Some(watch_stream_response::Data::MediaSegment(
-                                watch_stream_response::MediaSegment {
-                                    timestamp: ms.timestamp,
-                                    data: ms.data,
-                                    keyframe: ms.keyframe,
-                                    data_type: match ms.ty {
-                                        MediaType::Audio => {
-                                            watch_stream_response::media_segment::DataType::Audio
-                                                as i32
-                                        }
-                                        MediaType::Video => {
-                                            watch_stream_response::media_segment::DataType::Video
-                                                as i32
-                                        }
-                                    },
-                                },
-                            )),
-                        }))
-                        .await
-                        .unwrap();
-                }
-            }
-        }
-    }
+	let mut cursor = Cursor::new(Bytes::from(data));
+	let mut transmuxer = Transmuxer::new();
 
-    match rx
-        .recv()
-        .timeout(Duration::from_secs(2))
-        .await
-        .unwrap()
-        .unwrap()
-    {
-        IngestRequest::TranscoderEvent { request, tx } => {
-            assert_eq!(request.stream_id, req_id.to_string());
-            assert_eq!(request.request_id, req_id.to_string());
+	let flv = flv::Flv::demux(&mut cursor).unwrap();
 
-            assert_eq!(
-                request.event,
-                Some(transcoder_event_request::Event::Started(true))
-            );
+	let mut video = None;
+	let mut audio = None;
 
-            tx.send(TranscoderEventResponse {}).unwrap();
-        }
-        _ => panic!("unexpected request"),
-    };
+	for tag in flv.tags {
+		transmuxer.add_tag(tag);
+		tracing::debug!("added tag");
+		// We dont want to send too many frames at once, so we sleep a bit.
+		tokio::time::sleep(Duration::from_millis(10)).await;
+		if let Some(data) = transmuxer.mux().unwrap() {
+			match data {
+				TransmuxResult::InitSegment {
+					data,
+					video_settings,
+					audio_settings,
+				} => {
+					video = Some(video_settings);
+					audio = Some(audio_settings);
+					sender
+						.send(Ok(IngestWatchResponse {
+							message: Some(ingest_watch_response::Message::Media(ingest_watch_response::Media {
+								data,
+								keyframe: false,
+								timescale: 0,
+								timestamp: 0,
+								r#type: ingest_watch_response::media::Type::Init.into(),
+							})),
+						}))
+						.await
+						.unwrap();
+					sender
+						.send(Ok(IngestWatchResponse {
+							message: Some(ingest_watch_response::Message::Ready(
+								ingest_watch_response::Ready::Ready.into(),
+							)),
+						}))
+						.await
+						.unwrap();
+				}
+				TransmuxResult::MediaSegment(ms) => {
+					sender
+						.send(Ok(IngestWatchResponse {
+							message: Some(ingest_watch_response::Message::Media(ingest_watch_response::Media {
+								data: ms.data,
+								keyframe: ms.keyframe,
+								timescale: match ms.ty {
+									transmuxer::MediaType::Audio => audio.as_ref().unwrap().timescale,
+									transmuxer::MediaType::Video => video.as_ref().unwrap().timescale,
+								},
+								timestamp: ms.timestamp,
+								r#type: match ms.ty {
+									transmuxer::MediaType::Audio => ingest_watch_response::media::Type::Audio.into(),
+									transmuxer::MediaType::Video => ingest_watch_response::media::Type::Video.into(),
+								},
+							})),
+						}))
+						.await
+						.unwrap();
+				}
+			}
+		}
+	}
 
-    tracing::debug!("finished sending frames");
+	{
+		let event = Event::decode(event_stream.next().await.unwrap().payload).unwrap();
+		assert!(event.timestamp - chrono::Utc::now().timestamp_millis() < 1000);
+		match event.event {
+			Some(event::Event::Room(room)) => {
+				assert_eq!(room.room_id.into_ulid(), room_id);
 
-    watch_stream_req
-        .send(Ok(WatchStreamResponse {
-            data: Some(watch_stream_response::Data::ShuttingDown(true)),
-        }))
-        .await
-        .unwrap();
+				match room.event {
+					Some(event::room::Event::Ready(ready)) => {
+						assert_eq!(ready.connection_id.into_ulid(), connection_id);
+					}
+					_ => panic!("unexpected event"),
+				}
+			}
+			_ => panic!("unexpected event"),
+		};
+	}
 
-    drop(watch_stream_req);
+	tokio::time::sleep(Duration::from_millis(100)).await;
 
-    tokio::time::sleep(Duration::from_millis(250)).await;
+	let video_manifest = LiveRenditionManifest::decode(
+		global
+			.metadata_store()
+			.get(video_common::keys::rendition_manifest(
+				org_id,
+				room_id,
+				connection_id,
+				Rendition::VideoSource.into(),
+			))
+			.await
+			.unwrap()
+			.unwrap(),
+	)
+	.unwrap();
+	let audio_manifest = LiveRenditionManifest::decode(
+		global
+			.metadata_store()
+			.get(video_common::keys::rendition_manifest(
+				org_id,
+				room_id,
+				connection_id,
+				Rendition::AudioSource.into(),
+			))
+			.await
+			.unwrap()
+			.unwrap(),
+	)
+	.unwrap();
 
-    let redis = global.redis.clone();
-    drop(global);
-    handler
-        .cancel()
-        .timeout(Duration::from_secs(2))
-        .await
-        .unwrap();
-    transcoder_run_handle
-        .timeout(Duration::from_secs(2))
-        .await
-        .unwrap()
-        .unwrap()
-        .unwrap();
+	assert_eq!(video_manifest.segments.len(), 1);
+	assert_eq!(video_manifest.segments[0].parts.len(), 3);
+	assert!(video_manifest.segments[0].parts.iter().skip(1).all(|p| !p.independent));
+	assert!(video_manifest.segments[0].parts[0].independent);
+	assert!(!video_manifest.completed);
+	assert_eq!(video_manifest.info.as_ref().unwrap().next_segment_idx, 1);
+	assert_eq!(video_manifest.info.as_ref().unwrap().next_part_idx, 3);
 
-    // Validate data
-    let resp: String = redis
-        .get(format!("transcoder:{}:playlist", req_id))
-        .await
-        .unwrap();
+	assert_eq!(audio_manifest.segments.len(), 1);
+	assert_eq!(audio_manifest.segments[0].parts.len(), 3);
+	assert!(audio_manifest.segments[0].parts.iter().all(|p| p.independent));
+	assert!(!audio_manifest.completed);
+	assert_eq!(audio_manifest.info.as_ref().unwrap().next_segment_idx, 1);
+	assert_eq!(audio_manifest.info.as_ref().unwrap().next_part_idx, 3);
 
-    // Assert that the master playlist is correct.
-    assert_eq!(
-        resp,
-        format!(
-            r#"#EXTM3U
-#EXT-X-MEDIA:TYPE=VIDEO,AUTOSELECT=YES,DEFAULT=YES,GROUP-ID="{source_video_id}",NAME="{source_video_id}",BANDWIDTH=1000,CODECS="avc1.64002a",URI="{source_video_id}/index.m3u8",FRAME-RATE=30,RESOLUTION=1920x1080
-#EXT-X-MEDIA:TYPE=VIDEO,AUTOSELECT=YES,DEFAULT=YES,GROUP-ID="{video_id_360p}",NAME="{video_id_360p}",BANDWIDTH=1048576,CODECS="avc1.64002a",URI="{video_id_360p}/index.m3u8",FRAME-RATE=30,RESOLUTION=640x360
-#EXT-X-MEDIA:TYPE=AUDIO,AUTOSELECT=YES,DEFAULT=YES,GROUP-ID="{opus_audio_id}",NAME="{opus_audio_id}",BANDWIDTH=98304,CODECS="opus",URI="{opus_audio_id}/index.m3u8"
-#EXT-X-MEDIA:TYPE=AUDIO,AUTOSELECT=YES,DEFAULT=YES,GROUP-ID="{aac_audio_id}",NAME="{aac_audio_id}",BANDWIDTH=98304,CODECS="mp4a.40.2",URI="{aac_audio_id}/index.m3u8"
-#EXT-X-STREAM-INF:GROUP="aac",NAME="source",BANDWIDTH=99304,CODECS="avc1.64002a,mp4a.40.2",RESOLUTION=1920x1080,FRAME-RATE=30,VIDEO="{source_video_id}",AUDIO="{aac_audio_id}"
-{source_video_id}/index.m3u8
-#EXT-X-STREAM-INF:GROUP="opus",NAME="source",BANDWIDTH=99304,CODECS="avc1.64002a,opus",RESOLUTION=1920x1080,FRAME-RATE=30,VIDEO="{source_video_id}",AUDIO="{opus_audio_id}"
-{source_video_id}/index.m3u8
-#EXT-X-STREAM-INF:GROUP="aac",NAME="360p",BANDWIDTH=1146880,CODECS="avc1.64002a,mp4a.40.2",RESOLUTION=640x360,FRAME-RATE=30,VIDEO="{video_id_360p}",AUDIO="{aac_audio_id}"
-{video_id_360p}/index.m3u8
-#EXT-X-STREAM-INF:GROUP="opus",NAME="360p",BANDWIDTH=1146880,CODECS="avc1.64002a,opus",RESOLUTION=640x360,FRAME-RATE=30,VIDEO="{video_id_360p}",AUDIO="{opus_audio_id}"
-{video_id_360p}/index.m3u8
-#EXT-X-STREAM-INF:GROUP="aac",NAME="audio-only",BANDWIDTH=98304,CODECS="mp4a.40.2",AUDIO="{aac_audio_id}"
-{aac_audio_id}/index.m3u8
-#EXT-X-STREAM-INF:GROUP="opus",NAME="audio-only",BANDWIDTH=98304,CODECS="opus",AUDIO="{opus_audio_id}"
-{opus_audio_id}/index.m3u8
-#EXT-X-SCUF-GROUP:GROUP="opus",PRIORITY=1
-#EXT-X-SCUF-GROUP:GROUP="aac",PRIORITY=2
-"#
-        )
-    );
+	tracing::debug!("finished sending frames");
 
-    let source_state: HashMap<String, String> = redis
-        .hgetall(format!("transcoder:{}:{}:state", req_id, source_video_id))
-        .await
-        .unwrap();
-    let source_state = PlaylistState::from(source_state);
+	sender
+		.send(Ok(IngestWatchResponse {
+			message: Some(ingest_watch_response::Message::Shutdown(
+				ingest_watch_response::Shutdown::Stream.into(),
+			)),
+		}))
+		.await
+		.unwrap();
 
-    assert_eq!(source_state.current_fragment_idx(), 0);
-    assert_eq!(source_state.current_segment_idx(), 1);
-    assert_eq!(source_state.discontinuity_sequence(), 0);
-    assert_eq!(source_state.track_count(), 1);
-    assert_eq!(source_state.track_duration(0), Some(59000));
-    assert_eq!(source_state.track_timescale(0), Some(60000));
-    assert_eq!(source_state.longest_segment(), 59000.0 / 60000.0);
+	drop(sender);
+	drop(receiver);
 
-    let video_360p_state: HashMap<String, String> = redis
-        .hgetall(format!("transcoder:{}:{}:state", req_id, video_id_360p))
-        .await
-        .unwrap();
-    let video_360p_state = PlaylistState::from(video_360p_state);
+	tokio::time::sleep(Duration::from_millis(250)).await;
 
-    assert_eq!(video_360p_state.current_fragment_idx(), 0);
-    assert_eq!(video_360p_state.current_segment_idx(), 1);
-    assert_eq!(video_360p_state.discontinuity_sequence(), 0);
-    assert_eq!(video_360p_state.track_count(), 1);
-    assert_eq!(video_360p_state.track_duration(0), Some(15872));
-    assert_eq!(video_360p_state.track_timescale(0), Some(15360));
-    assert_eq!(video_360p_state.longest_segment(), 15872.0 / 15360.0);
+	let video_manifest = LiveRenditionManifest::decode(
+		global
+			.metadata_store()
+			.get(video_common::keys::rendition_manifest(
+				org_id,
+				room_id,
+				connection_id,
+				Rendition::VideoSource.into(),
+			))
+			.await
+			.unwrap()
+			.unwrap(),
+	)
+	.unwrap();
+	let audio_manifest = LiveRenditionManifest::decode(
+		global
+			.metadata_store()
+			.get(video_common::keys::rendition_manifest(
+				org_id,
+				room_id,
+				connection_id,
+				Rendition::AudioSource.into(),
+			))
+			.await
+			.unwrap()
+			.unwrap(),
+	)
+	.unwrap();
 
-    let opus_audio_state: HashMap<String, String> = redis
-        .hgetall(format!("transcoder:{}:{}:state", req_id, opus_audio_id))
-        .await
-        .unwrap();
-    let opus_audio_state = PlaylistState::from(opus_audio_state);
+	assert_eq!(video_manifest.segments.len(), 1);
+	assert_eq!(video_manifest.segments[0].parts.len(), 4);
+	assert!(video_manifest.segments[0].parts.iter().skip(1).all(|p| !p.independent));
+	assert!(video_manifest.segments[0].parts[0].independent);
+	assert!(video_manifest.completed);
+	assert_eq!(video_manifest.info.as_ref().unwrap().next_segment_idx, 1);
+	assert_eq!(video_manifest.info.as_ref().unwrap().next_part_idx, 4);
+	assert_eq!(video_manifest.total_duration, 59000); // verified with ffprobe
 
-    assert_eq!(opus_audio_state.current_fragment_idx(), 0);
-    assert_eq!(opus_audio_state.current_segment_idx(), 1);
-    assert_eq!(opus_audio_state.discontinuity_sequence(), 0);
-    assert_eq!(opus_audio_state.track_count(), 1);
-    assert_eq!(opus_audio_state.track_duration(0), Some(48440));
-    assert_eq!(opus_audio_state.track_timescale(0), Some(48000));
-    assert_eq!(opus_audio_state.longest_segment(), 48440.0 / 48000.0);
+	assert_eq!(video_manifest.segments.len(), 1);
+	assert_eq!(audio_manifest.segments[0].parts.len(), 4);
+	assert!(audio_manifest.segments[0].parts.iter().all(|p| p.independent));
+	assert!(audio_manifest.completed);
+	assert_eq!(audio_manifest.info.as_ref().unwrap().next_segment_idx, 1);
+	assert_eq!(audio_manifest.info.as_ref().unwrap().next_part_idx, 4);
+	assert_eq!(audio_manifest.total_duration, 48128); // verified with ffprobe
 
-    let aac_audio_state: HashMap<String, String> = redis
-        .hgetall(format!("transcoder:{}:{}:state", req_id, aac_audio_id))
-        .await
-        .unwrap();
-    let aac_audio_state = PlaylistState::from(aac_audio_state);
+	let mut video_parts = vec![
+		global
+			.media_store()
+			.get(video_common::keys::init(
+				org_id,
+				room_id,
+				connection_id,
+				Rendition::VideoSource.into(),
+			))
+			.await
+			.unwrap()
+			.read_all()
+			.await
+			.unwrap(),
+	];
+	let mut audio_parts = vec![
+		global
+			.media_store()
+			.get(video_common::keys::init(
+				org_id,
+				room_id,
+				connection_id,
+				Rendition::AudioSource.into(),
+			))
+			.await
+			.unwrap()
+			.read_all()
+			.await
+			.unwrap(),
+	];
 
-    assert_eq!(aac_audio_state.current_fragment_idx(), 0);
-    assert_eq!(aac_audio_state.current_segment_idx(), 1);
-    assert_eq!(aac_audio_state.discontinuity_sequence(), 0);
-    assert_eq!(aac_audio_state.track_count(), 1);
-    assert_eq!(aac_audio_state.track_duration(0), Some(49152));
-    assert_eq!(aac_audio_state.track_timescale(0), Some(48000));
-    assert_eq!(aac_audio_state.longest_segment(), 49152.0 / 48000.0);
+	for i in 1..=3 {
+		video_parts.push(
+			global
+				.media_store()
+				.get(video_common::keys::part(
+					org_id,
+					room_id,
+					connection_id,
+					Rendition::VideoSource.into(),
+					i,
+				))
+				.await
+				.unwrap()
+				.read_all()
+				.await
+				.unwrap(),
+		);
+		audio_parts.push(
+			global
+				.media_store()
+				.get(video_common::keys::part(
+					org_id,
+					room_id,
+					connection_id,
+					Rendition::AudioSource.into(),
+					i,
+				))
+				.await
+				.unwrap()
+				.read_all()
+				.await
+				.unwrap(),
+		);
+	}
 
-    {
-        let segment_state: HashMap<String, String> = redis
-            .hgetall(format!("transcoder:{}:{}:0:state", req_id, source_video_id))
-            .await
-            .unwrap();
-        let segment_state = SegmentState::from(segment_state);
+	let mut tmp_file = tempfile::NamedTempFile::new().unwrap();
+	tmp_file.write_all(&video_parts.concat()).unwrap();
 
-        assert_eq!(segment_state.fragments().len(), 4);
-        assert!(segment_state.fragments()[0].keyframe);
-    }
+	let command = Command::new("ffprobe")
+		.arg("-v")
+		.arg("error")
+		.arg("-fpsprobesize")
+		.arg("20000000")
+		.arg("-show_format")
+		.arg("-show_streams")
+		.arg("-print_format")
+		.arg("json")
+		.arg(tmp_file.path().to_str().unwrap())
+		.stdin(Stdio::null())
+		.stdout(Stdio::piped())
+		.stderr(Stdio::inherit())
+		.spawn()
+		.unwrap();
 
-    {
-        let segment_state: HashMap<String, String> = redis
-            .hgetall(format!("transcoder:{}:{}:0:state", req_id, aac_audio_id))
-            .await
-            .unwrap();
-        let segment_state = SegmentState::from(segment_state);
+	let output = command.wait_with_output().await.unwrap();
+	let json = serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap();
 
-        assert_eq!(segment_state.fragments().len(), 4);
-        assert!(segment_state.fragments().iter().all(|f| f.keyframe));
-    }
+	println!("{:#?}", json);
 
-    {
-        let segment_state: HashMap<String, String> = redis
-            .hgetall(format!("transcoder:{}:{}:0:state", req_id, opus_audio_id))
-            .await
-            .unwrap();
-        let segment_state = SegmentState::from(segment_state);
+	assert_eq!(json["format"]["format_name"], "mov,mp4,m4a,3gp,3g2,mj2");
+	assert_eq!(json["format"]["tags"]["major_brand"], "iso5");
+	assert_eq!(json["format"]["tags"]["minor_version"], "512");
+	assert_eq!(json["format"]["tags"]["compatible_brands"], "iso5iso6mp41");
 
-        assert_eq!(segment_state.fragments().len(), 4);
-        assert!(segment_state.fragments().iter().all(|f| f.keyframe));
-    }
+	assert_eq!(json["streams"][0]["codec_name"], "h264");
+	assert_eq!(json["streams"][0]["codec_type"], "video");
+	assert_eq!(json["streams"][0]["width"], 3840);
+	assert_eq!(json["streams"][0]["height"], 2160);
+	assert_eq!(json["streams"][0]["r_frame_rate"], "60/1");
+	assert_eq!(json["streams"][0]["avg_frame_rate"], "60/1");
+	assert_eq!(json["streams"][0]["duration_ts"], 59000);
+	assert_eq!(json["streams"][0]["time_base"], "1/60000");
+	assert_eq!(json["streams"][0]["duration"], "0.983333");
 
-    {
-        let segment_state: HashMap<String, String> = redis
-            .hgetall(format!("transcoder:{}:{}:0:state", req_id, video_id_360p))
-            .await
-            .unwrap();
-        let segment_state = SegmentState::from(segment_state);
+	let mut tmp_file = tempfile::NamedTempFile::new().unwrap();
+	tmp_file.write_all(&audio_parts.concat()).unwrap();
 
-        assert_eq!(segment_state.fragments().len(), 4);
-        assert!(segment_state.fragments()[0].keyframe);
-    }
+	let command = Command::new("ffprobe")
+		.arg("-v")
+		.arg("error")
+		.arg("-fpsprobesize")
+		.arg("20000000")
+		.arg("-probesize")
+		.arg("20000000")
+		.arg("-analyzeduration")
+		.arg("20000000")
+		.arg("-show_format")
+		.arg("-show_streams")
+		.arg("-print_format")
+		.arg("json")
+		.arg(tmp_file.path().to_str().unwrap())
+		.stdin(Stdio::null())
+		.stdout(Stdio::piped())
+		.stderr(Stdio::inherit())
+		.spawn()
+		.unwrap();
 
-    tracing::info!("done");
+	let output = command.wait_with_output().await.unwrap();
+	let json = serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap();
+
+	println!("{:#?}", json);
+
+	assert_eq!(json["format"]["format_name"], "mov,mp4,m4a,3gp,3g2,mj2");
+	assert_eq!(json["format"]["tags"]["major_brand"], "iso5");
+	assert_eq!(json["format"]["tags"]["minor_version"], "512");
+	assert_eq!(json["format"]["tags"]["compatible_brands"], "iso5iso6mp41");
+
+	assert_eq!(json["streams"][0]["codec_name"], "aac");
+	assert_eq!(json["streams"][0]["codec_type"], "audio");
+	assert_eq!(json["streams"][0]["sample_rate"], "48000");
+	assert_eq!(json["streams"][0]["channels"], 2);
+	assert_eq!(json["streams"][0]["duration_ts"], 48128);
+	assert_eq!(json["streams"][0]["time_base"], "1/48000");
+
+	let room: Room = scuffle_utils::database::query(
+		"SELECT * FROM rooms WHERE organization_id = $1 AND id = $2 AND active_ingest_connection_id = $3",
+	)
+	.bind(org_id)
+	.bind(room_id)
+	.bind(connection_id)
+	.build_query_as()
+	.fetch_one(global.db())
+	.await
+	.unwrap();
+
+	let active_transcoding_config = room.active_transcoding_config.unwrap();
+	assert!(room.active_recording_config.is_none());
+	let video_output = room.video_output.unwrap();
+	let audio_output = room.audio_output.unwrap();
+
+	assert!(
+		active_transcoding_config
+			.renditions
+			.contains(&(Rendition::VideoSource as i32))
+	);
+	assert!(
+		active_transcoding_config
+			.renditions
+			.contains(&(Rendition::AudioSource as i32))
+	);
+	assert_eq!(active_transcoding_config.id.into_ulid(), Ulid::nil());
+	assert_eq!(active_transcoding_config.created_at, 0);
+
+	assert_eq!(video_output.len(), 1);
+	assert_eq!(audio_output.len(), 1);
+
+	assert_eq!(video_output[0].rendition, Rendition::VideoSource as i32);
+	assert_eq!(video_output[0].codec, "avc1.64002a");
+	assert_eq!(video_output[0].bitrate, 7358 * 1024);
+	assert_eq!(video_output[0].fps, 60);
+	assert_eq!(video_output[0].height, 2160);
+	assert_eq!(video_output[0].width, 3840);
+
+	assert_eq!(audio_output[0].rendition, Rendition::AudioSource as i32);
+	assert_eq!(audio_output[0].codec, "mp4a.40.2");
+	assert_eq!(audio_output[0].bitrate, 130 * 1024);
+	assert_eq!(audio_output[0].channels, 2);
+	assert_eq!(audio_output[0].sample_rate, 48000);
+
+	assert_eq!(room.status, RoomStatus::Ready);
+
+	drop(global);
+	handler.cancel().timeout(Duration::from_secs(2)).await.unwrap();
+	transcoder_run_handle
+		.timeout(Duration::from_secs(2))
+		.await
+		.unwrap()
+		.unwrap()
+		.unwrap();
+
+	tracing::info!("done");
+}
+
+#[tokio::test]
+async fn test_transcode_reconnect() {
+	let port = portpicker::pick_unused_port().unwrap();
+
+	let (global, handler) = crate::tests::global::mock_global_state(TranscoderConfig {
+		events_stream_name: Ulid::new().to_string(),
+		transcoder_request_subject: Ulid::new().to_string(),
+		metadata_kv_store: Ulid::new().to_string(),
+		media_ob_store: Ulid::new().to_string(),
+		..Default::default()
+	})
+	.await;
+
+	let config = global.config::<TranscoderConfig>();
+
+	global
+		.jetstream()
+		.create_stream(async_nats::jetstream::stream::Config {
+			name: config.transcoder_request_subject.clone(),
+			..Default::default()
+		})
+		.await
+		.unwrap();
+
+	let org_id = Ulid::new();
+
+	let mut event_stream = global
+		.nats()
+		.subscribe(video_common::keys::event_subject(
+			&global.config().events_stream_name,
+			org_id,
+			Target::Room,
+		))
+		.await
+		.unwrap();
+
+	let addr = SocketAddr::from(([127, 0, 0, 1], port));
+
+	let mut rx = setup_ingest_server(global.clone(), addr);
+
+	let transcoder_run_handle = tokio::spawn(transcoder::run(global.clone()));
+
+	let req_id = Ulid::new();
+
+	let room_id = Ulid::new();
+	let connection_id = Ulid::new();
+
+	scuffle_utils::database::query(
+		r#"
+    INSERT INTO organizations (
+        id,
+        name
+    ) VALUES (
+        $1,
+        $2
+    )"#,
+	)
+	.bind(org_id)
+	.bind(room_id.to_string())
+	.build()
+	.execute(global.db())
+	.await
+	.unwrap();
+
+	scuffle_utils::database::query(
+		r#"
+    INSERT INTO rooms (
+        organization_id,
+        id,
+        active_ingest_connection_id,
+        stream_key,
+        video_input,
+        audio_input
+    ) VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6
+    )"#,
+	)
+	.bind(org_id)
+	.bind(room_id)
+	.bind(connection_id)
+	.bind(room_id.to_string())
+	.bind(
+		VideoConfig {
+			bitrate: 7358 * 1024,
+			codec: "avc1.64002a".to_string(),
+			fps: 60,
+			height: 3840,
+			width: 2160,
+			rendition: Rendition::VideoSource.into(),
+		}
+		.encode_to_vec(),
+	)
+	.bind(
+		AudioConfig {
+			bitrate: 130 * 1024,
+			codec: "mp4a.40.2".to_string(),
+			channels: 2,
+			sample_rate: 48000,
+			rendition: Rendition::AudioSource.into(),
+		}
+		.encode_to_vec(),
+	)
+	.build()
+	.execute(global.db())
+	.await
+	.unwrap();
+
+	// This is now a stream we can write frames to.
+	// We now need to demux the video into fragmnts to send to the transcoder.
+	let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../assets");
+	let data = std::fs::read(dir.join("avc_aac.flv").to_str().unwrap()).unwrap();
+
+	let mut cursor = Cursor::new(Bytes::from(data));
+	let mut transmuxer = Transmuxer::new();
+
+	let flv = flv::Flv::demux(&mut cursor).unwrap();
+
+	flv.tags.into_iter().for_each(|t| {
+		transmuxer.add_tag(t);
+	});
+
+	let mut packets = vec![];
+	while let Some(packet) = transmuxer.mux().unwrap() {
+		packets.push(packet);
+	}
+
+	let config = global.config::<TranscoderConfig>();
+
+	{
+		global
+			.nats()
+			.publish(
+				config.transcoder_request_subject.clone(),
+				TranscoderRequestTask {
+					room_id: Some(room_id.into()),
+					organization_id: Some(org_id.into()),
+					request_id: Some(req_id.into()),
+					connection_id: Some(connection_id.into()),
+					grpc_endpoint: format!("localhost:{}", port),
+				}
+				.encode_to_vec()
+				.into(),
+			)
+			.await
+			.unwrap();
+
+		let (sender, mut receiver) = rx.recv().timeout(Duration::from_secs(2)).await.unwrap().unwrap();
+
+		assert_eq!(
+			receiver.message().await.unwrap().unwrap().message.unwrap(),
+			ingest_watch_request::Message::Open(ingest_watch_request::Open {
+				request_id: Some(req_id.into()),
+			})
+		);
+
+		let mut audio = None;
+		let mut video = None;
+
+		for packet in &packets {
+			match packet {
+				TransmuxResult::InitSegment {
+					data,
+					audio_settings,
+					video_settings,
+				} => {
+					audio = Some(audio_settings);
+					video = Some(video_settings);
+					sender
+						.send(Ok(IngestWatchResponse {
+							message: Some(ingest_watch_response::Message::Media(ingest_watch_response::Media {
+								data: data.clone(),
+								keyframe: false,
+								timescale: 0,
+								timestamp: 0,
+								r#type: ingest_watch_response::media::Type::Init.into(),
+							})),
+						}))
+						.await
+						.unwrap();
+
+					sender
+						.send(Ok(IngestWatchResponse {
+							message: Some(ingest_watch_response::Message::Ready(
+								ingest_watch_response::Ready::Ready.into(),
+							)),
+						}))
+						.await
+						.unwrap();
+				}
+				TransmuxResult::MediaSegment(ms) => {
+					tokio::time::sleep(Duration::from_millis(10)).await;
+
+					sender
+						.send(Ok(IngestWatchResponse {
+							message: Some(ingest_watch_response::Message::Media(ingest_watch_response::Media {
+								data: ms.data.clone(),
+								keyframe: ms.keyframe,
+								timescale: match ms.ty {
+									transmuxer::MediaType::Audio => audio.as_ref().unwrap().timescale,
+									transmuxer::MediaType::Video => video.as_ref().unwrap().timescale,
+								},
+								timestamp: ms.timestamp,
+								r#type: match ms.ty {
+									transmuxer::MediaType::Audio => ingest_watch_response::media::Type::Audio.into(),
+									transmuxer::MediaType::Video => ingest_watch_response::media::Type::Video.into(),
+								},
+							})),
+						}))
+						.await
+						.unwrap();
+				}
+			}
+		}
+
+		{
+			let event = Event::decode(event_stream.next().await.unwrap().payload).unwrap();
+			assert!(event.timestamp - chrono::Utc::now().timestamp_millis() < 1000);
+			match event.event {
+				Some(event::Event::Room(room)) => {
+					assert_eq!(room.room_id.into_ulid(), room_id);
+
+					match room.event {
+						Some(event::room::Event::Ready(ready)) => {
+							assert_eq!(ready.connection_id.into_ulid(), connection_id);
+						}
+						_ => panic!("unexpected event"),
+					}
+				}
+				_ => panic!("unexpected event"),
+			};
+		}
+
+		sender
+			.send(Ok(IngestWatchResponse {
+				message: Some(ingest_watch_response::Message::Shutdown(
+					ingest_watch_response::Shutdown::Transcoder.into(),
+				)),
+			}))
+			.await
+			.unwrap();
+		assert_eq!(
+			receiver.message().await.unwrap().unwrap().message.unwrap(),
+			ingest_watch_request::Message::Shutdown(ingest_watch_request::Shutdown::Complete.into())
+		);
+
+		let video_manifest = LiveRenditionManifest::decode(
+			global
+				.metadata_store()
+				.get(video_common::keys::rendition_manifest(
+					org_id,
+					room_id,
+					connection_id,
+					Rendition::VideoSource.into(),
+				))
+				.await
+				.unwrap()
+				.unwrap(),
+		)
+		.unwrap();
+		let audio_manifest = LiveRenditionManifest::decode(
+			global
+				.metadata_store()
+				.get(video_common::keys::rendition_manifest(
+					org_id,
+					room_id,
+					connection_id,
+					Rendition::AudioSource.into(),
+				))
+				.await
+				.unwrap()
+				.unwrap(),
+		)
+		.unwrap();
+
+		assert_eq!(video_manifest.segments.len(), 1);
+		assert_eq!(video_manifest.segments[0].parts.len(), 4);
+		assert!(video_manifest.segments[0].parts.iter().skip(1).all(|p| !p.independent));
+		assert!(video_manifest.segments[0].parts[0].independent);
+		assert!(!video_manifest.completed);
+		assert_eq!(video_manifest.info.as_ref().unwrap().next_segment_idx, 1);
+		assert_eq!(video_manifest.info.as_ref().unwrap().next_part_idx, 4);
+		assert_eq!(video_manifest.info.as_ref().unwrap().next_segment_part_idx, 0);
+		assert_eq!(video_manifest.total_duration, 59000); // verified with ffprobe
+
+		assert_eq!(video_manifest.segments.len(), 1);
+		assert_eq!(audio_manifest.segments[0].parts.len(), 4);
+		assert!(audio_manifest.segments[0].parts.iter().all(|p| p.independent));
+		assert!(!audio_manifest.completed);
+		assert_eq!(audio_manifest.info.as_ref().unwrap().next_segment_idx, 1);
+		assert_eq!(audio_manifest.info.as_ref().unwrap().next_part_idx, 4);
+		assert_eq!(audio_manifest.total_duration, 48128); // verified with ffprobe
+	}
+
+	{
+		let new_req_id = Ulid::new();
+
+		global
+			.nats()
+			.publish(
+				config.transcoder_request_subject.clone(),
+				TranscoderRequestTask {
+					room_id: Some(room_id.into()),
+					organization_id: Some(org_id.into()),
+					request_id: Some(new_req_id.into()),
+					connection_id: Some(connection_id.into()),
+					grpc_endpoint: format!("localhost:{}", port),
+				}
+				.encode_to_vec()
+				.into(),
+			)
+			.await
+			.unwrap();
+
+		let (sender, mut receiver) = rx.recv().timeout(Duration::from_secs(2)).await.unwrap().unwrap();
+
+		assert_eq!(
+			receiver.message().await.unwrap().unwrap().message.unwrap(),
+			ingest_watch_request::Message::Open(ingest_watch_request::Open {
+				request_id: Some(new_req_id.into()),
+			})
+		);
+
+		let mut audio = None;
+		let mut video = None;
+
+		for packet in &packets {
+			match packet {
+				TransmuxResult::InitSegment {
+					data,
+					audio_settings,
+					video_settings,
+				} => {
+					audio = Some(audio_settings);
+					video = Some(video_settings);
+					sender
+						.send(Ok(IngestWatchResponse {
+							message: Some(ingest_watch_response::Message::Media(ingest_watch_response::Media {
+								data: data.clone(),
+								keyframe: false,
+								timescale: 0,
+								timestamp: 0,
+								r#type: ingest_watch_response::media::Type::Init.into(),
+							})),
+						}))
+						.await
+						.unwrap();
+
+					sender
+						.send(Ok(IngestWatchResponse {
+							message: Some(ingest_watch_response::Message::Ready(
+								ingest_watch_response::Ready::Ready.into(),
+							)),
+						}))
+						.await
+						.unwrap();
+				}
+				TransmuxResult::MediaSegment(ms) => {
+					tokio::time::sleep(Duration::from_millis(10)).await;
+
+					sender
+						.send(Ok(IngestWatchResponse {
+							message: Some(ingest_watch_response::Message::Media(ingest_watch_response::Media {
+								data: ms.data.clone(),
+								keyframe: ms.keyframe,
+								timescale: match ms.ty {
+									transmuxer::MediaType::Audio => audio.as_ref().unwrap().timescale,
+									transmuxer::MediaType::Video => video.as_ref().unwrap().timescale,
+								},
+								timestamp: ms.timestamp,
+								r#type: match ms.ty {
+									transmuxer::MediaType::Audio => ingest_watch_response::media::Type::Audio.into(),
+									transmuxer::MediaType::Video => ingest_watch_response::media::Type::Video.into(),
+								},
+							})),
+						}))
+						.await
+						.unwrap();
+				}
+			}
+		}
+
+		{
+			let event = Event::decode(event_stream.next().await.unwrap().payload).unwrap();
+			assert!(event.timestamp - chrono::Utc::now().timestamp_millis() < 1000);
+			match event.event {
+				Some(event::Event::Room(room)) => {
+					assert_eq!(room.room_id.into_ulid(), room_id);
+
+					match room.event {
+						Some(event::room::Event::Ready(ready)) => {
+							assert_eq!(ready.connection_id.into_ulid(), connection_id);
+						}
+						_ => panic!("unexpected event"),
+					}
+				}
+				_ => panic!("unexpected event"),
+			};
+		}
+
+		sender
+			.send(Ok(IngestWatchResponse {
+				message: Some(ingest_watch_response::Message::Shutdown(
+					ingest_watch_response::Shutdown::Transcoder.into(),
+				)),
+			}))
+			.await
+			.unwrap();
+		assert_eq!(
+			receiver.message().await.unwrap().unwrap().message.unwrap(),
+			ingest_watch_request::Message::Shutdown(ingest_watch_request::Shutdown::Complete.into())
+		);
+
+		let video_manifest = LiveRenditionManifest::decode(
+			global
+				.metadata_store()
+				.get(video_common::keys::rendition_manifest(
+					org_id,
+					room_id,
+					connection_id,
+					Rendition::VideoSource.into(),
+				))
+				.await
+				.unwrap()
+				.unwrap(),
+		)
+		.unwrap();
+		let audio_manifest = LiveRenditionManifest::decode(
+			global
+				.metadata_store()
+				.get(video_common::keys::rendition_manifest(
+					org_id,
+					room_id,
+					connection_id,
+					Rendition::AudioSource.into(),
+				))
+				.await
+				.unwrap()
+				.unwrap(),
+		)
+		.unwrap();
+
+		dbg!(&video_manifest);
+
+		assert_eq!(video_manifest.segments.len(), 2);
+		assert_eq!(video_manifest.segments[0].parts.len(), 4);
+		assert_eq!(video_manifest.segments[1].parts.len(), 4);
+		assert_eq!(video_manifest.segments[0].parts.iter().filter(|p| p.independent).count(), 1);
+		assert_eq!(video_manifest.segments[1].parts.iter().filter(|p| p.independent).count(), 1);
+		assert!(video_manifest.segments[0].parts[0].independent);
+		assert!(video_manifest.segments[1].parts[0].independent);
+		assert!(!video_manifest.completed);
+		assert_eq!(video_manifest.info.as_ref().unwrap().next_segment_idx, 2);
+		assert_eq!(video_manifest.info.as_ref().unwrap().next_part_idx, 8);
+		assert_eq!(video_manifest.info.as_ref().unwrap().next_segment_part_idx, 0);
+		assert_eq!(video_manifest.total_duration, 59000 * 2); // verified with ffprobe
+
+		assert_eq!(video_manifest.segments.len(), 2);
+		assert_eq!(audio_manifest.segments[0].parts.len(), 4);
+		assert_eq!(audio_manifest.segments[1].parts.len(), 4);
+		assert!(audio_manifest.segments[0].parts.iter().all(|p| p.independent));
+		assert!(audio_manifest.segments[1].parts.iter().all(|p| p.independent));
+		assert!(!audio_manifest.completed);
+		assert_eq!(audio_manifest.info.as_ref().unwrap().next_segment_idx, 2);
+		assert_eq!(audio_manifest.info.as_ref().unwrap().next_part_idx, 8);
+		assert_eq!(audio_manifest.info.as_ref().unwrap().next_segment_part_idx, 0);
+		assert_eq!(audio_manifest.total_duration, 48128 * 2); // verified with ffprobe
+	}
+
+	{
+		let new_req_id = Ulid::new();
+
+		global
+			.nats()
+			.publish(
+				config.transcoder_request_subject.clone(),
+				TranscoderRequestTask {
+					room_id: Some(room_id.into()),
+					organization_id: Some(org_id.into()),
+					request_id: Some(new_req_id.into()),
+					connection_id: Some(connection_id.into()),
+					grpc_endpoint: format!("localhost:{}", port),
+				}
+				.encode_to_vec()
+				.into(),
+			)
+			.await
+			.unwrap();
+
+		let (sender, mut receiver) = rx.recv().timeout(Duration::from_secs(2)).await.unwrap().unwrap();
+
+		assert_eq!(
+			receiver.message().await.unwrap().unwrap().message.unwrap(),
+			ingest_watch_request::Message::Open(ingest_watch_request::Open {
+				request_id: Some(new_req_id.into()),
+			})
+		);
+
+		let mut audio = None;
+		let mut video = None;
+
+		for packet in &packets {
+			match packet {
+				TransmuxResult::InitSegment {
+					data,
+					audio_settings,
+					video_settings,
+				} => {
+					audio = Some(audio_settings);
+					video = Some(video_settings);
+					sender
+						.send(Ok(IngestWatchResponse {
+							message: Some(ingest_watch_response::Message::Media(ingest_watch_response::Media {
+								data: data.clone(),
+								keyframe: false,
+								timescale: 0,
+								timestamp: 0,
+								r#type: ingest_watch_response::media::Type::Init.into(),
+							})),
+						}))
+						.await
+						.unwrap();
+
+					sender
+						.send(Ok(IngestWatchResponse {
+							message: Some(ingest_watch_response::Message::Ready(
+								ingest_watch_response::Ready::Ready.into(),
+							)),
+						}))
+						.await
+						.unwrap();
+				}
+				TransmuxResult::MediaSegment(ms) => {
+					tokio::time::sleep(Duration::from_millis(10)).await;
+
+					sender
+						.send(Ok(IngestWatchResponse {
+							message: Some(ingest_watch_response::Message::Media(ingest_watch_response::Media {
+								data: ms.data.clone(),
+								keyframe: ms.keyframe,
+								timescale: match ms.ty {
+									transmuxer::MediaType::Audio => audio.as_ref().unwrap().timescale,
+									transmuxer::MediaType::Video => video.as_ref().unwrap().timescale,
+								},
+								timestamp: ms.timestamp,
+								r#type: match ms.ty {
+									transmuxer::MediaType::Audio => ingest_watch_response::media::Type::Audio.into(),
+									transmuxer::MediaType::Video => ingest_watch_response::media::Type::Video.into(),
+								},
+							})),
+						}))
+						.await
+						.unwrap();
+				}
+			}
+		}
+
+		{
+			let event = Event::decode(event_stream.next().await.unwrap().payload).unwrap();
+			assert!(event.timestamp - chrono::Utc::now().timestamp_millis() < 1000);
+			match event.event {
+				Some(event::Event::Room(room)) => {
+					assert_eq!(room.room_id.into_ulid(), room_id);
+
+					match room.event {
+						Some(event::room::Event::Ready(ready)) => {
+							assert_eq!(ready.connection_id.into_ulid(), connection_id);
+						}
+						_ => panic!("unexpected event"),
+					}
+				}
+				_ => panic!("unexpected event"),
+			};
+		}
+
+		sender
+			.send(Ok(IngestWatchResponse {
+				message: Some(ingest_watch_response::Message::Shutdown(
+					ingest_watch_response::Shutdown::Transcoder.into(),
+				)),
+			}))
+			.await
+			.unwrap();
+		assert_eq!(
+			receiver.message().await.unwrap().unwrap().message.unwrap(),
+			ingest_watch_request::Message::Shutdown(ingest_watch_request::Shutdown::Complete.into())
+		);
+
+		let video_manifest = LiveRenditionManifest::decode(
+			global
+				.metadata_store()
+				.get(video_common::keys::rendition_manifest(
+					org_id,
+					room_id,
+					connection_id,
+					Rendition::VideoSource.into(),
+				))
+				.await
+				.unwrap()
+				.unwrap(),
+		)
+		.unwrap();
+		let audio_manifest = LiveRenditionManifest::decode(
+			global
+				.metadata_store()
+				.get(video_common::keys::rendition_manifest(
+					org_id,
+					room_id,
+					connection_id,
+					Rendition::AudioSource.into(),
+				))
+				.await
+				.unwrap()
+				.unwrap(),
+		)
+		.unwrap();
+
+		assert_eq!(video_manifest.segments.len(), 3);
+		assert_eq!(video_manifest.segments[0].parts.len(), 4);
+		assert_eq!(video_manifest.segments[1].parts.len(), 4);
+		assert_eq!(video_manifest.segments[2].parts.len(), 4);
+		assert_eq!(video_manifest.segments[0].parts.iter().filter(|p| p.independent).count(), 1);
+		assert_eq!(video_manifest.segments[1].parts.iter().filter(|p| p.independent).count(), 1);
+		assert_eq!(video_manifest.segments[2].parts.iter().filter(|p| p.independent).count(), 1);
+		assert!(video_manifest.segments[0].parts[0].independent);
+		assert!(video_manifest.segments[1].parts[0].independent);
+		assert!(video_manifest.segments[2].parts[0].independent);
+		assert!(!video_manifest.completed);
+		assert_eq!(video_manifest.info.as_ref().unwrap().next_segment_idx, 3);
+		assert_eq!(video_manifest.info.as_ref().unwrap().next_part_idx, 12);
+		assert_eq!(video_manifest.info.as_ref().unwrap().next_segment_part_idx, 0);
+		assert_eq!(video_manifest.other_info["audio_source"].next_segment_idx, 3);
+		assert_eq!(video_manifest.other_info["audio_source"].next_part_idx, 12);
+		assert_eq!(video_manifest.other_info["audio_source"].next_segment_part_idx, 0);
+		assert_eq!(video_manifest.total_duration, 59000 * 3); // verified with ffprobe
+
+		assert_eq!(audio_manifest.segments.len(), 3);
+		assert_eq!(audio_manifest.segments[0].parts.len(), 4);
+		assert_eq!(audio_manifest.segments[1].parts.len(), 4);
+		assert_eq!(audio_manifest.segments[2].parts.len(), 4);
+		assert!(audio_manifest.segments[0].parts.iter().all(|p| p.independent));
+		assert!(audio_manifest.segments[1].parts.iter().all(|p| p.independent));
+		assert!(audio_manifest.segments[2].parts.iter().all(|p| p.independent));
+		assert!(!audio_manifest.completed);
+		assert_eq!(audio_manifest.info.as_ref().unwrap().next_segment_idx, 3);
+		assert_eq!(audio_manifest.info.as_ref().unwrap().next_part_idx, 12);
+		assert_eq!(audio_manifest.info.as_ref().unwrap().next_segment_part_idx, 0);
+		assert_eq!(audio_manifest.other_info["video_source"].next_segment_idx, 3);
+		assert_eq!(audio_manifest.other_info["video_source"].next_part_idx, 12);
+		assert_eq!(audio_manifest.other_info["video_source"].next_segment_part_idx, 0);
+		assert_eq!(audio_manifest.total_duration, 48128 * 3); // verified with
+		// ffprobe
+	}
+
+	{
+		let new_req_id = Ulid::new();
+
+		global
+			.nats()
+			.publish(
+				config.transcoder_request_subject.clone(),
+				TranscoderRequestTask {
+					room_id: Some(room_id.into()),
+					organization_id: Some(org_id.into()),
+					request_id: Some(new_req_id.into()),
+					connection_id: Some(connection_id.into()),
+					grpc_endpoint: format!("localhost:{}", port),
+				}
+				.encode_to_vec()
+				.into(),
+			)
+			.await
+			.unwrap();
+
+		let (sender, mut receiver) = rx.recv().timeout(Duration::from_secs(2)).await.unwrap().unwrap();
+
+		assert_eq!(
+			receiver.message().await.unwrap().unwrap().message.unwrap(),
+			ingest_watch_request::Message::Open(ingest_watch_request::Open {
+				request_id: Some(new_req_id.into()),
+			})
+		);
+
+		let mut audio = None;
+		let mut video = None;
+
+		for packet in &packets {
+			match packet {
+				TransmuxResult::InitSegment {
+					data,
+					audio_settings,
+					video_settings,
+				} => {
+					audio = Some(audio_settings);
+					video = Some(video_settings);
+					sender
+						.send(Ok(IngestWatchResponse {
+							message: Some(ingest_watch_response::Message::Media(ingest_watch_response::Media {
+								data: data.clone(),
+								keyframe: false,
+								timescale: 0,
+								timestamp: 0,
+								r#type: ingest_watch_response::media::Type::Init.into(),
+							})),
+						}))
+						.await
+						.unwrap();
+
+					sender
+						.send(Ok(IngestWatchResponse {
+							message: Some(ingest_watch_response::Message::Ready(
+								ingest_watch_response::Ready::Ready.into(),
+							)),
+						}))
+						.await
+						.unwrap();
+				}
+				TransmuxResult::MediaSegment(ms) => {
+					tokio::time::sleep(Duration::from_millis(10)).await;
+
+					sender
+						.send(Ok(IngestWatchResponse {
+							message: Some(ingest_watch_response::Message::Media(ingest_watch_response::Media {
+								data: ms.data.clone(),
+								keyframe: ms.keyframe,
+								timescale: match ms.ty {
+									transmuxer::MediaType::Audio => audio.as_ref().unwrap().timescale,
+									transmuxer::MediaType::Video => video.as_ref().unwrap().timescale,
+								},
+								timestamp: ms.timestamp,
+								r#type: match ms.ty {
+									transmuxer::MediaType::Audio => ingest_watch_response::media::Type::Audio.into(),
+									transmuxer::MediaType::Video => ingest_watch_response::media::Type::Video.into(),
+								},
+							})),
+						}))
+						.await
+						.unwrap();
+				}
+			}
+		}
+
+		{
+			let event = Event::decode(event_stream.next().await.unwrap().payload).unwrap();
+			assert!(event.timestamp - chrono::Utc::now().timestamp_millis() < 1000);
+			match event.event {
+				Some(event::Event::Room(room)) => {
+					assert_eq!(room.room_id.into_ulid(), room_id);
+
+					match room.event {
+						Some(event::room::Event::Ready(ready)) => {
+							assert_eq!(ready.connection_id.into_ulid(), connection_id);
+						}
+						_ => panic!("unexpected event"),
+					}
+				}
+				_ => panic!("unexpected event"),
+			};
+		}
+
+		sender
+			.send(Ok(IngestWatchResponse {
+				message: Some(ingest_watch_response::Message::Shutdown(
+					ingest_watch_response::Shutdown::Stream.into(),
+				)),
+			}))
+			.await
+			.unwrap();
+		assert!(receiver.message().await.unwrap().is_none());
+
+		let video_manifest = LiveRenditionManifest::decode(
+			global
+				.metadata_store()
+				.get(video_common::keys::rendition_manifest(
+					org_id,
+					room_id,
+					connection_id,
+					Rendition::VideoSource.into(),
+				))
+				.await
+				.unwrap()
+				.unwrap(),
+		)
+		.unwrap();
+		let audio_manifest = LiveRenditionManifest::decode(
+			global
+				.metadata_store()
+				.get(video_common::keys::rendition_manifest(
+					org_id,
+					room_id,
+					connection_id,
+					Rendition::AudioSource.into(),
+				))
+				.await
+				.unwrap()
+				.unwrap(),
+		)
+		.unwrap();
+
+		assert_eq!(video_manifest.segments.len(), 4);
+		assert_eq!(video_manifest.segments[0].parts.len(), 4);
+		assert_eq!(video_manifest.segments[1].parts.len(), 4);
+		assert_eq!(video_manifest.segments[2].parts.len(), 4);
+		assert_eq!(video_manifest.segments[3].parts.len(), 4);
+		assert_eq!(video_manifest.segments[0].parts.iter().filter(|p| p.independent).count(), 1);
+		assert_eq!(video_manifest.segments[1].parts.iter().filter(|p| p.independent).count(), 1);
+		assert_eq!(video_manifest.segments[2].parts.iter().filter(|p| p.independent).count(), 1);
+		assert_eq!(video_manifest.segments[3].parts.iter().filter(|p| p.independent).count(), 1);
+		assert!(video_manifest.segments[0].parts[0].independent);
+		assert!(video_manifest.segments[1].parts[0].independent);
+		assert!(video_manifest.segments[2].parts[0].independent);
+		assert!(video_manifest.segments[3].parts[0].independent);
+		assert!(video_manifest.completed);
+		assert_eq!(video_manifest.info.as_ref().unwrap().next_segment_idx, 4);
+		assert_eq!(video_manifest.info.as_ref().unwrap().next_part_idx, 16);
+		assert_eq!(video_manifest.info.as_ref().unwrap().next_segment_part_idx, 0);
+		assert_eq!(video_manifest.other_info["audio_source"].next_segment_idx, 4);
+		assert_eq!(video_manifest.other_info["audio_source"].next_part_idx, 16);
+		assert_eq!(video_manifest.other_info["audio_source"].next_segment_part_idx, 0);
+		assert_eq!(video_manifest.total_duration, 59000 * 4); // verified with ffprobe
+
+		assert_eq!(audio_manifest.segments.len(), 4);
+		assert_eq!(audio_manifest.segments[0].parts.len(), 4);
+		assert_eq!(audio_manifest.segments[1].parts.len(), 4);
+		assert_eq!(audio_manifest.segments[2].parts.len(), 4);
+		assert_eq!(audio_manifest.segments[3].parts.len(), 4);
+		assert!(
+			audio_manifest
+				.segments
+				.iter()
+				.flat_map(|s| s.parts.iter())
+				.all(|p| p.independent)
+		);
+		assert!(audio_manifest.completed);
+		assert_eq!(audio_manifest.info.as_ref().unwrap().next_segment_idx, 4);
+		assert_eq!(audio_manifest.info.as_ref().unwrap().next_part_idx, 16);
+		assert_eq!(audio_manifest.info.as_ref().unwrap().next_segment_part_idx, 0);
+		assert_eq!(audio_manifest.other_info["video_source"].next_segment_idx, 4);
+		assert_eq!(audio_manifest.other_info["video_source"].next_part_idx, 16);
+		assert_eq!(audio_manifest.other_info["video_source"].next_segment_part_idx, 0);
+		assert_eq!(audio_manifest.total_duration, 48128 * 4); // verified with
+		// ffprobe
+	}
+
+	drop(global);
+	handler.cancel().timeout(Duration::from_secs(2)).await.unwrap();
+	transcoder_run_handle
+		.timeout(Duration::from_secs(2))
+		.await
+		.unwrap()
+		.unwrap()
+		.unwrap();
+
+	tracing::info!("done");
 }

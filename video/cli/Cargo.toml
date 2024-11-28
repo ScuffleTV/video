@@ -1,0 +1,29 @@
+[package]
+name = "video-cli"
+version = "0.0.1"
+edition = "2021"
+license = "BSL-1.0"
+
+[dependencies]
+tokio = { version = "1.36", features = ["full"] }
+clap = { version = "4.4", features = ["derive", "env"] }
+ulid = "1.1"
+chrono = { version = "0.4", features = ["serde"] }
+fred = { version = "8.0.0", features = ["enable-rustls", "sentinel-client", "dns"] }
+async-nats = "0.34"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+async-trait = "0.1"
+anyhow = { version = "1.0", features = ["backtrace"] }
+tonic = "0.11"
+futures = "0.3"
+futures-util = "0.3"
+serde_yaml = "0.9"
+base64 = "0.22"
+
+pb = { workspace = true }
+config = { workspace = true }
+scuffle-utils = { workspace = true, features = ["all"] }
+video-api = { workspace = true }
+video-common = { workspace = true }
+binary-helper = { workspace = true }

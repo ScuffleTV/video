@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package scuffle.video.v1.types;
+
+import "scuffle/types/ulid.proto";
+
+// This is a message which is returned when a resource request fails.
+message FailedResource {
+  // The ID of the resource which failed to be deleted.
+  scuffle.types.Ulid id = 1;
+
+  // The reason why the resource failed to be deleted.
+  string reason = 2;
+}

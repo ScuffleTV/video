@@ -1,881 +1,570 @@
-use std::collections::HashMap;
-use std::io;
-use std::process::Output;
-use std::{
-    os::unix::process::CommandExt, path::Path, pin::pin, process::Command as StdCommand, sync::Arc,
-    time::Duration,
-};
+use std::collections::{HashMap, HashSet};
+use std::pin::pin;
+use std::sync::Arc;
+use std::time::Duration;
 
-use anyhow::{anyhow, Result};
-use async_stream::stream;
-use common::prelude::*;
-use common::vec_of_strings;
-use fred::types::Expiration;
-use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
-use futures_util::Stream;
-use lapin::message::Delivery;
-use lapin::options::BasicAckOptions;
-use mp4::codec::{AudioCodec, VideoCodec};
-use nix::sys::signal;
-use nix::unistd::Pid;
+use anyhow::{Context, Result};
+use async_nats::jetstream::Message;
+use bytes::Bytes;
+use futures::{FutureExt, StreamExt};
+use futures_util::TryFutureExt;
+use pb::ext::UlidExt;
+use pb::scuffle::video::internal::events::TranscoderRequestTask;
+use pb::scuffle::video::internal::ingest_client::IngestClient;
+use pb::scuffle::video::internal::live_rendition_manifest::RenditionInfo;
+use pb::scuffle::video::internal::{
+	ingest_watch_request, ingest_watch_response, IngestWatchRequest, IngestWatchResponse, LiveManifest,
+	LiveRenditionManifest,
+};
+use pb::scuffle::video::v1::events_fetch_request::Target;
+use pb::scuffle::video::v1::types::event;
 use prost::Message as _;
+use scuffle_utils::prelude::FutureTimeout;
+use scuffle_utils::task::AsyncTask;
 use tokio::sync::mpsc;
-use tokio::{
-    io::AsyncWriteExt,
-    net::UnixListener,
-    process::{ChildStdin, Command},
-    select,
-};
+use tokio::{select, try_join};
 use tokio_util::sync::CancellationToken;
-use tonic::{transport::Channel, Status};
+use ulid::Ulid;
+use video_common::database::Rendition;
 
-use crate::pb::scuffle::types::{stream_state, StreamState};
-use crate::transcoder::job::utils::{release_lock, set_lock, SharedFuture};
-use crate::{
-    global::GlobalState,
-    pb::scuffle::{
-        events::{transcoder_message, TranscoderMessage, TranscoderMessageNewStream},
-        video::{
-            ingest_client::IngestClient, transcoder_event_request, watch_stream_response,
-            TranscoderEventRequest, WatchStreamRequest, WatchStreamResponse,
-        },
-    },
-};
-use fred::interfaces::KeysInterface;
+use self::recording::Recording;
+use self::task::generic::GenericTask;
+use self::track::parser::TrackOut;
+use self::track::Track;
+use crate::global::TranscoderGlobal;
+use crate::transcoder::job::ffmpeg::Transcoder;
+use crate::transcoder::job::sql_operations::perform_sql_operations;
+use crate::transcoder::job::task::generic::generic_task;
+use crate::transcoder::job::task::rendition::track_task;
+use crate::transcoder::job::task::track_parser::track_parser_task;
+use crate::transcoder::job::track::parser::TrackParser;
 
-use self::renditions::RenditionMap;
-
+mod breakpoint;
+mod ffmpeg;
+mod recording;
 mod renditions;
-mod track_parser;
-mod utils;
-pub(crate) mod variant;
+mod screenshot;
+mod sql_operations;
+mod task;
+mod track;
 
-pub async fn handle_message(
-    global: Arc<GlobalState>,
-    msg: Delivery,
-    shutdown_token: CancellationToken,
-) {
-    let mut job = match handle_message_internal(&msg).await {
-        Ok(job) => job,
-        Err(err) => {
-            tracing::error!("failed to handle message: {}", err);
-            return;
-        }
-    };
+pub async fn handle_message<G: TranscoderGlobal>(global: Arc<G>, msg: Message, shutdown_token: CancellationToken) {
+	let mut job = match Job::new(&global, &msg).await {
+		Ok(job) => job,
+		Err(err) => {
+			msg.ack_with(async_nats::jetstream::AckKind::Nak(Some(Duration::from_secs(15))))
+				.await
+				.ok();
+			tracing::error!(error = %err, "failed to handle message");
+			return;
+		}
+	};
 
-    if let Err(err) = msg.ack(BasicAckOptions::default()).await {
-        tracing::error!("failed to ACK message: {}", err);
-        return;
-    };
+	if let Err(err) = msg.double_ack().await {
+		tracing::error!(error = %err, "failed to ACK message");
+		return;
+	};
 
-    job.run(global, shutdown_token).await;
-}
+	if let Err(err) = job.run(&global, shutdown_token).await {
+		video_common::events::emit(
+			global.nats(),
+			&global.config().events_stream_name,
+			job.organization_id,
+			Target::Room,
+			event::Event::Room(event::Room {
+				room_id: Some(job.room_id.into()),
+				event: Some(event::room::Event::Failed(event::room::Failed {
+					connection_id: Some(job.connection_id.into()),
+					error: err.to_string(),
+				})),
+			}),
+		)
+		.await;
 
-async fn handle_message_internal(msg: &Delivery) -> Result<Job> {
-    let message = TranscoderMessage::decode(msg.data.as_slice())?;
+		println!("failed to run transcoder: {:#}", err);
 
-    let req = match message.data {
-        Some(transcoder_message::Data::NewStream(data)) => data,
-        None => return Err(anyhow!("message missing data")),
-    };
+		tracing::error!(error = %err, "failed to run transcoder");
+	}
 
-    let channel = common::grpc::make_channel(
-        vec![req.ingest_address.clone()],
-        Duration::from_secs(30),
-        None,
-    )?;
+	if let Err(err) = job.handle_shutdown().await {
+		tracing::error!(error = %err, "failed to shutdown transcoder");
+	}
 
-    tracing::info!("got new stream request: {}", req.stream_id);
-
-    let mut client = IngestClient::new(channel);
-
-    let stream = client
-        .watch_stream(WatchStreamRequest {
-            request_id: req.request_id.clone(),
-            stream_id: req.stream_id.clone(),
-        })
-        .timeout(Duration::from_secs(2))
-        .await??
-        .into_inner();
-
-    Ok(Job {
-        req,
-        client,
-        stream,
-        lock_owner: CancellationToken::new(),
-    })
+	tracing::info!("stream finished");
 }
 
 struct Job {
-    req: TranscoderMessageNewStream,
-    client: IngestClient<Channel>,
-    stream: tonic::Streaming<WatchStreamResponse>,
-    lock_owner: CancellationToken,
-}
+	organization_id: Ulid,
+	room_id: Ulid,
+	connection_id: Ulid,
 
-#[inline(always)]
-fn redis_mutex_key(stream_id: impl std::fmt::Display) -> String {
-    format!("transcoder:{}:mutex", stream_id)
-}
+	recording: Option<Recording>,
 
-#[inline(always)]
-fn redis_master_playlist_key(stream_id: impl std::fmt::Display) -> String {
-    format!("transcoder:{}:playlist", stream_id)
-}
+	ingest_ready: bool,
+	transcoder_ready: bool,
 
-fn set_master_playlist(
-    global: Arc<GlobalState>,
-    stream_id: impl std::fmt::Display,
-    state: &StreamState,
-    lock: CancellationToken,
-) -> impl futures::Future<Output = Result<()>> + Send + 'static {
-    let playlist_key = redis_master_playlist_key(stream_id);
+	tracks: HashMap<Rendition, Track>,
+	generic_uploader: mpsc::Sender<GenericTask>,
 
-    let mut playlist = String::new();
+	ffmpeg_send: Option<mpsc::Sender<Bytes>>,
+	ffmpeg_recv: mpsc::Receiver<(Rendition, TrackOut)>,
 
-    playlist.push_str("#EXTM3U\n");
+	screenshot_recv: mpsc::Receiver<(Bytes, f64)>,
 
-    let mut state_map = HashMap::new();
+	tasks: Vec<AsyncTask<anyhow::Result<()>>>,
 
-    for transcode_state in state.transcodes.iter() {
-        let mut tags = vec![
-            format!(
-                "TYPE={}",
-                match transcode_state.settings.as_ref().unwrap() {
-                    stream_state::transcode::Settings::Video(_) => {
-                        "VIDEO"
-                    }
-                    stream_state::transcode::Settings::Audio(_) => {
-                        "AUDIO"
-                    }
-                }
-            ),
-            "AUTOSELECT=YES".to_string(),
-            "DEFAULT=YES".to_string(),
-            format!("GROUP-ID=\"{}\"", transcode_state.id),
-            format!("NAME=\"{}\"", transcode_state.id),
-            format!("BANDWIDTH={}", transcode_state.bitrate),
-            format!("CODECS=\"{}\"", transcode_state.codec),
-            format!("URI=\"{}/index.m3u8\"", transcode_state.id),
-        ];
+	first_init_put: bool,
+	screenshot_idx: u32,
 
-        if let Some(stream_state::transcode::Settings::Video(settings)) =
-            transcode_state.settings.as_ref()
-        {
-            tags.push(format!("FRAME-RATE={}", settings.framerate));
-            tags.push(format!("RESOLUTION={}x{}", settings.width, settings.height));
-        }
-
-        playlist.push_str(format!("#EXT-X-MEDIA:{}\n", tags.join(",")).as_str());
-
-        state_map.insert(transcode_state.id.as_str(), transcode_state);
-    }
-
-    for stream_variant in state.variants.iter() {
-        let video_transcode_state = stream_variant.transcode_ids.iter().find_map(|id| {
-            let t = state_map.get(id.as_str()).unwrap();
-            if matches!(
-                t.settings,
-                Some(stream_state::transcode::Settings::Video(_))
-            ) {
-                Some(t)
-            } else {
-                None
-            }
-        });
-
-        let audio_transcode_state = stream_variant.transcode_ids.iter().find_map(|id| {
-            let t = state_map.get(id.as_str()).unwrap();
-            if matches!(
-                t.settings,
-                Some(stream_state::transcode::Settings::Audio(_))
-            ) {
-                Some(t)
-            } else {
-                None
-            }
-        });
-
-        let bandwidth = video_transcode_state.map(|t| t.bitrate).unwrap_or(0)
-            + audio_transcode_state.map(|t| t.bitrate).unwrap_or(0);
-        let codecs = video_transcode_state
-            .iter()
-            .chain(audio_transcode_state.iter())
-            .map(|t| t.codec.as_str())
-            .collect::<Vec<_>>()
-            .join(",");
-
-        let mut tags = vec![
-            format!("GROUP=\"{}\"", stream_variant.group),
-            format!("NAME=\"{}\"", stream_variant.name),
-            format!("BANDWIDTH={}", bandwidth),
-            format!("CODECS=\"{}\"", codecs),
-        ];
-
-        if let Some(video) = video_transcode_state {
-            let settings = match video.settings.as_ref() {
-                Some(stream_state::transcode::Settings::Video(settings)) => settings,
-                _ => unreachable!(),
-            };
-
-            tags.push(format!("RESOLUTION={}x{}", settings.width, settings.height));
-            tags.push(format!("FRAME-RATE={}", settings.framerate));
-            tags.push(format!("VIDEO=\"{}\"", video.id));
-        }
-
-        if let Some(audio) = audio_transcode_state {
-            tags.push(format!("AUDIO=\"{}\"", audio.id));
-        }
-
-        playlist.push_str(
-            format!(
-                "#EXT-X-STREAM-INF:{}\n{}/index.m3u8\n",
-                tags.join(","),
-                video_transcode_state.or(audio_transcode_state).unwrap().id
-            )
-            .as_str(),
-        );
-    }
-
-    for group in state.groups.iter() {
-        playlist.push_str(
-            format!(
-                "#EXT-X-SCUF-GROUP:GROUP=\"{}\",PRIORITY={}\n",
-                group.name, group.priority
-            )
-            .as_str(),
-        );
-    }
-
-    async move {
-        lock.cancelled().await;
-
-        global
-            .redis
-            .set(
-                &playlist_key,
-                playlist,
-                Some(Expiration::EX(450)),
-                None,
-                false,
-            )
-            .await?;
-
-        let mut ticker = tokio::time::interval(Duration::from_secs(60));
-        loop {
-            ticker.tick().await;
-            global.redis.expire(&playlist_key, 450).await?;
-        }
-    }
-}
-
-fn report_to_ingest(
-    mut client: IngestClient<Channel>,
-    mut channel: mpsc::Receiver<TranscoderEventRequest>,
-) -> impl Stream<Item = Result<()>> + Send + 'static {
-    stream!({
-        while let Some(msg) = channel.recv().await {
-            tracing::debug!("sending message: {:?}", msg);
-            match client
-                .transcoder_event(msg)
-                .timeout(Duration::from_secs(5))
-                .await
-            {
-                Ok(Ok(_)) => {}
-                Ok(Err(e)) => {
-                    yield Err(e.into());
-                }
-                Err(e) => {
-                    yield Err(e.into());
-                }
-            }
-        }
-    })
+	ingest_send: mpsc::Sender<IngestWatchRequest>,
+	ingest_recv: tonic::Streaming<IngestWatchResponse>,
+	ingest_shutdown: Option<ingest_watch_response::Shutdown>,
 }
 
 impl Job {
-    fn stream_state(&self) -> &StreamState {
-        self.req.state.as_ref().unwrap()
-    }
+	async fn new(global: &Arc<impl TranscoderGlobal>, msg: &Message) -> Result<Self> {
+		let message = TranscoderRequestTask::decode(msg.payload.clone())?;
 
-    async fn run(&mut self, global: Arc<GlobalState>, shutdown_token: CancellationToken) {
-        tracing::info!("starting transcode job");
-        let mut set_lock_fut = pin!(set_lock(
-            global.clone(),
-            redis_mutex_key(&self.req.stream_id),
-            self.req.request_id.clone(),
-            self.lock_owner.clone(),
-        ));
+		let organization_id = message.organization_id.into_ulid();
+		let room_id = message.room_id.into_ulid();
+		let connection_id = message.connection_id.into_ulid();
 
-        let mut update_playlist_fut = pin!(set_master_playlist(
-            global.clone(),
-            self.req.stream_id.clone(),
-            self.stream_state(),
-            self.lock_owner.child_token(),
-        ));
+		let result = perform_sql_operations(global, organization_id, room_id, connection_id).await?;
 
-        // We need to create a unix socket for ffmpeg to connect to.
-        let socket_dir = Path::new(&global.config.transcoder.socket_dir).join(&self.req.request_id);
-        if let Err(err) = tokio::fs::create_dir_all(&socket_dir).await {
-            tracing::error!("failed to create socket dir: {}", err);
-            self.report_error("Failed to create socket dir", false)
-                .await;
-            return;
-        }
+		tracing::info!(
+			%organization_id,
+			%room_id,
+			%connection_id,
+			transcoding_config_id = %result.transcoding_config.id.into_ulid(),
+			recording_id = %result.recording.as_ref().map(|r| r.id().to_string()).unwrap_or_default(),
+			"got new stream request",
+		);
 
-        let mut futures = FuturesUnordered::new();
+		let renditions = result
+			.video_output
+			.iter()
+			.map(|r| r.rendition())
+			.chain(result.audio_output.iter().map(|r| r.rendition()))
+			.map(Into::into)
+			.collect::<HashSet<Rendition>>();
 
-        let stream_state = self.stream_state();
+		let (ffmpeg_input, input_receiver) = mpsc::channel(1);
+		let (track_parser, ffmpeg_output) = mpsc::channel(renditions.len());
 
-        let (ready_tx, mut ready_recv) = mpsc::channel(16);
-        let mut rendition_map = RenditionMap::new();
-        for transcode_state in stream_state.transcodes.iter() {
-            rendition_map.insert(transcode_state.id.clone());
-        }
-        let rendition_map = Arc::new(rendition_map);
+		let mut recording = result.recording;
+		let mut ffmpeg_outputs = HashMap::new();
 
-        for transcode_state in stream_state.transcodes.iter() {
-            let sock_path = socket_dir.join(format!("{}.sock", transcode_state.id));
-            let socket = match UnixListener::bind(&sock_path) {
-                Ok(s) => s,
-                Err(err) => {
-                    tracing::error!("failed to bind socket: {}", err);
-                    self.report_error("Failed to bind socket", false).await;
-                    return;
-                }
-            };
+		let mut tasks = recording.as_mut().map(|r| r.tasks()).unwrap_or_default();
 
-            // Change user and group of the socket.
-            if let Err(err) = nix::unistd::chown(
-                sock_path.as_os_str(),
-                Some(nix::unistd::Uid::from_raw(global.config.transcoder.uid)),
-                Some(nix::unistd::Gid::from_raw(global.config.transcoder.gid)),
-            ) {
-                tracing::error!("failed to chown socket: {}", err);
-                self.report_error("Failed to chown socket", false).await;
-                return;
-            }
+		tasks.extend(renditions.iter().copied().map(|rendition| {
+			let (tx, rx) = mpsc::channel(1);
+			ffmpeg_outputs.insert(rendition, tx);
 
-            futures.push(variant::handle_variant(
-                global.clone(),
-                ready_tx.clone(),
-                self.req.stream_id.clone(),
-                transcode_state.id.clone(),
-                self.req.request_id.clone(),
-                socket,
-                rendition_map.clone(),
-            ));
-        }
+			let tp = TrackParser::new(rx);
+			AsyncTask::spawn(
+				format!("track_parser({rendition})"),
+				track_parser_task(tp, rendition, track_parser.clone()),
+			)
+		}));
 
-        let filter_graph_items = self
-            .stream_state()
-            .transcodes
-            .iter()
-            .filter(|v| {
-                !v.copy
-                    && matches!(
-                        v.settings,
-                        Some(stream_state::transcode::Settings::Video(_))
-                    )
-            })
-            .collect::<Vec<_>>();
+		let mut tracks = HashMap::new();
 
-        let filter_graph = filter_graph_items
-            .iter()
-            .enumerate()
-            .map(|(i, v)| {
-                let settings = match v.settings.as_ref().unwrap() {
-                    stream_state::transcode::Settings::Video(v) => v,
-                    _ => unreachable!(),
-                };
+		tasks.extend(renditions.iter().copied().map(|rendition| {
+			let (tx, rx) = mpsc::channel(16);
+			tracks.insert(rendition, Track::new(global, rendition, tx));
 
-                let previous = if i == 0 {
-                    "[0:v]".to_string()
-                } else {
-                    format!("[{}_out]", i - 1)
-                };
+			AsyncTask::spawn(
+				format!("rendition({rendition})"),
+				track_task(global.clone(), organization_id, room_id, connection_id, rendition, rx),
+			)
+		}));
 
-                format!(
-                    "{}scale={}:{},pad=ceil(iw/2)*2:ceil(ih/2)*2{}",
-                    previous,
-                    settings.width,
-                    settings.height,
-                    if i == filter_graph_items.len() - 1 {
-                        format!("[{}]", v.id)
-                    } else {
-                        format!(",split=2[{}][{}_out]", v.id, i)
-                    }
-                )
-            })
-            .collect::<Vec<_>>()
-            .join(";");
+		let (frame_send, frame_recv) = mpsc::channel(1);
+		tasks.push(AsyncTask::spawn_blocking("ffmpeg", {
+			let global = global.clone();
 
-        const MP4_FLAGS: &str = "+frag_keyframe+empty_moov+default_base_moof";
+			let video_configs = result.video_output.clone();
+			let audio_configs = result.audio_output.clone();
 
-        #[rustfmt::skip]
-        let mut args = vec_of_strings![
-            "-v", "error",
-            "-i", "-",
-            "-probesize", "250M",
-            "-analyzeduration", "250M",
-        ];
+			move || {
+				Transcoder::new(
+					&global,
+					input_receiver,
+					frame_send,
+					ffmpeg_outputs,
+					video_configs,
+					audio_configs,
+				)?
+				.run()
+			}
+		}));
 
-        if !filter_graph.is_empty() {
-            args.extend(vec_of_strings!["-filter_complex", filter_graph]);
-        }
+		let (screenshot_send, screenshot_recv) = mpsc::channel(16);
+		tasks.push(AsyncTask::spawn_blocking("screenshot", || {
+			screenshot::screenshot_task(frame_recv, screenshot_send)
+		}));
 
-        for state in stream_state.transcodes.iter() {
-            match state.settings {
-                Some(stream_state::transcode::Settings::Video(ref video)) => {
-                    if state.copy {
-                        #[rustfmt::skip]
-                        args.extend(vec_of_strings![
-                            "-map", "0:v",
-                            "-c:v", "copy",
-                        ]);
-                    } else {
-                        let codec: VideoCodec = match state.codec.parse() {
-                            Ok(c) => c,
-                            Err(err) => {
-                                tracing::error!("invalid video codec: {}", err);
-                                self.report_error("Invalid video codec", false).await;
-                                return;
-                            }
-                        };
+		let (generic_uploader, rx) = mpsc::channel(16);
 
-                        match codec {
-                            VideoCodec::Avc { profile, level, .. } => {
-                                #[rustfmt::skip]
-                                args.extend(vec_of_strings![
-                                    "-map", format!("[{}]", state.id),
-                                    "-c:v", "libx264",
-                                    "-preset", "medium",
-                                    "-b:v", format!("{}", state.bitrate),
-                                    "-maxrate", format!("{}", state.bitrate),
-                                    "-bufsize", format!("{}", state.bitrate * 2),
-                                    "-profile:v", match profile {
-                                        66 => "baseline",
-                                        77 => "main",
-                                        100 => "high",
-                                        _ => {
-                                            tracing::error!("invalid avc profile: {}", profile);
-                                            self.report_error("Invalid avc profile", false).await;
-                                            return;
-                                        },
-                                    },
-                                    "-level:v", match level {
-                                        30 => "3.0",
-                                        31 => "3.1",
-                                        32 => "3.2",
-                                        40 => "4.0",
-                                        41 => "4.1",
-                                        42 => "4.2",
-                                        50 => "5.0",
-                                        51 => "5.1",
-                                        52 => "5.2",
-                                        60 => "6.0",
-                                        61 => "6.1",
-                                        62 => "6.2",
-                                        _ => {
-                                            tracing::error!("invalid avc level: {}", level);
-                                            self.report_error("Invalid avc level", false).await;
-                                            return;
-                                        },
-                                    },
-                                    "-pix_fmt", "yuv420p",
-                                    "-g", format!("{}", video.framerate * 2),
-                                    "-keyint_min", format!("{}", video.framerate * 2),
-                                    "-sc_threshold", "0",
-                                    "-r", format!("{}", video.framerate),
-                                    "-crf", "23",
-                                    "-tune", "zerolatency",
-                                ]);
-                            }
-                            VideoCodec::Av1 { .. } => {
-                                tracing::error!("av1 is not supported");
-                                self.report_error("AV1 is not supported", false).await;
-                                return;
-                            }
-                            VideoCodec::Hevc { .. } => {
-                                tracing::error!("hevc is not supported");
-                                self.report_error("HEVC is not supported", false).await;
-                                return;
-                            }
-                        }
-                    }
-                }
-                Some(stream_state::transcode::Settings::Audio(ref audio)) => {
-                    if state.copy {
-                        tracing::error!("audio copy is not supported");
-                        self.report_error("Audio copy is not supported", false)
-                            .await;
-                        return;
-                    } else {
-                        let codec: AudioCodec = match state.codec.parse() {
-                            Ok(c) => c,
-                            Err(err) => {
-                                tracing::error!("invalid audio codec: {}", err);
-                                self.report_error("Invalid audio codec", false).await;
-                                return;
-                            }
-                        };
+		tasks.push(AsyncTask::spawn(
+			"generic",
+			generic_task(global.clone(), organization_id, room_id, connection_id, rx),
+		));
 
-                        match codec {
-                            AudioCodec::Aac { object_type } => {
-                                args.extend(vec_of_strings![
-                                    "-map",
-                                    "0:a",
-                                    "-c:a",
-                                    "aac",
-                                    "-b:a",
-                                    format!("{}", state.bitrate),
-                                    "-ar",
-                                    format!("{}", audio.sample_rate),
-                                    "-ac",
-                                    format!("{}", audio.channels),
-                                    "-profile:a",
-                                    match object_type {
-                                        aac::AudioObjectType::AacLowComplexity => {
-                                            "aac_low"
-                                        }
-                                        aac::AudioObjectType::AacMain => {
-                                            "aac_main"
-                                        }
-                                        aac::AudioObjectType::Unknown(profile) => {
-                                            tracing::error!("invalid aac profile: {}", profile);
-                                            self.report_error("Invalid aac profile", false).await;
-                                            return;
-                                        }
-                                    },
-                                ]);
-                            }
-                            AudioCodec::Opus => {
-                                args.extend(vec_of_strings![
-                                    "-map",
-                                    "0:a",
-                                    "-c:a",
-                                    "libopus",
-                                    "-b:a",
-                                    format!("{}", state.bitrate),
-                                    "-ar",
-                                    format!("{}", audio.sample_rate),
-                                    "-ac",
-                                    format!("{}", audio.channels),
-                                ]);
-                            }
-                        }
-                    }
-                }
-                None => {
-                    tracing::error!("no settings for variant {}", state.id);
-                    self.report_error("No settings for variant", true).await;
-                    return;
-                }
-            }
+		tracing::debug!(endpoint = %message.grpc_endpoint, "trying to connect to ingest");
 
-            // Common args regardless of copy or transcode mode
-            #[rustfmt::skip]
-            args.extend(vec_of_strings![
-                "-f", "mp4",
-                "-movflags", MP4_FLAGS,
-                "-frag_duration", "1",
-                format!(
-                    "unix://{}",
-                    socket_dir.join(format!("{}.sock", state.id)).display()
-                ),
-            ]);
-        }
+		let tls = global.ingest_tls();
 
-        let mut child = StdCommand::new("ffmpeg");
+		let channel = scuffle_utilsgrpc::make_channel(vec![message.grpc_endpoint], Duration::from_secs(30), tls)?;
 
-        child
-            .args(&args)
-            .stdin(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::null())
-            .process_group(0)
-            .uid(global.config.transcoder.uid)
-            .gid(global.config.transcoder.gid)
-            .env_clear()
-            .env("PATH", std::env::var("PATH").unwrap_or_default());
+		let mut client = IngestClient::new(channel);
 
-        let mut child = match Command::from(child).spawn() {
-            Ok(c) => c,
-            Err(err) => {
-                tracing::error!("failed to spawn ffmpeg: {}", err);
-                self.report_error("failed to spawn ffmpeg", false).await;
-                return;
-            }
-        };
+		let (ingest_send, rx) = mpsc::channel(16);
 
-        let mut stdin = child.stdin.take().expect("failed to get stdin");
+		ingest_send
+			.send(IngestWatchRequest {
+				message: Some(ingest_watch_request::Message::Open(ingest_watch_request::Open {
+					request_id: message.request_id,
+				})),
+			})
+			.await
+			.context("failed to send open message")?;
 
-        let pid = match child.id() {
-            Some(pid) => Pid::from_raw(pid as i32),
-            None => {
-                tracing::error!("failed to get pid");
-                self.report_error("failed to get pid", false).await;
-                return;
-            }
-        };
+		let ingest_recv = client
+			.watch(tokio_stream::wrappers::ReceiverStream::new(rx))
+			.timeout(Duration::from_secs(2))
+			.await
+			.context("failed to connect to ingest")??
+			.into_inner();
 
-        let child = pin!(child.wait_with_output());
-        let mut child = SharedFuture::new(child);
+		Ok(Self {
+			organization_id,
+			room_id,
+			connection_id,
+			recording,
+			screenshot_idx: 0,
+			ingest_ready: false,
+			transcoder_ready: false,
+			tracks,
+			ingest_send,
+			ingest_recv,
+			first_init_put: true,
+			ffmpeg_send: Some(ffmpeg_input),
+			tasks,
+			ingest_shutdown: None,
+			ffmpeg_recv: ffmpeg_output,
+			generic_uploader,
+			screenshot_recv,
+		})
+	}
 
-        let mut shutdown_fuse = pin!(shutdown_token.cancelled().fuse());
+	async fn run(&mut self, global: &Arc<impl TranscoderGlobal>, shutdown_token: CancellationToken) -> Result<()> {
+		let mut shutdown_fuse = pin!(shutdown_token.cancelled().fuse());
 
-        let mut ready_count = 0;
+		let mut upload_init_timer = tokio::time::interval(Duration::from_secs(15));
 
-        let (report, rx) = mpsc::channel(10);
-        let mut report_fut = pin!(report_to_ingest(self.client.clone(), rx));
+		while self.ffmpeg_send.is_some() {
+			select! {
+				_ = &mut shutdown_fuse => {
+					self.ingest_send.try_send(IngestWatchRequest {
+						message: Some(ingest_watch_request::Message::Shutdown(
+							ingest_watch_request::Shutdown::Request as i32,
+						))
+					})?;
+				},
+				_ = upload_init_timer.tick() => {
+					self.update_manifest()?;
+				}
+				r = self.ffmpeg_recv.recv() => {
+					let Some((rendition, track_out)) = r else {
+						break;
+					};
 
-        while select! {
-            r = report_fut.next() => {
-                tracing::info!("reporting to ingest failed: {:#?}", r);
-                false
-            },
-            _ = &mut shutdown_fuse => {
-                report.try_send(TranscoderEventRequest {
-                    request_id: self.req.request_id.clone(),
-                    stream_id: self.req.stream_id.clone(),
-                    event: Some(transcoder_event_request::Event::ShuttingDown(true)),
-                }).is_ok()
-            },
-            msg = self.stream.next() => self.handle_msg(msg, &mut stdin).await,
-            // When FFmpeg exits, we need to exit as well.
-            // This is almost always because the stream was closed.
-            // So we don't need to report an error, however we check the exit code in the complete_loop function.
-            // If the exit code is not 0, we report an error.
-            r = &mut child => {
-                tracing::info!("ffmpeg exited: {:?}", r);
-                false
-            },
-            // This shutting down usually implies that the stream was closed.
-            // So we don't need to report an error.
-            r = &mut set_lock_fut => {
-                if let Err(err) = r {
-                    tracing::error!("set lock error: {:#}", err);
-                } else {
-                    tracing::warn!("set lock done prematurely without error");
-                }
-                false
-            },
-            _ = &mut update_playlist_fut => {
-                tracing::info!("playlist update shutdown while running");
-                false
-            },
-            // This shutting down usually implies that the stream was closed.
-            // So we only report an error if the stream was not closed.
-            f = futures.next() => {
-                tracing::info!("variant stream shutdown while running");
-                if f.unwrap().is_err() {
-                    self.report_error("variant stream shutdown while running", true).await;
-                }
-                false
-            },
-            _ = ready_recv.recv() => {
-                ready_count += 1;
-                if ready_count == self.stream_state().transcodes.len() {
-                    tracing::info!("all variants ready");
-                    report.try_send(TranscoderEventRequest {
-                        request_id: self.req.request_id.clone(),
-                        stream_id: self.req.stream_id.clone(),
-                        event: Some(transcoder_event_request::Event::Started(true)),
-                    }).is_ok()
-                } else {
-                    true
-                }
-            }
-        } {}
+					self.handle_track(rendition, track_out)?;
+				},
+				Some((data, time)) = self.screenshot_recv.recv() => {
+					self.screenshot_idx += 1;
 
-        tracing::debug!("shutting down");
-        drop(stdin);
+					if let Some(recording) = &mut self.recording {
+						recording.upload_thumbnail(self.screenshot_idx, time, data.clone())?;
+					}
 
-        select! {
-            r = self.complete_loop(pid, child, futures.collect::<Vec<_>>()).timeout(Duration::from_secs(5)) => {
-                if let Err(err) = r {
-                    tracing::error!("failed to complete loop: {:#}", err);
-                    self.report_error("failed to complete loop", false).await;
-                }
-            },
-            r = set_lock_fut => {
-                if let Err(err) = r {
-                    tracing::error!("set lock error: {:#}", err);
-                } else {
-                    tracing::warn!("set lock done prematurely without error");
-                }
-            },
-        }
+					self.generic_uploader
+						.try_send(GenericTask::Screenshot { data, idx: self.screenshot_idx })
+						.context("send screenshot task")?;
 
-        drop(report);
+					self.update_manifest()?;
+					self.ready()?;
+				},
+				msg = self.ingest_recv.next() => {
+					let Some(msg) = msg else {
+						if self.ingest_shutdown.is_none() {
+							anyhow::bail!("ingest closed");
+						}
 
-        tracing::debug!("waiting for report to ingest to exit");
+						break;
+					};
 
-        // Finish all the report futures
-        while report_fut.next().await.is_some() {
-            tracing::debug!("report to ingest exited");
-        }
+					self.handle_msg(global, msg.context("ingest recv failed")?).await?;
+				},
+			}
 
-        tracing::info!("waiting for playlist update to exit");
+			self.check_tasks()?;
+		}
 
-        if let Err(err) = release_lock(
-            &global,
-            &redis_mutex_key(&self.req.stream_id),
-            &self.req.request_id,
-        )
-        .timeout(Duration::from_secs(2))
-        .await
-        {
-            tracing::error!("failed to release lock: {:#}", err);
-        };
+		Ok(())
+	}
 
-        tracing::info!("stream shut down");
-    }
+	fn check_tasks(&mut self) -> Result<()> {
+		if let Some(task) = self.tasks.iter_mut().find(|task| task.is_finished()) {
+			anyhow::bail!("task exited early: {}", task.tag());
+		}
 
-    async fn complete_loop<V>(
-        &mut self,
-        pid: Pid,
-        mut ffmpeg: impl futures::Future<Output = Arc<Result<Output, io::Error>>> + Unpin,
-        mut variants: impl futures::Future<Output = V> + Unpin,
-    ) {
-        tracing::info!("waiting for ffmpeg to exit");
+		Ok(())
+	}
 
-        let pid = pid.as_raw();
+	fn ready(&mut self) -> Result<()> {
+		if self.transcoder_ready || !self.ingest_ready && self.screenshot_idx != 0 {
+			return Ok(());
+		}
 
-        let mut timeout =
-            pin!((&mut ffmpeg)
-                .timeout(Duration::from_millis(1000))
-                .then(|r| async {
-                    if let Ok(r) = r {
-                        tracing::info!("ffmpeg exited: {:?}", r);
+		self.transcoder_ready = true;
+		self.generic_uploader
+			.try_send(GenericTask::RoomReady)
+			.context("send room ready task")?;
 
-                        Some(match r.as_ref() {
-                            Ok(r) => !r.status.success(),
-                            Err(_) => true,
-                        })
-                    } else {
-                        signal::kill(Pid::from_raw(pid), signal::Signal::SIGTERM).ok();
-                        tracing::debug!("ffmpeg did not exit in time, sending SIGTERM");
+		Ok(())
+	}
 
-                        None
-                    }
-                }));
+	async fn handle_msg(&mut self, global: &Arc<impl TranscoderGlobal>, msg: IngestWatchResponse) -> Result<()> {
+		let msg = msg.message.ok_or_else(|| anyhow::anyhow!("ingest sent bad message"))?;
 
-        let mut variants_done = false;
-        let r = select! {
-            r = &mut timeout => r,
-            _ = &mut variants => {
-                tracing::info!("variants exited");
-                variants_done = true;
-                timeout.await
-            },
-        };
+		match msg {
+			ingest_watch_response::Message::Media(media) => {
+				let mut outputs = Vec::new();
+				{
+					let input = self
+						.ffmpeg_send
+						.as_ref()
+						.ok_or_else(|| anyhow::anyhow!("ffmpeg already shutdown"))?;
+					let mut ffmpeg_input_fut = pin!(input.send(media.data.clone()));
+					loop {
+						select! {
+							_ = &mut ffmpeg_input_fut => {
+								break;
+							},
+							Some(output) = self.ffmpeg_recv.recv() => {
+								outputs.push(output);
+							}
+						}
+					}
+				}
 
-        let failed = if let Some(r) = r {
-            Some(r)
-        } else {
-            let timeout = ffmpeg.timeout(Duration::from_secs(2)).then(|r| async {
-                if let Ok(r) = r {
-                    tracing::info!("ffmpeg exited: {:?}", r);
+				outputs
+					.into_iter()
+					.try_for_each(|(rendition, track_out)| self.handle_track(rendition, track_out))?;
+			}
+			ingest_watch_response::Message::Shutdown(s) => {
+				self.ingest_shutdown = Some(
+					ingest_watch_response::Shutdown::try_from(s).unwrap_or(ingest_watch_response::Shutdown::Transcoder),
+				);
+				self.ffmpeg_send.take();
+			}
+			ingest_watch_response::Message::Ready(_) => {
+				self.ingest_ready = true;
+				self.fetch_manifests(global).await?;
+				self.put_init_segments()?;
+				tracing::info!("ingest reported ready");
+			}
+		}
 
-                    Some(match r.as_ref() {
-                        Ok(r) => !r.status.success(),
-                        Err(_) => true,
-                    })
-                } else {
-                    None
-                }
-            });
+		Ok(())
+	}
 
-            if variants_done {
-                timeout.await
-            } else {
-                variants_done = true;
-                tokio::join!(timeout, &mut variants).0
-            }
-        };
+	fn handle_track(&mut self, rendition: Rendition, track_out: TrackOut) -> Result<()> {
+		let track = self.tracks.get_mut(&rendition).unwrap();
 
-        let failed = failed.unwrap_or_else(|| {
-            tracing::error!("ffmpeg did not exit in time, sending SIGKILL");
-            signal::kill(Pid::from_raw(pid), signal::Signal::SIGKILL).ok();
-            true
-        });
+		let update_manifest = track.handle_track_out(self.recording.as_mut(), track_out)?;
 
-        if !variants_done {
-            tracing::info!("waiting for variants to exit");
-            variants.await;
-        }
+		self.put_init_segments()?;
 
-        if failed {
-            self.report_error("ffmpeg exited with non-zero status", false)
-                .await;
-        }
+		if update_manifest && !self.first_init_put {
+			let info_map = self.track_info_map();
+			self.tracks
+				.get_mut(&rendition)
+				.unwrap()
+				.update_manifest(self.recording.as_mut(), &info_map, false)?;
+		}
 
-        tracing::debug!("ffmpeg exited");
-    }
+		Ok(())
+	}
 
-    async fn handle_msg(
-        &mut self,
-        msg: Option<Result<WatchStreamResponse, Status>>,
-        stdin: &mut ChildStdin,
-    ) -> bool {
-        tracing::debug!("recieved message");
-        let msg = match msg {
-            Some(Ok(msg)) => msg.data,
-            _ => {
-                // We should have gotten a shutting down event
-                // TODO: report this to API server
-                tracing::error!("unexpected stream closed");
-                return false;
-            }
-        };
+	fn put_init_segments(&mut self) -> Result<()> {
+		if !self.first_init_put || !self.ingest_ready || self.tracks.iter().any(|(_, state)| state.init_segment().is_none())
+		{
+			return Ok(());
+		}
 
-        let Some(msg) = msg else {
-            tracing::error!("recieved empty response");
-            return false;
-        };
+		self.first_init_put = false;
 
-        match msg {
-            watch_stream_response::Data::InitSegment(data) => {
-                if stdin.write_all(&data).await.is_err() {
-                    // This is almost always because ffmpeg crashed
-                    // We report an error when we check the exit code
-                    return false;
-                }
-            }
-            watch_stream_response::Data::MediaSegment(ms) => {
-                if stdin.write_all(&ms.data).await.is_err() {
-                    // This is almost always because ffmpeg crashed
-                    // We report an error when we check the exit code
-                    return false;
-                }
-            }
-            watch_stream_response::Data::ShuttingDown(stream) => {
-                tracing::info!(stream = stream, "shutting down");
-                return false;
-            }
-        }
+		self.tracks
+			.values_mut()
+			.try_for_each(|track| track.ready(self.recording.as_mut()))?;
 
-        true
-    }
+		let info_map = self.track_info_map();
+		self.tracks
+			.values_mut()
+			.try_for_each(|track| track.update_manifest(self.recording.as_mut(), &info_map, false))?;
 
-    async fn report_error(&mut self, err: impl ToString + Send + Sync, fatal: bool) {
-        if let Err(err) = self
-            .client
-            .transcoder_event(TranscoderEventRequest {
-                request_id: self.req.request_id.clone(),
-                stream_id: self.req.stream_id.clone(),
-                event: Some(transcoder_event_request::Event::Error(
-                    transcoder_event_request::Error {
-                        message: err.to_string(),
-                        fatal,
-                    },
-                )),
-            })
-            .timeout(Duration::from_secs(2))
-            .await
-        {
-            tracing::error!("failed to report error: {}", err);
-        }
-    }
+		if let Some(recording) = &mut self.recording {
+			self.tracks.iter().try_for_each(|(rendition, state)| {
+				recording.upload_init(*rendition, state.init_segment().unwrap().clone())
+			})?;
+		}
+
+		self.ready()?;
+
+		Ok(())
+	}
+
+	fn track_info_map(&self) -> HashMap<String, RenditionInfo> {
+		self.tracks
+			.iter()
+			.map(|(rendition, ts)| (rendition.to_string(), ts.info()))
+			.collect()
+	}
+
+	pub async fn handle_shutdown(mut self) -> Result<()> {
+		tracing::info!("shutting down transcoder");
+
+		drop(self.ffmpeg_send.take());
+
+		while let Some((rendition, track_out)) = self.ffmpeg_recv.recv().await {
+			self.handle_track(rendition, track_out)?;
+		}
+
+		let is_shutdown = self.ingest_shutdown == Some(ingest_watch_response::Shutdown::Stream);
+
+		self.tracks
+			.values_mut()
+			.try_for_each(|track| track.finish(self.recording.as_mut()))?;
+
+		let info_map = self
+			.tracks
+			.iter()
+			.map(|(rendition, ts)| (rendition.to_string(), ts.info()))
+			.collect();
+
+		self.update_manifest()?;
+
+		self.tracks
+			.drain()
+			.try_for_each(|(_, mut track)| track.update_manifest(self.recording.as_mut(), &info_map, is_shutdown))?;
+
+		// Close the generic uploader so that it can finish its tasks
+		drop(self.generic_uploader);
+
+		// New tasks may have been added during shutdown, so we need to check again
+		for mut task in self.tasks.drain(..) {
+			task.join()
+				.await
+				.with_context(|| format!("{}: panic'd", task.tag()))?
+				.with_context(|| format!("{}: ", task.tag()))?;
+		}
+
+		if let Some(shutdown) = self.ingest_shutdown.take() {
+			match shutdown {
+				ingest_watch_response::Shutdown::Stream => {}
+				ingest_watch_response::Shutdown::Transcoder => {
+					self.ingest_send.try_send(IngestWatchRequest {
+						message: Some(ingest_watch_request::Message::Shutdown(
+							ingest_watch_request::Shutdown::Complete as i32,
+						)),
+					})?;
+				}
+			}
+		}
+
+		Ok(())
+	}
+
+	fn update_manifest(&mut self) -> Result<()> {
+		if !self.ingest_ready {
+			return Ok(());
+		}
+
+		let data = LiveManifest {
+			screenshot_idx: self.screenshot_idx,
+		}
+		.encode_to_vec()
+		.into();
+
+		self.generic_uploader
+			.try_send(GenericTask::Manifest { data })
+			.context("send screenshot task")?;
+
+		self.tracks.values_mut().try_for_each(|track| track.upload_init())?;
+
+		Ok(())
+	}
+
+	async fn fetch_manifests(&mut self, global: &Arc<impl TranscoderGlobal>) -> Result<()> {
+		let rendition_manfiests = async {
+			futures_util::future::try_join_all(self.tracks.keys().map(|rendition| {
+				global
+					.metadata_store()
+					.get(video_common::keys::rendition_manifest(
+						self.organization_id,
+						self.room_id,
+						self.connection_id,
+						*rendition,
+					))
+					.map_ok(|v| (*rendition, v))
+			}))
+			.await
+		};
+
+		let manifest = async {
+			global
+				.metadata_store()
+				.get(video_common::keys::manifest(
+					self.organization_id,
+					self.room_id,
+					self.connection_id,
+				))
+				.await
+		};
+
+		let (rendition_manfiests, manifest) = try_join!(rendition_manfiests, manifest)?;
+
+		if rendition_manfiests.iter().all(|(_, v)| v.is_none()) && manifest.is_none() {
+			return Ok(());
+		}
+
+		let Some(manifest) = manifest else {
+			anyhow::bail!("missing manifest");
+		};
+
+		let manifest = LiveManifest::decode(manifest)?;
+
+		self.screenshot_idx = manifest.screenshot_idx;
+
+		for (rendition, data) in rendition_manfiests {
+			let Some(data) = data else {
+				anyhow::bail!("missing manifest for rendition {}", rendition);
+			};
+
+			let manifest = LiveRenditionManifest::decode(data)?;
+
+			if let Some(recording) = &mut self.recording {
+				if let Some(data) = &manifest.recording_data {
+					recording.recover_thumbnails(data.thumbnails.clone());
+				}
+			}
+
+			self.tracks.get_mut(&rendition).unwrap().apply_manifest(manifest);
+		}
+
+		Ok(())
+	}
 }

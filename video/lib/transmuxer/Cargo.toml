@@ -1,0 +1,22 @@
+[package]
+name = "transmuxer"
+version = "0.0.1"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+byteorder = "1.5"
+bytes = "1.5"
+
+bytesio = { workspace = true }
+h264 = { workspace = true }
+h265 = { workspace = true }
+av1 = { workspace = true }
+aac = { workspace = true }
+amf0 = { workspace = true }
+flv = { workspace = true }
+mp4 = { workspace = true }
+
+[dev-dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

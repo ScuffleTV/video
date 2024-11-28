@@ -1,0 +1,18 @@
+[package]
+name = "scuffle-http-examples"
+version = "0.0.0"
+edition = "2021"
+
+[[example]]
+name = "scuffle-http-tcp"
+path = "src/tcp.rs"
+
+[dependencies]
+scuffle-http = { path = "..", features = ["http1", "http2"] }
+tokio = { version = "1.41.1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+http-body = "1.0.1"
+http-body-util = "0.1.2"
+http = "1.1.0"
+bytes = "1.6.0"

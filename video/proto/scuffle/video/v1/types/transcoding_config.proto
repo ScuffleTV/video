@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package scuffle.video.v1.types;
+
+import "scuffle/types/ulid.proto";
+import "scuffle/video/v1/types/rendition.proto";
+import "scuffle/video/v1/types/tags.proto";
+
+// A TranscodingConfig defines how a stream should be transcoded.
+// By providing a rendition list you can define the output renditions.
+message TranscodingConfig {
+  // The name of the transcoding config.
+  scuffle.types.Ulid id = 1;
+
+  // The renditions to be transcoded.
+  repeated Rendition renditions = 2;
+
+  // The time the transcoding config was created.
+  int64 created_at = 3;
+
+  // The time the transcoding config was last updated.
+  int64 updated_at = 4;
+
+  // The tags associated with the transcoding config.
+  Tags tags = 5;
+}

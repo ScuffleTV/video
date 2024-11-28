@@ -1,1052 +1,1122 @@
+use std::net::IpAddr;
+use std::pin::pin;
+use std::sync::Arc;
+use std::time::Duration;
+
+use anyhow::Result;
+use base64::Engine;
 use bytes::Bytes;
 use bytesio::bytesio::AsyncReadWrite;
-use chrono::Utc;
-use common::prelude::FutureTimeout;
 use flv::{FlvTag, FlvTagData, FlvTagType};
 use futures::Future;
-use lapin::{options::BasicPublishOptions, BasicProperties};
+use futures_util::StreamExt;
+use pb::scuffle::video::internal::events::TranscoderRequestTask;
+use pb::scuffle::video::internal::{ingest_watch_request, ingest_watch_response, IngestWatchRequest, IngestWatchResponse};
+use pb::scuffle::video::v1::events_fetch_request::Target;
+use pb::scuffle::video::v1::types::{event, Rendition};
 use prost::Message as _;
-use rtmp::{ChannelData, DataConsumer, PublishRequest, Session, SessionError};
-use std::{collections::HashMap, net::IpAddr, pin::pin, sync::Arc, time::Duration};
-use tokio::{
-    select,
-    sync::{broadcast, mpsc},
-    time::Instant,
-};
-use tonic::{transport::Channel, Code};
+use rtmp::{ChannelData, PublishRequest, Session, SessionError};
+use scuffle_utils::context::ContextExt;
+use scuffle_utils::prelude::FutureTimeout;
+use tokio::select;
+use tokio::sync::mpsc;
+use tokio::time::Instant;
+use tonic::{Status, Streaming};
 use transmuxer::{AudioSettings, MediaSegment, TransmuxResult, Transmuxer, VideoSettings};
-use uuid::Uuid;
+use ulid::Ulid;
+use video_common::database::RoomStatus;
+use video_common::{events, keys};
 
-use crate::{
-    connection_manager::{GrpcRequest, WatchStreamEvent},
-    global::GlobalState,
-    ingest::variants::generate_variants,
-    pb::scuffle::{
-        backend::{
-            api_client::ApiClient,
-            update_live_stream_request::{event, update, Bitrate, Event, Update},
-            AuthenticateLiveStreamRequest, NewLiveStreamRequest, StreamReadyState,
-            UpdateLiveStreamRequest,
-        },
-        events::{self, transcoder_message},
-        types::{stream_state, StreamState},
-    },
-};
+use super::bytes_tracker::BytesTracker;
+use super::errors::IngestError;
+use super::rtmp_session::{Data, RtmpSession};
+use super::update::{update_db, Update};
+use crate::config::IngestConfig;
+use crate::global::{IncomingTranscoder, IngestGlobal};
+
+struct Transcoder {
+	send: mpsc::Sender<IngestWatchResponse>,
+	recv: Streaming<IngestWatchRequest>,
+}
 
 struct Connection {
-    id: Uuid,
-    api_resp: ApiResponse,
-    data_reciever: DataConsumer,
-    transmuxer: Transmuxer,
-    total_video_bytes: u64,
-    total_audio_bytes: u64,
-    total_metadata_bytes: u64,
+	id: Ulid,
 
-    bytes_since_keyframe: u64,
+	bytes_tracker: BytesTracker,
+	initial_segment: Option<Bytes>,
+	fragment_list: Vec<MediaSegment>,
 
-    api_client: ApiClient<Channel>,
-    stream_id_sender: broadcast::Sender<Uuid>,
-    transcoder_req_rx: mpsc::Receiver<GrpcRequest>,
+	transmuxer: Transmuxer,
 
-    initial_segment: Option<Bytes>,
-    fragment_list: Vec<MediaSegment>,
+	current_transcoder_id: Ulid,
+	next_transcoder_id: Option<Ulid>,
 
-    current_transcoder: Option<mpsc::Sender<WatchStreamEvent>>, // The current main transcoder
-    current_transcoder_id: Option<Uuid>,                        // The current main transcoder id
+	incoming_reciever: mpsc::Receiver<IncomingTranscoder>,
+	incoming_sender: mpsc::Sender<IncomingTranscoder>,
 
-    next_transcoder: Option<mpsc::Sender<WatchStreamEvent>>, // The next transcoder to be used
-    next_transcoder_id: Option<Uuid>,                        // The next transcoder to be used
+	update_sender: Option<mpsc::Sender<Update>>,
+	update_recv: Option<mpsc::Receiver<Update>>,
 
-    last_transcoder_publish: Instant,
+	current_transcoder: Option<Transcoder>, // The current main transcoder
+	next_transcoder: Option<Transcoder>,    // The next transcoder to be used
+	old_transcoder: Option<Transcoder>,     // The old transcoder that is being replaced
 
-    report_shutdown: bool,
+	last_transcoder_publish: Instant,
+	last_keyframe: Instant,
 
-    transcoder_req_tx: mpsc::Sender<GrpcRequest>,
+	video_timescale: u32,
+	audio_timescale: u32,
+
+	error: Option<IngestError>,
+
+	// The room that is being published to
+	organization_id: Ulid,
+	room_id: Ulid,
 }
 
-#[derive(Default)]
-struct ApiResponse {
-    id: Uuid,
-    transcode: bool,
-    record: bool,
-    stream_state: Option<StreamState>,
-}
-
-const BITRATE_UPDATE_INTERVAL: u64 = 5;
-const MAX_TRANSCODER_WAIT_TIME: u64 = 60;
-const MAX_BITRATE: u64 = 16000 * 1024; // 16000kbps
-const MAX_BYTES_BETWEEN_KEYFRAMES: u64 = MAX_BITRATE * 4 / 8; // 4 seconds of video at max bitrate (ie. 4 seconds between keyframes) which is ~12MB
-
-async fn update_api(
-    connection_id: Uuid,
-    mut update_reciever: mpsc::Receiver<Vec<Update>>,
-    mut api_client: ApiClient<Channel>,
-    mut stream_id: broadcast::Receiver<Uuid>,
-) {
-    let Ok(stream_id) = stream_id.recv().await else {
-        return;
-    };
-
-    while let Some(updates) = update_reciever.recv().await {
-        let mut success = false;
-        for _ in 0..5 {
-            if let Err(e) = api_client
-                .update_live_stream(UpdateLiveStreamRequest {
-                    connection_id: connection_id.to_string(),
-                    stream_id: stream_id.to_string(),
-                    updates: updates.clone(),
-                })
-                .await
-            {
-                tracing::error!(msg = e.message(), status = ?e.code(), "api grpc error");
-                tokio::time::sleep(Duration::from_secs(1)).await;
-            } else {
-                success = true;
-                break;
-            }
-        }
-
-        if !success {
-            tracing::error!("failed to update api with bitrate after 5 retries - giving up");
-            return;
-        }
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum WhichTranscoder {
+	Current,
+	Next,
+	Old,
 }
 
 #[tracing::instrument(skip(global, socket))]
-pub async fn handle<S: AsyncReadWrite>(global: Arc<GlobalState>, socket: S, ip: IpAddr) {
-    // We only need a single buffer channel for this session because the entire session is single threaded
-    // and we don't need to worry about buffering.
-    let (event_producer, mut event_reciever) = mpsc::channel(1);
-    let (data_producer, data_reciever) = mpsc::channel(1);
+pub async fn handle<G: IngestGlobal, S: AsyncReadWrite>(global: Arc<G>, socket: S, ip: IpAddr) {
+	// We only need a single buffer channel for this session because the entire
+	// session is single threaded and we don't need to worry about buffering.
+	let (event_producer, publish) = mpsc::channel(1);
+	let (data_producer, data) = mpsc::channel(1);
 
-    let mut session = Session::new(socket, data_producer, event_producer);
+	let mut session = Session::new(socket, data_producer, event_producer);
 
-    // When a future is pinned it becomes pausable and can be resumed later
-    // The entire design here is to run on a single task, and share execution on the single thread.
-    // So when we select on this future we are allowing this future to execute.
-    // This makes it so the session cannot run outside of its turn.
-    // Essentially this is how tokio's executor works, but we are doing it manually.
-    // This also has the advantage of being completely cleaned up when the function goes out of scope.
-    // If we used a tokio::spawn here, we would have to manually clean up the task.
-    let mut session_fut = pin!(session.run());
+	// When a future is pinned it becomes pausable and can be resumed later
+	// The entire design here is to run on a single task, and share execution on the
+	// single thread. So when we select on this future we are allowing this future
+	// to execute. This makes it so the session cannot run outside of its turn.
+	// Essentially this is how tokio's executor works, but we are doing it manually.
+	// This also has the advantage of being completely cleaned up when the function
+	// goes out of scope. If we used a tokio::spawn here, we would have to manually
+	// clean up the task.
+	let fut = pin!(session.run());
+	let mut session = RtmpSession::new(fut, publish, data);
 
-    let event;
+	let Ok(Ok(Ok(Some(event)))) = session.publish().context(global.ctx()).timeout(Duration::from_secs(5)).await else {
+		tracing::debug!("connection disconnected before publish");
+		return;
+	};
 
-    select! {
-        _ = global.ctx.done() => {
-            tracing::debug!("Global context closed, closing connection");
-            return;
-        },
-        _ = &mut session_fut => {
-            tracing::debug!("session closed before publish request");
-            return;
-        },
-        _ = tokio::time::sleep(Duration::from_secs(5)) => {
-            tracing::debug!("session timed out before publish request");
-            return;
-        },
-        e = event_reciever.recv() => {
-            event = e.expect("event producer closed");
-        },
-    };
+	let mut connection = match Connection::new(&global, event, ip).await {
+		Ok(Some(c)) => c,
+		Ok(None) => return,
+		Err(e) => {
+			tracing::error!(error = %e, "failed to create connection");
+			return;
+		}
+	};
 
-    let (transcoder_req_tx, transcoder_req_rx) = mpsc::channel(128);
+	let clean_disconnect = connection.run(&global, session).await;
 
-    let mut connection = Connection {
-        id: Uuid::new_v4(), // Unique ID for this connection
-        api_resp: ApiResponse::default(),
-        data_reciever,
-        transmuxer: Transmuxer::new(),
-        total_audio_bytes: 0,
-        total_metadata_bytes: 0,
-        total_video_bytes: 0,
-        api_client: global.api_client(),
-        stream_id_sender: broadcast::channel(1).0,
-        transcoder_req_rx,
-        transcoder_req_tx,
-        current_transcoder: None,
-        next_transcoder: None,
-        initial_segment: None,
-        fragment_list: Vec::new(),
-        last_transcoder_publish: Instant::now(),
-        current_transcoder_id: None,
-        next_transcoder_id: None,
-        report_shutdown: true,
-        bytes_since_keyframe: 0,
-    };
-
-    if connection.request_api(&global, event, ip).await {
-        connection.run(global, session_fut).await;
-    }
+	if let Err(err) = connection.cleanup(&global, clean_disconnect).await {
+		tracing::error!(error = %err, "failed to cleanup connection")
+	}
 }
 
 impl Connection {
-    #[tracing::instrument(
+	#[tracing::instrument(
         level = "debug",
-        skip(self, global, event, ip),
+        skip(global, event, _ip),
         fields(app = %event.app_name, stream = %event.stream_name)
     )]
-    async fn request_api(
-        &mut self,
-        global: &Arc<GlobalState>,
-        event: PublishRequest,
-        ip: IpAddr,
-    ) -> bool {
-        let response = self
-            .api_client
-            .authenticate_live_stream(AuthenticateLiveStreamRequest {
-                app_name: event.app_name.clone(),
-                stream_key: event.stream_name.clone(),
-                ip_address: ip.to_string(),
-                ingest_address: global.config.grpc.advertise_address.clone(),
-                connection_id: self.id.to_string(),
-            })
-            .await;
+	async fn new<G: IngestGlobal>(global: &Arc<G>, event: PublishRequest, _ip: IpAddr) -> Result<Option<Self>> {
+		if event.app_name != "live" {
+			return Ok(None);
+		}
 
-        let response = match response {
-            Ok(r) => r.into_inner(),
-            Err(e) => {
-                match e.code() {
-                    Code::PermissionDenied => {
-                        tracing::debug!(msg = e.message(), "api denied publish request")
-                    }
-                    Code::InvalidArgument => {
-                        tracing::debug!(msg = e.message(), "api rejected publish request")
-                    }
-                    _ => {
-                        tracing::error!(msg = e.message(), status = ?e.code(), "api grpc error");
-                    }
-                }
-                return false;
-            }
-        };
+		let mut parts = event.stream_name.split('_');
+		if parts.next() != Some("live") {
+			return Ok(None);
+		}
 
-        let Ok(id) = Uuid::parse_str(&response.stream_id) else {
-            tracing::error!("api responded with bad uuid: {}", response.stream_id);
-            return false;
-        };
+		let organization_id = match parts.next().and_then(|id| Ulid::from_string(id).ok()) {
+			Some(id) => id,
+			None => return Ok(None),
+		};
 
-        if event.response.send(id).is_err() {
-            tracing::warn!("publish request receiver closed");
-            return false;
-        }
+		let parse_room_secret = |name: &str| {
+			if name.len() > 512 {
+				return None;
+			}
 
-        self.api_resp = ApiResponse {
-            id,
-            transcode: response.transcode,
-            record: response.record,
-            stream_state: response.state,
-        };
+			let name = base64::engine::general_purpose::URL_SAFE_NO_PAD
+				.decode(name.as_bytes())
+				.ok()?;
 
-        true
-    }
+			let room_name_secret = std::str::from_utf8(&name).ok()?;
 
-    #[tracing::instrument(
+			let mut parts = room_name_secret.split('+');
+			let room_id = Ulid::from_string(parts.next()?).ok()?;
+			let room_secret = parts.next()?;
+			if parts.next().is_some() {
+				return None;
+			}
+
+			Some((room_id, room_secret.to_string()))
+		};
+
+		let (room_id, room_secret) = match parts.next().and_then(parse_room_secret) {
+			Some(name) => name,
+			None => return Ok(None),
+		};
+
+		#[derive(postgres_from_row::FromRow)]
+		struct Response {
+			id: Option<Ulid>,
+		}
+
+		let id = Ulid::new();
+
+		let result: Option<Response> = scuffle_utils::database::query(
+			r#"
+            UPDATE rooms as new
+            SET 
+                updated_at = NOW(),
+                last_live_at = NOW(),
+                last_disconnected_at = NULL,
+                active_ingest_connection_id = $1,
+                status = $2,
+                video_input = NULL,
+                audio_input = NULL,
+                ingest_bitrate = NULL,
+                video_output = NULL,
+                audio_output = NULL,
+                active_recording_id = NULL,
+                active_recording_config = NULL,
+                active_transcoding_config = NULL
+            FROM rooms as old
+            WHERE 
+                new.organization_id = $3 AND
+                new.id = $4 AND
+                new.stream_key = $5 AND
+                (new.last_live_at < NOW() - INTERVAL '10 seconds' OR new.last_live_at IS NULL) AND
+                old.organization_id = new.organization_id AND
+                old.id = new.id AND
+                old.stream_key = new.stream_key
+            RETURNING old.active_ingest_connection_id as id
+            "#,
+		)
+		.bind(id)
+		.bind(RoomStatus::Offline)
+		.bind(organization_id)
+		.bind(room_id)
+		.bind(&room_secret)
+		.build_query_as()
+		.fetch_optional(global.db())
+		.await?;
+
+		let Some(result) = result else {
+			tracing::debug!("failed to find room");
+			return Ok(None);
+		};
+
+		if let Some(old_id) = result.id {
+			if let Err(err) = global.nats().publish(keys::ingest_disconnect(old_id), Bytes::new()).await {
+				tracing::error!(error = %err, "failed to publish disconnect event");
+			}
+		}
+
+		event.response.send(id.into()).ok();
+
+		let (update_sender, update_reciever) = mpsc::channel(15);
+		let (incoming_sender, incoming_reciever) = mpsc::channel(15);
+
+		Ok(Some(Connection {
+			id,
+			transmuxer: Transmuxer::new(),
+			bytes_tracker: BytesTracker::default(),
+			current_transcoder_id: Ulid::nil(),
+			current_transcoder: None,
+			next_transcoder_id: None,
+			old_transcoder: None,
+			next_transcoder: None,
+			initial_segment: None,
+			fragment_list: Vec::new(),
+			last_transcoder_publish: Instant::now(),
+			last_keyframe: Instant::now(),
+			update_sender: Some(update_sender),
+			update_recv: Some(update_reciever),
+			incoming_sender,
+			incoming_reciever,
+			organization_id,
+			room_id,
+			video_timescale: 1,
+			audio_timescale: 1,
+			error: None,
+		}))
+	}
+
+	#[tracing::instrument(
         level = "info",
-        skip(self, global, session_fut),
-        fields(id = %self.api_resp.id, transcode = self.api_resp.transcode, record = self.api_resp.record)
+        skip(self, global, session),
+        fields(organization_id = %self.organization_id, room_id = %self.room_id)
     )]
-    async fn run<F: Future<Output = Result<bool, SessionError>> + Send + Unpin>(
-        &mut self,
-        global: Arc<GlobalState>,
-        session_fut: F,
-    ) {
-        tracing::info!("new publish request");
-
-        // At this point we have a stream that is publishing to us
-        // We can now poll the run future & the data receiver.
-        // The run future will close when the connection is closed or an error occurs
-        // The data receiver will never close, because the Session object is always in scope.
-
-        let mut bitrate_update_interval = tokio::time::interval(Duration::from_secs(5));
-        bitrate_update_interval.tick().await; // Skip the first tick (resolves instantly)
-
-        let (update_channel, update_reciever) = mpsc::channel(10);
-
-        let mut session_fut = session_fut;
-
-        let mut api_update_fut = pin!(update_api(
-            self.id,
-            update_reciever,
-            self.api_client.clone(),
-            self.stream_id_sender.subscribe()
-        ));
-
-        let mut next_timeout = Instant::now() + Duration::from_secs(2);
-
-        let mut clean_shutdown = false;
-        // We need to keep track of whether the api update failed, so we can
-        // not poll it again if its finished. (this will panic if we poll it again)
-        let mut api_update_failed = false;
-
-        while select! {
-            _ = global.ctx.done() => {
-                tracing::debug!("Global context closed, closing connection");
-
-                false
-            },
-            r = &mut session_fut => {
-                tracing::debug!("session closed before publish request");
-                match r {
-                    Ok(clean) => clean_shutdown = clean,
-                    Err(e) => tracing::error!("Connection error: {}", e),
-                }
-
-                false
-            },
-            data = self.data_reciever.recv() => {
-                next_timeout = Instant::now() + Duration::from_secs(2);
-                self.on_data(&update_channel, &global, data.expect("data producer closed")).await
-            },
-            _ = bitrate_update_interval.tick() => self.on_bitrate_update(&update_channel),
-            _ = tokio::time::sleep_until(next_timeout) => {
-                tracing::debug!("session timed out during data");
-                false
-            },
-            _ = &mut api_update_fut => {
-                tracing::error!("api update future failed");
-                api_update_failed = true;
-                false
-            }
-            event = self.transcoder_req_rx.recv() => self.on_grpc_request(&update_channel, &global, event.expect("transcoder closed")).await,
-        } {}
-
-        if let Some(transcoder) = self.current_transcoder.take() {
-            transcoder
-                .send(WatchStreamEvent::ShuttingDown(true))
-                .await
-                .ok();
-        }
-
-        if let Some(transcoder) = self.next_transcoder.take() {
-            transcoder
-                .send(WatchStreamEvent::ShuttingDown(true))
-                .await
-                .ok();
-        }
-
-        if self.initial_segment.is_none() {
-            self.stream_id_sender.send(self.api_resp.id).ok();
-        }
-
-        // Release the connection from the global state
-        // if it was never stored in the first place, this will do nothing.
-        global
-            .connection_manager
-            .deregister_stream(self.api_resp.id, self.id)
-            .await;
-
-        if self.report_shutdown && !api_update_failed {
-            select! {
-                r = update_channel.send(vec![Update {
-                    timestamp: Utc::now().timestamp() as u64,
-                    update: Some(update::Update::ReadyState(if clean_shutdown {
-                        StreamReadyState::Stopped
-                    } else {
-                        StreamReadyState::StoppedResumable
-                    } as i32)),
-                }]) => {
-                    if r.is_err() {
-                        tracing::error!("api update channel blocked");
-                    }
-                },
-                _ = &mut api_update_fut => {
-                    tracing::error!("api update future failed");
-                }
-            }
-        }
-
-        drop(update_channel);
-
-        if !api_update_failed {
-            // Wait for the api update future to finish
-            if api_update_fut
-                .timeout(Duration::from_secs(5))
-                .await
-                .is_err()
-            {
-                tracing::error!("api update future timed out");
-            }
-        }
-
-        tracing::info!(clean = clean_shutdown, "connection closed",);
-    }
-
-    async fn request_transcoder(
-        &mut self,
-        update_channel: &mpsc::Sender<Vec<Update>>,
-        global: &Arc<GlobalState>,
-    ) -> bool {
-        // If we already have a request pending, then we don't need to request another one.
-        if self.next_transcoder_id.is_some() {
-            return true;
-        }
-
-        let request_id = Uuid::new_v4();
-        self.next_transcoder_id = Some(request_id);
-
-        let channel = match global.rmq.aquire().timeout(Duration::from_secs(1)).await {
-            Ok(Ok(channel)) => channel,
-            Ok(Err(e)) => {
-                tracing::error!("failed to aquire channel: {}", e);
-                return false;
-            }
-            Err(_) => {
-                tracing::error!("failed to aquire channel: timed out");
-                return false;
-            }
-        };
-
-        if let Err(e) = channel
-            .basic_publish(
-                "",
-                &global.config.transcoder.events_subject,
-                BasicPublishOptions::default(),
-                events::TranscoderMessage {
-                    id: request_id.to_string(),
-                    timestamp: Utc::now().timestamp() as u64,
-                    data: Some(transcoder_message::Data::NewStream(
-                        events::TranscoderMessageNewStream {
-                            request_id: request_id.to_string(),
-                            stream_id: self.api_resp.id.to_string(),
-                            ingest_address: global.config.grpc.advertise_address.clone(),
-                            state: self.api_resp.stream_state.clone(),
-                        },
-                    )),
-                }
-                .encode_to_vec()
-                .as_slice(),
-                BasicProperties::default()
-                    .with_message_id(request_id.to_string().into())
-                    .with_content_type("application/octet-stream".into())
-                    .with_expiration("60000".into()),
-            )
-            .await
-        {
-            tracing::error!("failed to publish to jetstream: {}", e);
-            return false;
-        }
-
-        if update_channel
-            .try_send(vec![Update {
-                timestamp: Utc::now().timestamp() as u64,
-                update: Some(update::Update::Event(Event {
-                    title: "Requested Transcoder".to_string(),
-                    message: "Requested a transcoder to be assigned to this stream".to_string(),
-                    level: event::Level::Info as i32,
-                })),
-            }])
-            .is_err()
-        {
-            tracing::error!("failed to send update to api");
-            return false;
-        }
-
-        tracing::info!("requested transcoder");
-
-        true
-    }
-
-    async fn on_grpc_request(
-        &mut self,
-        update_channel: &mpsc::Sender<Vec<Update>>,
-        global: &Arc<GlobalState>,
-        req: GrpcRequest,
-    ) -> bool {
-        // There are 2 possible events that happen here, either we already have a transcoder in the current_transcoder field
-        // Or we don't. If we do then we want to set this transcoder as the next transcoder, and when a keyframe is received
-        // The state will be updated to the next transcoder.
-        // If we don't have a transcoder, then we want to set the current transcoder and provide it with the data from the fragment list.
-
-        let Some(init_segment) = &self.initial_segment else {
-            return false;
-        };
-
-        match req {
-            GrpcRequest::ShutdownStream => {
-                tracing::info!("shutdown stream request");
-                self.report_shutdown = false;
-                return false;
-            }
-            GrpcRequest::TranscoderStarted { id } => {
-                tracing::info!("transcoder started: {}", id);
-                if update_channel
-                    .try_send(vec![Update {
-                        timestamp: Utc::now().timestamp() as u64,
-                        update: Some(update::Update::ReadyState(StreamReadyState::Ready as i32)),
-                    }])
-                    .is_err()
-                {
-                    tracing::error!("api update channel blocked");
-                    return false;
-                }
-            }
-            GrpcRequest::TranscoderError {
-                id,
-                message,
-                fatal: _,
-            } => {
-                if self.current_transcoder_id == Some(id) || self.next_transcoder_id == Some(id) {
-                    tracing::error!("transcoder failed: {}", message);
-
-                    // When we report a state failed we dont need to report the shutdown to the API.
-                    // This is because the API will already know that the stream has been dropped.
-                    self.report_shutdown = false;
-
-                    if update_channel
-                        .try_send(vec![
-                            Update {
-                                timestamp: Utc::now().timestamp() as u64,
-                                update: Some(update::Update::Event(Event {
-                                    title: "Transcoder Error".to_string(),
-                                    message,
-                                    level: event::Level::Error as i32,
-                                })),
-                            },
-                            Update {
-                                timestamp: Utc::now().timestamp() as u64,
-                                update: Some(update::Update::ReadyState(
-                                    StreamReadyState::Failed as i32,
-                                )),
-                            },
-                        ])
-                        .is_err()
-                    {
-                        tracing::error!("api update channel blocked");
-                        return false;
-                    }
-
-                    return false;
-                } else {
-                    tracing::warn!("transcoder request failure id mismatch");
-                }
-            }
-            GrpcRequest::TranscoderShuttingDown { id } => {
-                if self.current_transcoder_id == Some(id) {
-                    tracing::info!("transcoder shutting down");
-                    return self.request_transcoder(update_channel, global).await;
-                } else if self.next_transcoder_id == Some(id) {
-                    tracing::warn!("next transcoder shutting down");
-                    if let Some(transcoder) = self.next_transcoder.take() {
-                        transcoder
-                            .send(WatchStreamEvent::ShuttingDown(false))
-                            .await
-                            .ok();
-                    }
-                    self.next_transcoder = None;
-                    self.next_transcoder_id = None;
-                    return self.request_transcoder(update_channel, global).await;
-                } else {
-                    tracing::warn!("transcoder request failure id mismatch");
-                }
-            }
-            GrpcRequest::WatchStream { id, channel } => {
-                if self.next_transcoder_id != Some(id) {
-                    // This is a request for a transcoder that we don't care about.
-                    tracing::warn!("transcoder request id mismatch");
-                    return true;
-                }
-
-                if self.next_transcoder.is_some() {
-                    // If this happens something has gone wrong, we should never have 3 transcoders.
-                    tracing::warn!("new transcoder set while new transcoder is already pending");
-                    return true;
-                }
-
-                if self.current_transcoder.is_some() || self.fragment_list.is_empty() {
-                    if channel
-                        .send(WatchStreamEvent::InitSegment(init_segment.clone()))
-                        .await
-                        .is_err()
-                    {
-                        // It seems the transcoder has already closed.
-                        tracing::warn!("new transcoder closed during initialization");
-                        return true;
-                    }
-
-                    self.next_transcoder = Some(channel);
-                } else {
-                    // We don't have a transcoder, so we can just set the current transcoder.
-                    if channel
-                        .send(WatchStreamEvent::InitSegment(init_segment.clone()))
-                        .await
-                        .is_err()
-                    {
-                        // It seems the transcoder has already closed.
-                        tracing::warn!("transcoder closed during initialization");
-                        return self.request_transcoder(update_channel, global).await;
-                    }
-
-                    for fragment in &self.fragment_list {
-                        if channel
-                            .send(WatchStreamEvent::MediaSegment(fragment.clone()))
-                            .await
-                            .is_err()
-                        {
-                            // It seems the transcoder has already closed.
-                            tracing::warn!("transcoder closed during initialization");
-                            return self.request_transcoder(update_channel, global).await;
-                        }
-                    }
-
-                    self.fragment_list.clear();
-                    self.next_transcoder_id = None;
-                    self.current_transcoder_id = Some(id);
-                    self.current_transcoder = Some(channel);
-                }
-            }
-        }
-
-        true
-    }
-
-    async fn on_init_segment(
-        &mut self,
-        update_channel: &mpsc::Sender<Vec<Update>>,
-        global: &Arc<GlobalState>,
-        video_settings: &VideoSettings,
-        audio_settings: &AudioSettings,
-        init_data: Bytes,
-    ) -> bool {
-        let new_stream_state =
-            generate_variants(video_settings, audio_settings, self.api_resp.transcode);
-
-        // We can now at this point decide what we want to do with the stream.
-        // What variants should be transcoded, ect...
-        if let Some(old_variants) = self.api_resp.stream_state.take() {
-            let mut can_resume = true;
-
-            fn make_map(
-                state: &StreamState,
-            ) -> HashMap<(&str, &str), (&stream_state::Variant, Vec<&stream_state::Transcode>)>
-            {
-                let transcode_state_map = state
-                    .transcodes
-                    .iter()
-                    .map(|s| (s.id.as_str(), s))
-                    .collect::<HashMap<_, _>>();
-
-                state
-                    .variants
-                    .iter()
-                    .map(|v| {
-                        let states = v
-                            .transcode_ids
-                            .iter()
-                            .map(|id| *transcode_state_map.get(id.as_str()).unwrap())
-                            .collect::<Vec<_>>();
-                        ((v.group.as_str(), v.name.as_str()), (v, states))
-                    })
-                    .collect()
-            }
-
-            let new_map = make_map(&new_stream_state);
-            let mut old_map = make_map(&old_variants);
-
-            for (key, (_, new_transcode_states)) in new_map.iter() {
-                if let Some((_, mut old_transcode_states)) = old_map.remove(key) {
-                    if new_transcode_states.iter().all(|new| {
-                        let pos = old_transcode_states.iter().position(|old| {
-                            new.copy == old.copy
-                                && new.codec == old.codec
-                                && new.settings == old.settings
-                        });
-
-                        if let Some(pos) = pos {
-                            old_transcode_states.remove(pos);
-                            true
-                        } else {
-                            false
-                        }
-                    }) && old_transcode_states.is_empty()
-                    {
-                        // This is resumable, so we can just continue.
-                        continue;
-                    }
-                }
-
-                // If we get here, we need to start a new transcode.
-                tracing::info!("new variant detected, starting new transcode");
-                can_resume = false;
-                break;
-            }
-
-            can_resume = can_resume && old_map.is_empty();
-
-            if can_resume {
-                self.api_resp.stream_state = Some(old_variants);
-            } else {
-                // Report to API to get a new stream id.
-                // This is because the variants have changed and therefore the client player wont be able to resume.
-                // We need to get a new stream id so that the player can start a new session.
-
-                let response = match self
-                    .api_client
-                    .new_live_stream(NewLiveStreamRequest {
-                        old_stream_id: self.api_resp.id.to_string(),
-                        state: Some(new_stream_state.clone()),
-                    })
-                    .await
-                {
-                    Ok(response) => response.into_inner(),
-                    Err(e) => {
-                        tracing::error!("Failed to report new stream to API: {}", e);
-                        return false;
-                    }
-                };
-
-                let Ok(stream_id) = response.stream_id.parse() else {
-                    tracing::error!("invalid stream id from API");
-                    return false;
-                };
-
-                self.api_resp.id = stream_id;
-                self.api_resp.stream_state = Some(new_stream_state);
-            }
-        } else if let Err(e) = self
-            .api_client
-            .update_live_stream(UpdateLiveStreamRequest {
-                stream_id: self.api_resp.id.to_string(),
-                connection_id: self.id.to_string(),
-                updates: vec![Update {
-                    timestamp: Utc::now().timestamp() as u64,
-                    update: Some(update::Update::State(new_stream_state.clone())),
-                }],
-            })
-            .await
-        {
-            tracing::error!("Failed to report new stream to API: {}", e);
-            return false;
-        } else {
-            self.api_resp.stream_state = Some(new_stream_state);
-        }
-
-        // At this point now we need to create a new job for a transcoder to pick up and start transcoding.
-        global
-            .connection_manager
-            .register_stream(self.api_resp.id, self.id, self.transcoder_req_tx.clone())
-            .await;
-
-        self.initial_segment = Some(init_data);
-
-        if !self.request_transcoder(update_channel, global).await {
-            return false;
-        }
-
-        // Respond to the rest of the session that we have a stream id and are ready to start streaming.
-        self.stream_id_sender.send(self.api_resp.id).is_ok()
-    }
-
-    async fn on_data(
-        &mut self,
-        update_channel: &mpsc::Sender<Vec<Update>>,
-        global: &Arc<GlobalState>,
-        data: ChannelData,
-    ) -> bool {
-        if self.bytes_since_keyframe > MAX_BYTES_BETWEEN_KEYFRAMES {
-            tracing::error!("keyframe interval exceeded");
-
-            if update_channel
-                .try_send(vec![Update {
-                    timestamp: Utc::now().timestamp() as u64,
-                    update: Some(update::Update::Event(Event {
-                        title: "Keyframe Interval Reached".to_string(),
-                        level: event::Level::Error as i32,
-                        message: "Waited too long without a keyframe, dropping stream".to_string(),
-                    })),
-                }])
-                .is_err()
-            {
-                tracing::error!("failed to keyframe interval reached");
-            }
-
-            return false;
-        }
-
-        if (self.total_video_bytes + self.total_audio_bytes + self.total_metadata_bytes)
-            >= MAX_BITRATE * BITRATE_UPDATE_INTERVAL / 8
-        {
-            tracing::error!("bitrate limit reached");
-
-            if update_channel
-                .try_send(vec![Update {
-                    timestamp: Utc::now().timestamp() as u64,
-                    update: Some(update::Update::Event(Event {
-                        title: "Bitrate Limit Reached".to_string(),
-                        level: event::Level::Error as i32,
-                        message: format!(
-                            "Reached bitrate limit of {}kbps for stream",
-                            (self.total_video_bytes
-                                + self.total_audio_bytes
-                                + self.total_metadata_bytes)
-                                / 1024,
-                        ),
-                    })),
-                }])
-                .is_err()
-            {
-                tracing::error!("failed to send bitrate limit reached event");
-            }
-
-            return false;
-        }
-
-        match data {
-            ChannelData::Video { data, timestamp } => {
-                self.total_video_bytes += data.len() as u64;
-                self.bytes_since_keyframe += data.len() as u64;
-
-                let data = match FlvTagData::demux(FlvTagType::Video as u8, data) {
-                    Ok(data) => data,
-                    Err(e) => {
-                        tracing::error!(error = %e, "demux error");
-                        return false;
-                    }
-                };
-
-                self.transmuxer.add_tag(FlvTag {
-                    timestamp,
-                    data,
-                    stream_id: 0,
-                });
-            }
-            ChannelData::Audio { data, timestamp } => {
-                self.total_audio_bytes += data.len() as u64;
-                self.bytes_since_keyframe += data.len() as u64;
-
-                let data = match FlvTagData::demux(FlvTagType::Audio as u8, data) {
-                    Ok(data) => data,
-                    Err(e) => {
-                        tracing::error!(error = %e, "demux error");
-                        return false;
-                    }
-                };
-
-                self.transmuxer.add_tag(FlvTag {
-                    timestamp,
-                    data,
-                    stream_id: 0,
-                });
-            }
-            ChannelData::MetaData { data, timestamp } => {
-                self.total_metadata_bytes += data.len() as u64;
-                self.bytes_since_keyframe += data.len() as u64;
-
-                let data = match FlvTagData::demux(FlvTagType::ScriptData as u8, data) {
-                    Ok(data) => data,
-                    Err(e) => {
-                        tracing::error!(error = %e, "demux error");
-                        return false;
-                    }
-                };
-
-                self.transmuxer.add_tag(FlvTag {
-                    timestamp,
-                    data,
-                    stream_id: 0,
-                });
-            }
-        }
-
-        // We need to check if the transmuxer has any packets ready to be muxed
-        match self.transmuxer.mux() {
-            Ok(Some(TransmuxResult::InitSegment {
-                video_settings,
-                audio_settings,
-                data,
-            })) => {
-                if video_settings.bitrate as u64 + audio_settings.bitrate as u64 >= MAX_BITRATE {
-                    tracing::error!("bitrate limit reached");
-
-                    if update_channel
-                        .try_send(vec![Update {
-                            timestamp: Utc::now().timestamp() as u64,
-                            update: Some(update::Update::Event(Event {
-                                title: "Bitrate Limit Reached".to_string(),
-                                level: event::Level::Error as i32,
-                                message: format!(
-                                    "Reached bitrate limit of {}kbps for stream",
-                                    video_settings.bitrate + audio_settings.bitrate
-                                ),
-                            })),
-                        }])
-                        .is_err()
-                    {
-                        tracing::error!("failed to send bitrate limit reached event");
-                    }
-
-                    return false;
-                }
-
-                self.on_init_segment(
-                    update_channel,
-                    global,
-                    &video_settings,
-                    &audio_settings,
-                    data,
-                )
-                .await
-            }
-            Ok(Some(TransmuxResult::MediaSegment(segment))) => {
-                self.on_media_segment(update_channel, global, segment).await
-            }
-            Ok(None) => true,
-            Err(e) => {
-                tracing::error!("error muxing packet: {}", e);
-                false
-            }
-        }
-    }
-
-    pub async fn on_media_segment(
-        &mut self,
-        update_channel: &mpsc::Sender<Vec<Update>>,
-        global: &Arc<GlobalState>,
-        segment: MediaSegment,
-    ) -> bool {
-        if segment.keyframe {
-            self.bytes_since_keyframe = 0;
-
-            if let Some(transcoder) = self.next_transcoder.take() {
-                let Some(uuid) = self.next_transcoder_id.take() else {
-                    tracing::error!("next transcoder id is missing");
-                    return false;
-                };
-
-                if transcoder
-                    .send(WatchStreamEvent::MediaSegment(segment.clone()))
-                    .await
-                    .is_ok()
-                {
-                    if let Some(current_transcoder) = self.current_transcoder.take() {
-                        current_transcoder
-                            .send(WatchStreamEvent::ShuttingDown(false))
-                            .await
-                            .ok();
-                    }
-
-                    self.last_transcoder_publish = Instant::now();
-                    self.current_transcoder = Some(transcoder);
-                    self.current_transcoder_id = Some(uuid);
-
-                    return true;
-                }
-
-                if update_channel
-                    .try_send(vec![Update {
-                        timestamp: Utc::now().timestamp() as u64,
-                        update: Some(update::Update::Event(Event {
-                            title: "New Transcoder Disconnected".to_string(),
-                            level: event::Level::Warning as i32,
-                            message: format!(
-                                "New Transcoder {} disconnected before sending first fragment",
-                                uuid
-                            ),
-                        })),
-                    }])
-                    .is_err()
-                {
-                    tracing::error!("api update channel blocked");
-                    return false;
-                }
-
-                tracing::error!("new transcoder disconnected before sending first fragment");
-
-                // The next transcoder has disconnected somehow so we need to find a new one.
-                if !self.request_transcoder(update_channel, global).await {
-                    return false;
-                }
-            };
-        }
-
-        if let Some(transcoder) = &mut self.current_transcoder {
-            if transcoder
-                .send(WatchStreamEvent::MediaSegment(segment.clone()))
-                .await
-                .is_ok()
-            {
-                self.last_transcoder_publish = Instant::now();
-                return true;
-            }
-
-            tracing::error!("transcoder disconnected while sending fragment");
-
-            let current_id = self.current_transcoder_id.take().unwrap_or_default();
-
-            self.current_transcoder = None;
-
-            if update_channel
-                .try_send(vec![Update {
-                    timestamp: Utc::now().timestamp() as u64,
-                    update: Some(update::Update::Event(Event {
-                        title: "Transcoder Disconnected".to_string(),
-                        level: event::Level::Warning as i32,
-                        message: format!(
-                            "Transcoder {} disconnected without graceful shutdown",
-                            current_id
-                        ),
-                    })),
-                }])
-                .is_err()
-            {
-                tracing::error!("api update channel blocked");
-                return false;
-            }
-
-            // This means the current transcoder has disconnected so we need to find a new one.
-            if !self.request_transcoder(update_channel, global).await {
-                return false;
-            }
-        }
-
-        if Instant::now() - self.last_transcoder_publish
-            >= Duration::from_secs(MAX_TRANSCODER_WAIT_TIME)
-        {
-            tracing::error!("no transcoder available to publish to");
-            return false;
-        }
-
-        if segment.keyframe {
-            self.fragment_list.clear();
-            self.fragment_list.push(segment);
-        } else if self
-            .fragment_list
-            .first()
-            .map(|f| f.keyframe)
-            .unwrap_or_default()
-        {
-            self.fragment_list.push(segment);
-        }
-
-        true
-    }
-
-    fn on_bitrate_update(&mut self, update_channel: &mpsc::Sender<Vec<Update>>) -> bool {
-        let video_bitrate = (self.total_video_bytes * 8) / BITRATE_UPDATE_INTERVAL;
-        let audio_bitrate = (self.total_audio_bytes * 8) / BITRATE_UPDATE_INTERVAL;
-        let metadata_bitrate = (self.total_metadata_bytes * 8) / BITRATE_UPDATE_INTERVAL;
-
-        self.total_video_bytes = 0;
-        self.total_audio_bytes = 0;
-        self.total_metadata_bytes = 0;
-
-        // We need to make sure that the update future is still running
-        if update_channel
-            .try_send(vec![Update {
-                timestamp: Utc::now().timestamp() as u64,
-                update: Some(update::Update::Bitrate(Bitrate {
-                    video_bitrate,
-                    audio_bitrate,
-                    metadata_bitrate,
-                })),
-            }])
-            .is_err()
-        {
-            tracing::error!("api update channel blocked");
-            return false;
-        }
-
-        true
-    }
+	async fn run<'a, G: IngestGlobal>(
+		&mut self,
+		global: &Arc<G>,
+		mut session: RtmpSession<'a, impl Future<Output = Result<bool, SessionError>>>,
+	) -> bool {
+		tracing::info!("new publish request");
+
+		// At this point we have a stream that is publishing to us
+		// We can now poll the run future & the data receiver.
+		// The run future will close when the connection is closed or an error occurs
+		// The data receiver will never close, because the Session object is always in
+		// scope.
+
+		let mut bitrate_update_interval = tokio::time::interval(global.config().bitrate_update_interval);
+		bitrate_update_interval.tick().await; // Skip the first tick (resolves instantly)
+
+		let mut db_update_fut = pin!(update_db(
+			global.clone(),
+			self.id,
+			self.organization_id,
+			self.room_id,
+			self.update_recv.take().unwrap(),
+		));
+
+		let mut next_timeout = Instant::now() + Duration::from_secs(2);
+
+		let mut clean_shutdown = false;
+
+		let mut conn_id_sub = match global.nats().subscribe(keys::ingest_disconnect(self.id)).await {
+			Ok(sub) => sub,
+			Err(e) => {
+				tracing::error!(error = %e, "failed to subscribe to disconnect subject");
+
+				self.error = Some(IngestError::FailedToSubscribe);
+
+				return false;
+			}
+		};
+
+		while select! {
+			_ = global.ctx().done() => {
+				tracing::debug!("Global context closed, closing connection");
+
+				self.error = Some(IngestError::IngestShutdown);
+
+				false
+			},
+			d = session.data() => {
+				match d {
+					Err(e) => {
+						tracing::error!(error = %e, "session error");
+
+						self.error = Some(IngestError::RtmpConnectionError);
+
+						false
+					},
+					Ok(Data::Data(data)) => {
+						next_timeout = Instant::now() + Duration::from_secs(2);
+						self.on_data(global, data.expect("data producer closed")).await
+					}
+					Ok(Data::Closed(c)) => {
+						clean_shutdown = c;
+
+						tracing::debug!("session closed: {c}");
+
+						false
+					}
+				}
+			},
+			m = conn_id_sub.next() => {
+				if m.is_none() {
+					tracing::error!("connection id subject closed");
+
+					self.error = Some(IngestError::SubscriptionClosedUnexpectedly);
+
+					false
+				} else {
+					tracing::debug!("disconnect requested");
+
+					self.error = Some(IngestError::DisconnectRequested);
+					clean_shutdown = true;
+
+					false
+				}
+			},
+			_ = bitrate_update_interval.tick() => self.on_bitrate_update(global),
+			_ = tokio::time::sleep_until(next_timeout) => {
+				tracing::debug!("session timed out during data");
+
+				self.error = Some(IngestError::RtmpConnectionTimeout);
+
+				false
+			},
+			_ = &mut db_update_fut => {
+				tracing::error!("api update future failed");
+
+				self.error = Some(IngestError::FailedToUpdateBitrate);
+
+				false
+			}
+			Some(msg) = async {
+				if let Some(transcoder) = self.current_transcoder.as_mut() {
+					Some(transcoder.recv.message().await)
+				} else {
+					None
+				}
+			} => {
+				// handle message from transcoder
+				self.handle_transcoder_message(global, msg, WhichTranscoder::Current).await
+			}
+			Some(msg) = async {
+				if let Some(transcoder) = self.next_transcoder.as_mut() {
+					Some(transcoder.recv.message().await)
+				} else {
+					None
+				}
+			} => {
+				// handle message from transcoder
+				self.handle_transcoder_message(global, msg, WhichTranscoder::Next).await
+			}
+			Some(msg) = async {
+				if let Some(transcoder) = self.old_transcoder.as_mut() {
+					Some(transcoder.recv.message().await)
+				} else {
+					None
+				}
+			} => {
+				// handle message from transcoder
+				self.handle_transcoder_message(global, msg, WhichTranscoder::Old).await
+			}
+			event = self.incoming_reciever.recv() => self.handle_incoming_request(event.expect("transcoder closed")).await,
+		} {}
+
+		self.update_sender.take();
+
+		tracing::info!(clean = clean_shutdown, "connection closed");
+
+		clean_shutdown
+	}
+
+	async fn handle_transcoder_message<G: IngestGlobal>(
+		&mut self,
+		global: &Arc<G>,
+		msg: Result<Option<IngestWatchRequest>, Status>,
+		transcoder: WhichTranscoder,
+	) -> bool {
+		match msg {
+			Ok(Some(msg)) => {
+				match msg.message {
+					Some(ingest_watch_request::Message::Shutdown(shutdown)) => {
+						match ingest_watch_request::Shutdown::try_from(shutdown).unwrap_or_default() {
+							ingest_watch_request::Shutdown::Request => {}
+							ingest_watch_request::Shutdown::Complete => {
+								if transcoder == WhichTranscoder::Old {
+									self.old_transcoder = None;
+
+									events::emit(
+										global.nats(),
+										&global.config().events_stream_name,
+										self.organization_id,
+										Target::Room,
+										event::Event::Room(event::Room {
+											room_id: Some(self.room_id.into()),
+											event: Some(event::room::Event::TranscoderDisconnected(
+												event::room::TranscoderDisconnected {
+													connection_id: Some(self.id.into()),
+													clean: true,
+												},
+											)),
+										}),
+									)
+									.await;
+
+									if let Some(transcoder) = &mut self.current_transcoder {
+										if transcoder
+											.send
+											.send(IngestWatchResponse {
+												message: Some(ingest_watch_response::Message::Ready(
+													ingest_watch_response::Ready::Ready as i32,
+												)),
+											})
+											.await
+											.is_err()
+										{
+											tracing::error!("failed to send ready message to transcoder");
+										} else {
+											return true;
+										}
+									} else {
+										return true;
+									}
+								} else {
+									tracing::warn!("transcoder sent shutdown message before we requested it");
+								}
+							}
+						}
+					}
+					_ => {
+						tracing::warn!("transcoder sent an unknwon message");
+						return true;
+					}
+				}
+
+				if transcoder == WhichTranscoder::Next {
+					self.next_transcoder_id = None;
+					self.next_transcoder = None;
+				}
+			}
+			Err(_) | Ok(None) => {
+				tracing::warn!("transcoder seems to have disconnected unexpectedly");
+
+				events::emit(
+					global.nats(),
+					&global.config().events_stream_name,
+					self.organization_id,
+					Target::Room,
+					event::Event::Room(event::Room {
+						room_id: Some(self.room_id.into()),
+						event: Some(event::room::Event::TranscoderDisconnected(
+							event::room::TranscoderDisconnected {
+								connection_id: Some(self.id.into()),
+								clean: false,
+							},
+						)),
+					}),
+				)
+				.await;
+
+				match transcoder {
+					WhichTranscoder::Current => {
+						self.current_transcoder = None;
+						self.current_transcoder_id = Ulid::nil();
+						match scuffle_utils::database::query(
+							r#"
+                            UPDATE rooms
+                            SET 
+                                updated_at = NOW(),
+                                status = $1
+                            WHERE
+                                organization_id = $2 AND 
+                                id = $3 AND
+                                active_ingest_connection_id = $4
+                            "#,
+						)
+						.bind(RoomStatus::WaitingForTranscoder)
+						.bind(self.organization_id)
+						.bind(self.room_id)
+						.bind(self.id)
+						.build()
+						.execute(global.db())
+						.await
+						{
+							Ok(r) => {
+								if r != 1 {
+									tracing::error!("failed to update room status");
+
+									self.error = Some(IngestError::FailedToUpdateRoom);
+
+									return false;
+								}
+							}
+							Err(e) => {
+								tracing::error!(error = %e, "failed to update room status");
+
+								self.error = Some(IngestError::FailedToUpdateRoom);
+
+								return false;
+							}
+						}
+					}
+					WhichTranscoder::Old => {
+						self.old_transcoder = None;
+						if let Some(transcoder) = &mut self.current_transcoder {
+							if let Err(err) = transcoder
+								.send
+								.send(IngestWatchResponse {
+									message: Some(ingest_watch_response::Message::Ready(
+										ingest_watch_response::Ready::Ready as i32,
+									)),
+								})
+								.await
+							{
+								tracing::error!(error = %err, "failed to send ready message to transcoder");
+							} else {
+								return true;
+							}
+						} else {
+							return true;
+						}
+					}
+					WhichTranscoder::Next => {
+						self.next_transcoder_id = None;
+						self.next_transcoder = None;
+					}
+				}
+			}
+		}
+
+		if matches!(transcoder, WhichTranscoder::Current | WhichTranscoder::Next) {
+			self.request_transcoder(global).await
+		} else {
+			true
+		}
+	}
+
+	async fn handle_incoming_request(&mut self, event: IncomingTranscoder) -> bool {
+		let Some(init_segment) = &self.initial_segment else {
+			tracing::error!("out of order events, requested transcoder before init segment");
+			return false;
+		};
+
+		if Some(event.ulid) != self.next_transcoder_id {
+			tracing::warn!("got incoming request from transcoder that we didn't request");
+			return true;
+		}
+
+		if event
+			.transcoder
+			.try_send(IngestWatchResponse {
+				message: Some(ingest_watch_response::Message::Media(ingest_watch_response::Media {
+					r#type: ingest_watch_response::media::Type::Init.into(),
+					data: init_segment.clone(),
+					keyframe: false,
+					timestamp: 0,
+					timescale: 1,
+				})),
+			})
+			.is_err()
+		{
+			tracing::warn!("transcoder disconnected before we could send init segment");
+			return true;
+		}
+
+		if self.current_transcoder.is_none() && !self.fragment_list.is_empty() {
+			if event
+				.transcoder
+				.try_send(IngestWatchResponse {
+					message: Some(ingest_watch_response::Message::Ready(
+						ingest_watch_response::Ready::Ready.into(),
+					)),
+				})
+				.is_err()
+			{
+				tracing::warn!("transcoder disconnected before we could send init segment");
+				return true;
+			}
+
+			self.current_transcoder = Some(Transcoder {
+				recv: event.streaming,
+				send: event.transcoder,
+			});
+			self.current_transcoder_id = self.next_transcoder_id.take().unwrap();
+		} else {
+			self.next_transcoder = Some(Transcoder {
+				recv: event.streaming,
+				send: event.transcoder,
+			});
+		}
+
+		true
+	}
+
+	fn send_update(&mut self, update: Update) -> bool {
+		if let Some(sender) = &mut self.update_sender {
+			sender.try_send(update).is_ok()
+		} else {
+			false
+		}
+	}
+
+	async fn request_transcoder<G: IngestGlobal>(&mut self, global: &Arc<G>) -> bool {
+		// If we already have a request pending, then we don't need to request another
+		// one.
+		if self.next_transcoder_id.is_some() {
+			return true;
+		}
+
+		let request_id = Ulid::new();
+		self.next_transcoder_id = Some(request_id);
+
+		global
+			.requests()
+			.lock()
+			.await
+			.insert(request_id, self.incoming_sender.clone());
+
+		let config = global.config::<IngestConfig>();
+
+		if let Err(err) = global
+			.nats()
+			.publish(
+				config.transcoder_request_subject.clone(),
+				TranscoderRequestTask {
+					organization_id: Some(self.organization_id.into()),
+					room_id: Some(self.room_id.into()),
+					request_id: Some(request_id.into()),
+					connection_id: Some(self.id.into()),
+					grpc_endpoint: config.grpc_advertise_address.clone(),
+				}
+				.encode_to_vec()
+				.into(),
+			)
+			.await
+		{
+			tracing::error!(error = %err, "failed to publish transcoder request");
+
+			self.error = Some(IngestError::FailedToRequestTranscoder);
+
+			return false;
+		}
+
+		tracing::info!("requested transcoder");
+
+		true
+	}
+
+	async fn on_init_segment<G: IngestGlobal>(
+		&mut self,
+		global: &Arc<G>,
+		video_settings: &VideoSettings,
+		audio_settings: &AudioSettings,
+		init_data: Bytes,
+	) -> bool {
+		self.initial_segment = Some(init_data);
+
+		self.audio_timescale = audio_settings.timescale;
+		self.video_timescale = video_settings.timescale;
+
+		let video_settings = pb::scuffle::video::v1::types::VideoConfig {
+			bitrate: video_settings.bitrate as i64,
+			codec: video_settings.codec.to_string(),
+			fps: video_settings.framerate as i32,
+			height: video_settings.height as i32,
+			width: video_settings.width as i32,
+			rendition: Rendition::VideoSource.into(),
+		}
+		.encode_to_vec();
+
+		let audio_settings = pb::scuffle::video::v1::types::AudioConfig {
+			bitrate: audio_settings.bitrate as i64,
+			channels: audio_settings.channels as i32,
+			codec: audio_settings.codec.to_string(),
+			sample_rate: audio_settings.sample_rate as i32,
+			rendition: Rendition::AudioSource.into(),
+		}
+		.encode_to_vec();
+
+		match scuffle_utils::database::query(
+			r#"
+			UPDATE rooms
+			SET 
+				updated_at = NOW(),
+				status = $1,
+				video_input = $2,
+				audio_input = $3
+			WHERE
+				organization_id = $4 AND 
+				id = $5 AND
+				active_ingest_connection_id = $6
+			"#,
+		)
+		.bind(RoomStatus::WaitingForTranscoder)
+		.bind(video_settings)
+		.bind(audio_settings)
+		.bind(self.organization_id)
+		.bind(self.room_id)
+		.bind(self.id)
+		.build()
+		.execute(global.db())
+		.await
+		{
+			Ok(r) => {
+				if r != 1 {
+					tracing::error!("failed to update room status");
+
+					self.error = Some(IngestError::FailedToUpdateRoom);
+
+					return false;
+				}
+			}
+			Err(e) => {
+				tracing::error!(error = %e, "failed to update room status");
+
+				self.error = Some(IngestError::FailedToUpdateRoom);
+
+				return false;
+			}
+		}
+
+		video_common::events::emit(
+			global.nats(),
+			&global.config().events_stream_name,
+			self.organization_id,
+			Target::Room,
+			event::Event::Room(event::Room {
+				room_id: Some(self.room_id.into()),
+				event: Some(event::room::Event::Connected(event::room::Connected {
+					connection_id: Some(self.id.into()),
+				})),
+			}),
+		)
+		.await;
+
+		self.request_transcoder(global).await
+	}
+
+	async fn on_data<G: IngestGlobal>(&mut self, global: &Arc<G>, data: ChannelData) -> bool {
+		self.bytes_tracker.add(&data);
+
+		let config = global.config::<IngestConfig>();
+
+		if self.bytes_tracker.since_keyframe() >= config.max_bytes_between_keyframes {
+			self.error = Some(IngestError::KeyframeBitrateDistance(
+				self.bytes_tracker.since_keyframe(),
+				config.max_bytes_between_keyframes,
+			));
+
+			tracing::debug!(
+				"keyframe bitrate distance exceeded: {:?} - {} > {}",
+				Instant::now() - self.last_keyframe,
+				self.bytes_tracker.since_keyframe(),
+				config.max_bytes_between_keyframes
+			);
+
+			return false;
+		}
+
+		if self.bytes_tracker.total() * 8 >= config.max_bitrate * config.bitrate_update_interval.as_secs() {
+			self.error = Some(IngestError::BitrateLimit(
+				self.bytes_tracker.total() / config.bitrate_update_interval.as_secs() * 8,
+				config.max_bitrate,
+			));
+
+			tracing::debug!(
+				"bitrate limit exceeded: {} > {}",
+				self.bytes_tracker.total() * 8 / config.bitrate_update_interval.as_secs(),
+				config.max_bitrate
+			);
+
+			return false;
+		}
+
+		match data {
+			ChannelData::Video { data, timestamp } => {
+				let data = match FlvTagData::demux(FlvTagType::Video as u8, data) {
+					Ok(data) => data,
+					Err(e) => {
+						tracing::error!(error = %e, "demux error");
+
+						self.error = Some(IngestError::VideoDemux);
+
+						return false;
+					}
+				};
+
+				self.transmuxer.add_tag(FlvTag {
+					timestamp,
+					data,
+					stream_id: 0,
+				});
+			}
+			ChannelData::Audio { data, timestamp } => {
+				let data = match FlvTagData::demux(FlvTagType::Audio as u8, data) {
+					Ok(data) => data,
+					Err(e) => {
+						tracing::error!(error = %e, "demux error");
+
+						self.error = Some(IngestError::AudioDemux);
+
+						return false;
+					}
+				};
+
+				self.transmuxer.add_tag(FlvTag {
+					timestamp,
+					data,
+					stream_id: 0,
+				});
+			}
+			ChannelData::Metadata { data, timestamp } => {
+				let data = match FlvTagData::demux(FlvTagType::ScriptData as u8, data) {
+					Ok(data) => data,
+					Err(e) => {
+						tracing::error!(error = %e, "demux error");
+
+						self.error = Some(IngestError::MetadataDemux);
+
+						return false;
+					}
+				};
+
+				self.transmuxer.add_tag(FlvTag {
+					timestamp,
+					data,
+					stream_id: 0,
+				});
+			}
+		}
+
+		// We need to check if the transmuxer has any packets ready to be muxed
+		match self.transmuxer.mux() {
+			Ok(Some(TransmuxResult::InitSegment {
+				video_settings,
+				audio_settings,
+				data,
+			})) => {
+				let bitrate = video_settings.bitrate as u64 + audio_settings.bitrate as u64;
+				if bitrate >= config.max_bitrate {
+					self.error = Some(IngestError::BitrateLimit(bitrate, config.max_bitrate));
+
+					tracing::debug!("bitrate limit exceeded: {} > {}", bitrate, config.max_bitrate);
+
+					return false;
+				}
+
+				self.on_init_segment(global, &video_settings, &audio_settings, data).await
+			}
+			Ok(Some(TransmuxResult::MediaSegment(segment))) => self.on_media_segment(global, segment).await,
+			Ok(None) => true,
+			Err(e) => {
+				tracing::error!(error = %e, "error muxing packet");
+
+				self.error = Some(IngestError::Mux);
+
+				false
+			}
+		}
+	}
+
+	pub async fn on_media_segment<G: IngestGlobal>(&mut self, global: &Arc<G>, segment: MediaSegment) -> bool {
+		let config = global.config::<IngestConfig>();
+
+		if Instant::now() - self.last_keyframe >= config.max_time_between_keyframes {
+			self.error = Some(IngestError::KeyframeTimeLimit(config.max_time_between_keyframes.as_secs()));
+
+			tracing::debug!(
+				"keyframe time limit exceeded: {:?} > {:?}",
+				Instant::now() - self.last_keyframe,
+				config.max_time_between_keyframes
+			);
+
+			return false;
+		}
+
+		if Instant::now() - self.last_transcoder_publish >= config.transcoder_timeout {
+			tracing::error!("no transcoder available to publish to");
+
+			self.error = Some(IngestError::NoTranscoderAvailable);
+
+			return false;
+		}
+
+		if segment.keyframe {
+			self.last_keyframe = Instant::now();
+
+			self.bytes_tracker.keyframe();
+
+			if let Some(transcoder) = self.next_transcoder.take() {
+				if let Some(transcoder) = self.current_transcoder.take() {
+					transcoder
+						.send
+						.send(IngestWatchResponse {
+							message: Some(ingest_watch_response::Message::Shutdown(
+								ingest_watch_response::Shutdown::Transcoder as i32,
+							)),
+						})
+						.await
+						.ok();
+					self.old_transcoder = Some(transcoder);
+				}
+
+				if self.old_transcoder.is_none()
+					&& transcoder
+						.send
+						.send(IngestWatchResponse {
+							message: Some(ingest_watch_response::Message::Ready(
+								ingest_watch_response::Ready::Ready as i32,
+							)),
+						})
+						.await
+						.is_err()
+				{
+					tracing::error!("transcoder disconnected while sending fragment");
+					if !self.request_transcoder(global).await {
+						return false;
+					}
+				}
+
+				self.current_transcoder = Some(transcoder);
+				self.current_transcoder_id = self.next_transcoder_id.take().unwrap();
+			};
+		}
+
+		if let Some(transcoder) = &mut self.current_transcoder {
+			let mut failed = false;
+			for fragment in &self.fragment_list {
+				if transcoder
+					.send
+					.send(IngestWatchResponse {
+						message: Some(ingest_watch_response::Message::Media(ingest_watch_response::Media {
+							r#type: match fragment.ty {
+								transmuxer::MediaType::Audio => ingest_watch_response::media::Type::Audio as i32,
+								transmuxer::MediaType::Video => ingest_watch_response::media::Type::Video as i32,
+							},
+							data: fragment.data.clone(),
+							keyframe: fragment.keyframe,
+							timestamp: fragment.timestamp,
+							timescale: match fragment.ty {
+								transmuxer::MediaType::Audio => self.audio_timescale,
+								transmuxer::MediaType::Video => self.video_timescale,
+							},
+						})),
+					})
+					.await
+					.is_err()
+				{
+					failed = true;
+					break;
+				}
+
+				self.last_transcoder_publish = Instant::now();
+			}
+
+			if !failed
+				&& transcoder
+					.send
+					.send(IngestWatchResponse {
+						message: Some(ingest_watch_response::Message::Media(ingest_watch_response::Media {
+							r#type: match segment.ty {
+								transmuxer::MediaType::Audio => ingest_watch_response::media::Type::Audio as i32,
+								transmuxer::MediaType::Video => ingest_watch_response::media::Type::Video as i32,
+							},
+							keyframe: segment.keyframe,
+							data: segment.data.clone(),
+							timestamp: segment.timestamp,
+							timescale: match segment.ty {
+								transmuxer::MediaType::Audio => self.audio_timescale,
+								transmuxer::MediaType::Video => self.video_timescale,
+							},
+						})),
+					})
+					.await
+					.is_ok()
+			{
+				self.last_transcoder_publish = Instant::now();
+				self.fragment_list.clear();
+
+				return true;
+			}
+
+			tracing::error!("transcoder disconnected while sending fragment");
+			if !self.request_transcoder(global).await {
+				return false;
+			}
+		}
+
+		if segment.keyframe && segment.ty == transmuxer::MediaType::Video {
+			self.fragment_list.clear();
+			self.fragment_list.push(segment);
+		} else if !self.fragment_list.is_empty() {
+			self.fragment_list.push(segment);
+		}
+
+		true
+	}
+
+	fn on_bitrate_update<G: IngestGlobal>(&mut self, global: &Arc<G>) -> bool {
+		let bitrate = self.bytes_tracker.total() / global.config::<IngestConfig>().bitrate_update_interval.as_secs();
+
+		self.bytes_tracker.clear();
+
+		if !self.send_update(Update { bitrate: bitrate as i64 }) {
+			self.error = Some(IngestError::FailedToUpdateBitrate);
+			tracing::error!("failed to send bitrate update");
+			false
+		} else {
+			true
+		}
+	}
+
+	async fn cleanup<G: IngestGlobal>(&mut self, global: &Arc<G>, clean_disconnect: bool) -> Result<()> {
+		if let Some(next_id) = self.next_transcoder_id.take() {
+			global.requests().lock().await.remove(&next_id);
+		}
+
+		if !self.current_transcoder_id.is_nil() {
+			global.requests().lock().await.remove(&self.current_transcoder_id);
+		}
+
+		if let Some(transcoder) = self.next_transcoder.take() {
+			transcoder
+				.send
+				.try_send(IngestWatchResponse {
+					message: Some(ingest_watch_response::Message::Shutdown(
+						ingest_watch_response::Shutdown::Stream as i32,
+					)),
+				})
+				.ok();
+		}
+
+		if let Some(transcoder) = self.current_transcoder.take() {
+			transcoder
+				.send
+				.try_send(IngestWatchResponse {
+					message: Some(ingest_watch_response::Message::Shutdown(
+						ingest_watch_response::Shutdown::Stream as i32,
+					)),
+				})
+				.ok();
+		}
+
+		video_common::events::emit(
+			global.nats(),
+			&global.config().events_stream_name,
+			self.organization_id,
+			Target::Room,
+			event::Event::Room(event::Room {
+				room_id: Some(self.room_id.into()),
+				event: Some(event::room::Event::Disconnected(event::room::Disconnected {
+					connection_id: Some(self.id.into()),
+					clean: clean_disconnect,
+					cause: self.error.as_ref().map(|e| e.to_string()),
+				})),
+			}),
+		)
+		.await;
+
+		scuffle_utils::database::query(
+			r#"
+			UPDATE rooms
+			SET
+				updated_at = NOW(),
+				last_disconnected_at = NOW(),
+				active_ingest_connection_id = NULL,
+				video_input = NULL,
+				audio_input = NULL,
+				ingest_bitrate = NULL,
+				video_output = NULL,
+				audio_output = NULL,
+				active_recording_id = NULL,
+				active_recording_config = NULL,
+				active_transcoding_config = NULL,
+				status = $1
+				WHERE 
+					organization_id = $2 AND
+					id = $3 AND
+					active_ingest_connection_id = $4
+			"#,
+		)
+		.bind(RoomStatus::Offline)
+		.bind(self.organization_id)
+		.bind(self.room_id)
+		.bind(self.id)
+		.build()
+		.execute(global.db())
+		.await?;
+
+		Ok(())
+	}
 }

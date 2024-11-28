@@ -1,0 +1,31 @@
+[package]
+name = "scuffle-bootstrap-examples"
+version = "0.0.0"
+edition = "2021"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+
+[[example]]
+name = "scuffle-bootstrap-basic"
+path = "src/basic.rs"
+
+[[example]]
+name = "scuffle-bootstrap-cli"
+path = "src/cli.rs"
+
+[[example]]
+name = "scuffle-bootstrap-tracing"
+path = "src/tracing.rs"
+
+[dependencies]
+serde_derive = "1.0"
+serde = "1.0"
+smart-default = "0.7"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+anyhow = "1.0"
+
+scuffle-bootstrap = { version = "0.0.0", path = ".." }
+scuffle-settings = { version = "0.0.0", path = "../../settings" }

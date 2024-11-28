@@ -1,0 +1,43 @@
+[package]
+name = "scuffle-bootstrap-telemetry"
+version = "0.0.0"
+edition = "2021"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/scuffle-bootstrap-telemetry"
+license = "MIT OR Apache-2.0"
+description = "Telemetry utilities for scuffle-bootstrap."
+keywords = ["bootstrap", "telemetry"]
+
+[dependencies]
+tracing = "0.1"
+anyhow = "1"
+prometheus = { version = "0.13.4", optional = true }
+http = "1"
+http-body = "1.0.1"
+http-body-util = "0.1"
+bytes = "1.6.0"
+querystring = { version = "1", optional = true }
+tokio = { version = "1.36.0", optional = true }
+thiserror = { version = "2", optional = true }
+
+opentelemetry = { version = "0.27", optional = true }
+opentelemetry_sdk = { version = "0.27", optional = true }
+opentelemetry-appender-tracing = { version = "0.27", optional = true }
+tracing-opentelemetry = { version = "0.28.0", optional = true }
+
+scuffle-bootstrap = { version = "0.0.0", path = ".." }
+scuffle-context = { version = "0.0.0", path = "../../context" }
+scuffle-http = { version = "0.0.0", path = "../../http" }
+scuffle-pprof = { version = "0.0.0", path = "../../pprof", optional = true }
+scuffle-metrics = { version = "0.0.0", path = "../../metrics", optional = true }
+
+[features]
+default = ["prometheus", "pprof", "opentelemetry-metrics", "opentelemetry-traces", "opentelemetry-logs"]
+prometheus = ["dep:prometheus", "scuffle-metrics", "opentelemetry"]
+pprof = ["scuffle-pprof", "querystring", "tokio"]
+opentelemetry = ["dep:opentelemetry", "dep:opentelemetry_sdk", "thiserror"]
+opentelemetry-metrics = ["opentelemetry"]
+opentelemetry-traces = ["opentelemetry", "tracing-opentelemetry"]
+opentelemetry-logs = ["opentelemetry", "opentelemetry-appender-tracing"]

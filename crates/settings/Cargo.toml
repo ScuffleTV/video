@@ -1,0 +1,36 @@
+[package]
+name = "scuffle-settings"
+version = "0.0.0"
+edition = "2021"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/scuffle-settings"
+license = "MIT OR Apache-2.0"
+description = "Tools for managing configuration from environment variables or config files."
+keywords = ["settings", "configuration", "environment", "config"]
+
+[dependencies]
+config = { version = "0.14", default-features = false }
+clap = { version = "4", optional = true }
+minijinja = { version = "2.5", optional = true, features = ["json", "custom_syntax", "urlencode"] }
+serde = "1"
+thiserror = "2"
+bon = "3"
+
+[features]
+cli = ["clap"]
+ron = ["config/ron"]
+toml = ["config/toml"]
+yaml = ["config/yaml"]
+json = ["config/json"]
+json5 = ["config/json5"]
+ini = ["config/ini"]
+templates = ["minijinja"]
+
+default = ["toml", "json", "yaml", "json5", "ini", "ron", "cli", "templates"]
+
+[dev-dependencies]
+serde_derive = "1"
+tracing = "0.1"
+tracing-subscriber = "0.3.18"

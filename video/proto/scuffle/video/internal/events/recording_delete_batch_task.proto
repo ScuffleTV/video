@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package scuffle.video.internal.events;
+
+import "scuffle/types/ulid.proto";
+import "scuffle/video/v1/types/rendition.proto";
+
+message RecordingDeleteBatchTask {
+  // The ID of the S3 bucket that the recording is stored in.
+  scuffle.types.Ulid s3_bucket_id = 1;
+
+  // The ID of the recording to delete.
+  scuffle.types.Ulid recording_id = 2;
+
+  // Objects are an index and an object id.
+  message Object {
+    int32 index = 1;
+    scuffle.types.Ulid object_id = 2;
+  }
+
+  message ThumbnailType {}
+
+  // The type of all the objects in the batch.
+  oneof objects_type {
+    scuffle.video.v1.types.Rendition segments = 3;
+    ThumbnailType thumbnails = 4;
+  }
+
+  // The objects to delete.
+  repeated Object objects = 5;
+}

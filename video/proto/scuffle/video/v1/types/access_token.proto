@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package scuffle.video.v1.types;
+
+import "scuffle/types/ulid.proto";
+import "scuffle/video/v1/types/access_token_scope.proto";
+import "scuffle/video/v1/types/tags.proto";
+
+message AccessToken {
+  // The id of the access token
+  scuffle.types.Ulid id = 1;
+
+  // The scopes that this access token has
+  repeated AccessTokenScope scopes = 2;
+
+  // The time that this access token was created
+  int64 created_at = 3;
+
+  // The time that this access token was last updated
+  int64 updated_at = 4;
+
+  // The time that this access token was last used
+  optional int64 last_used_at = 5;
+
+  // The time that this access token expires
+  optional int64 expires_at = 6;
+
+  // The tags that this access token has
+  Tags tags = 7;
+}

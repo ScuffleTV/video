@@ -1,0 +1,65 @@
+# You must change these to your own details.
+[package]
+name = "video-player"
+description = "Scuffle Video Player"
+version = "0.0.1"
+authors = ["Troy Benson <troy@scuffle.cloud>"]
+categories = ["wasm"]
+readme = "README.md"
+license = "BSL-1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+console_error_panic_hook = "0.1"
+tokio = { version = "1.36", features = ["sync", "macros"], default-features = false }
+tracing = { version = "0.1", default-features = false, features = ["attributes", "std"]}
+tracing-subscriber = { version = "0.3", features = ["registry"], default-features = false }
+tracing-core = { version = "0.1", default-features = false }
+serde = { version = "1.0", features = ["derive"] }
+serde-wasm-bindgen = "0.6"
+tsify = "0.4"
+js-sys = "0.3"
+ulid = { version = "1", default-features = false }
+gloo-timers = { version = "0.3", features = ["futures"] }
+url = { version = "2.5", features = ["serde"] }
+serde_json = "1"
+bytes = "1.5"
+serde_path_to_error = "0.1"
+
+video-player-types = { workspace = true }
+mp4 = { workspace = true }
+h264 = { workspace = true }
+bytesio = { workspace = true, default-features = false }
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+    "console",
+    "Window",
+    "Performance",
+    "HtmlVideoElement",
+    "PerformanceObserver",
+    "PerformanceObserverEntryList",
+    "PerformanceObserverInit",
+    "PerformanceResourceTiming",
+    "XmlHttpRequest",
+    "XmlHttpRequestResponseType",
+    "MediaSource",
+    "Event",
+    "Url",
+    "MediaSource",
+    "MediaSourceReadyState",
+    "SourceBuffer",
+    "SourceBufferList",
+    "SourceBufferAppendMode",
+    "TimeRanges",
+    "ErrorEvent",
+    "Event",
+    "VisibilityState",
+    "Storage",
+]

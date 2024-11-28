@@ -1,0 +1,132 @@
+[package]
+name = "scuffle-http"
+version = "0.0.0"
+edition = "2021"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/scuffle-http"
+license = "MIT OR Apache-2.0"
+description = "A high-performance HTTP server supporting HTTP/1.1, HTTP/2, and HTTP/3."
+keywords = ["http", "server", "http1", "http2", "http3"]
+
+[dependencies]
+tokio = { version = "1", features = ["net", "sync", "time", "rt"], default-features = false }
+http = { version = "1" }
+http-body = { version = "1" }
+pin-project-lite = { version = "0.2" }
+thiserror = { version = "2.0.0" }
+derive_more = { version = "1.0.0", features = ["debug", "from"] }
+scuffle-context = { version = "0.0.0", path = "../context" }
+futures = { version = "0.3" }
+bytes = { version = "1" }
+libc = { version = "0.2" }
+httpdate = { version = "1" }
+itoa = { version = "1" }
+smallvec = { version = "1" }
+spin = { version = "0.9" }
+async-trait = { version = "0.1" }
+
+# For extra services features
+tower-service = { version = "0.3", optional = true }
+axum-core = { version = "0.4", optional = true }
+
+# for tls-rustls features
+rustls = { version = "0.23", optional = true }
+# for tls-rustls-pem features
+rustls-pemfile = { version = "2.2", optional = true }
+tokio-rustls = { version = "0.26", optional = true }
+
+# For tracing features
+tracing = { version = "0.1", optional = true }
+
+# For http3 features
+h3 = { version = "0", optional = true }
+scuffle-h3-webtransport = { version = "0.0.0", path = "../h3-webtransport", optional = true }
+
+# For http3-quinn features
+h3-quinn = { version = "0", optional = true }
+quinn = { version = "0.11", optional = true }
+
+h2 = { version = "0.4.6", optional = true } # http2
+httparse = { version = "1.9.5", optional = true } # http1
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros"] }
+tracing-fmt = { version = "0.1" }
+tracing-subscriber = { version = "0.3" }
+axum = { version = "0.7" }
+tokio-stream = { version = "0.1" }
+
+[features]
+_tcp = []
+_quic = []
+
+error-backtrace = []
+
+http1 = [
+    "_tcp",
+    "httparse",
+]
+
+http2 = [
+    "_tcp",
+    "h2",
+]
+
+http3 = [
+    "h3",
+    "quic-quinn",
+]
+
+http3-webtransport = [
+    "http3",
+    "quic-quinn",
+    "scuffle-h3-webtransport",
+]
+
+# Quinn is a quic backend for http3
+quic-quinn = [
+    "_quic",
+    "http3",
+    "h3-quinn",
+    "quinn",
+]
+
+_tls = []
+
+tls-rustls = [
+    "_tls",
+    "rustls",
+    "tokio-rustls",
+]
+
+tls-rustls-pem = [
+    "tls-rustls",
+    "rustls-pemfile",
+]
+
+tracing = [
+    "dep:tracing",
+]
+
+tower = [
+    "dep:tower-service",
+]
+
+axum = [
+    "dep:axum-core",
+    "tower",
+]
+
+http3-default = [
+    "http3",
+    "quic-quinn",
+    "tls-rustls",
+]
+
+default = [
+    "http1",
+    "http2",
+    "tracing",
+]

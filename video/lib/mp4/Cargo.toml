@@ -1,0 +1,21 @@
+[package]
+name = "mp4"
+version = "0.0.1"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+byteorder = "1.5"
+bytes = "1.5"
+fixed = "1.24"
+paste = "1.0"
+
+bytesio = { workspace = true, default-features = false, features = []}
+h264 = { workspace = true }
+h265 = { workspace = true }
+av1 = { workspace = true }
+aac = { workspace = true }
+
+[dev-dependencies]
+serde = { version = "1.0.193", features = ["derive"] }
+serde_json = "1.0.108"

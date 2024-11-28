@@ -1,5 +1,0 @@
-frontend/website/**/*
-**/target/**/*
-**/pkg/**/*
-terraform/.terraform/**/*
-**/pnpm-lock.yaml

@@ -1,14 +1,6 @@
 {
 	"recommendations": [
-		"kokakiwi.vscode-just",
-		"rust-lang.rust-analyzer",
-		"serayuzgur.crates",
-		"bungcip.better-toml",
 		"swellaby.rust-pack",
-		"svelte.svelte-vscode",
-		"zxh404.vscode-proto3",
-		"ryanluker.vscode-coverage-gutters",
-		"mtxr.sqltools-driver-pg",
-		"mtxr.sqltools"
+		"dustypomerleau.rust-syntax"
 	]
 }

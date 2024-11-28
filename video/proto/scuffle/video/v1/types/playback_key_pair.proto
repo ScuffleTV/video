@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package scuffle.video.v1.types;
+
+import "scuffle/types/ulid.proto";
+import "scuffle/video/v1/types/tags.proto";
+
+// A key pair is used to allow for private playback of a recording or live
+// stream. You can create one by generating a public and private key pair, and
+// then providing us with the public key. Once you have done you can sign a jwt
+// token with the private key and we can verify it with the public key. This
+// allows you to create a token that can be used to access a recording or live
+// stream and for us to verify that it was you who created it.
+//
+// The returned object will contain the name of the key pair, the fingerprint of
+// the public key, As well as any tags that you have associated with the key
+// pair.
+message PlaybackKeyPair {
+  // The id of the key pair.
+  scuffle.types.Ulid id = 1;
+
+  // The fingerprint of the public key.
+  string fingerprint = 2;
+
+  // The time the key pair was created.
+  int64 created_at = 3;
+
+  // The time the key pair was last updated.
+  int64 updated_at = 4;
+
+  // The tags of the key pair.
+  Tags tags = 5;
+}

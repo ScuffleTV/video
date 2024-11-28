@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package scuffle.video.internal;
+
+import "scuffle/types/ulid.proto";
+
+message LiveRenditionManifest {
+  message Part {
+    uint32 idx = 1;
+    bool independent = 2;
+    uint32 duration = 3;
+  }
+
+  message Segment {
+    uint32 idx = 1;
+    repeated Part parts = 2;
+    scuffle.types.Ulid id = 3;
+  }
+
+  message RenditionInfo {
+    uint32 next_segment_idx = 1;
+    uint32 next_part_idx = 2;
+    uint32 next_segment_part_idx = 3;
+    uint32 last_independent_part_idx = 4;
+  }
+
+  repeated Segment segments = 1;
+  bool completed = 2;
+  uint32 timescale = 3;
+  uint64 total_duration = 4;
+
+  RenditionInfo info = 5;
+  map<string, RenditionInfo> other_info = 6;
+
+  message RecordingData {
+    scuffle.types.Ulid recording_ulid = 1;
+
+    message RecordingThumbnail {
+      scuffle.types.Ulid ulid = 1;
+      uint32 idx = 2;
+      float timestamp = 3;
+    }
+
+    repeated RecordingThumbnail thumbnails = 2;
+  }
+
+  optional RecordingData recording_data = 7;
+}

@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package scuffle.video.v1.types;
+
+enum Resource {
+  // The room resource allows access to rooms.
+  ROOM = 0;
+  // The recording resource allows access to recordings.
+  RECORDING = 1;
+  // The transcoding config resource allows access to transcoding configs.
+  TRANSCODING_CONFIG = 2;
+  // The recording config resource allows access to recording configs.
+  RECORDING_CONFIG = 3;
+  // The playback key pair resource allows access to playback key pairs.
+  PLAYBACK_KEY_PAIR = 4;
+  // The playback session resource allows access to playback sessions.
+  PLAYBACK_SESSION = 5;
+  // The access token resource allows access to access tokens
+  // If you scope a token to allow for the creation of access tokens,
+  // you can only create access tokens with the same or less permissions.
+  ACCESS_TOKEN = 6;
+  // The s3 bucket resource allows access to s3 buckets.
+  S3_BUCKET = 7;
+  // The event resource allows access to events.
+  EVENT = 8;
+}

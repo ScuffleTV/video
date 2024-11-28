@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package scuffle.video.v1;
+
+import "scuffle/video/v1/types/event.proto";
+import "scuffle/types/ulid.proto";
+
+// This service allows you to subscribe to events from scuffle.
+service Events {
+  rpc Fetch(EventsFetchRequest) returns (stream EventsFetchResponse) {}
+  rpc Ack(EventsAckRequest) returns (EventsAckResponse) {}
+}
+
+// The request payload for Events.Fetch.
+message EventsFetchRequest {
+  enum Target {
+    ROOM = 0;
+    RECORDING = 1;
+    ACCESS_TOKEN = 2;
+    PLAYBACK_KEY_PAIR = 3;
+    RECORDING_CONFIG = 4;
+    TRANSCODING_CONFIG = 5;
+    S3_BUCKET = 6;
+  }
+
+  // The target of the subscription.
+  Target target = 1;
+
+  // The max number of events to return.
+  uint32 max_events = 2;
+
+  // The max delay to wait for events.
+  uint32 max_delay_ms = 3;
+}
+
+// The response payload for Events.Fetch.
+message EventsFetchResponse {
+  // The event sent by the server.
+  types.Event event = 1;
+}
+
+message EventsAckRequest {
+  // The ID of the event to acknowledge.
+  scuffle.types.Ulid id = 1;
+
+  // You need to send us an action within 60s of receiving the event.
+  // Otherwise the event will be requeued.
+  oneof action {
+    // Acknowledge the event.
+    // This is used to tell us that you have processed the event.
+    bool ack = 2;
+
+    // Reject the event.
+    // This is used to tell us that you cannot process the event, and we should
+    // not send it again.
+    bool reject = 3;
+
+    // Requeue the event.
+    // This is used to tell us to send the event again later.
+    uint32 requeue_delay_ms = 4;
+
+    // Reclaim the event.
+    // This is used to tell us that you need more time to process the event.
+    // Extends the deadline by 60s.
+    bool reclaim = 5;
+  }
+}
+
+message EventsAckResponse {}

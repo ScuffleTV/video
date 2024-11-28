@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Demo Player</title>
+	</head>
+	<body>
+		<div id="app">
+			<div>
+				<input type="text" id="edge-endpoint" placeholder="Edge Endpoint" />
+				<input type="text" id="organization-id" placeholder="Organization ID" />
+				<input type="text" id="edge-token" placeholder="Edge Token" />
+				<div id="input">
+					<h1>Input</h1>
+					<input type="text" id="video-id" placeholder="Recording/Room ID" />
+					<button id="load-room">Load Room</button>
+					<button id="load-recording">Load Recording</button>
+				</div>
+				<video id="video" controls autoplay muted></video>
+			</div>
+			<div>
+				<h1>Select</h1>
+				<div id="select-tracks"></div>
+				<h1>Force</h1>
+				<div id="force-tracks"></div>
+				<div>
+					<h1>Toggle</h1>
+					<button id="toggle-abr"></button>
+					<button id="toggle-low-latency"></button>
+					<button id="jump-to-live">Jump to Live</button>
+					<button id="destroy">Destroy</button>
+					<button id="copy-share">Copy Share</button>
+				</div>
+				<h1>Video Time: <span id="video-time"></span></h1>
+				<h1>Buffer Size: <span id="buffer-size"></span></h1>
+				<h1>Video Duration: <span id="video-duration"></span></h1>
+				<h1>Latency: <span id="latency"></span></h1>
+				<h1>Frame Rate: <span id="frame-rate"></span></h1>
+				<h1>Dropped Frames: <span id="dropped-frames"></span></h1>
+				<h1>Resolution: <span id="resolution"></span></h1>
+				<h1>Bandwidth: <span id="bandwidth"></span></h1>
+				<h1>Variant Id: <span id="variant-id"></span></h1>
+				<h1>Realtime: <span id="realtime"></span></h1>
+			</div>
+		</div>
+		<style>
+			video {
+				width: 1200px;
+				height: 675px;
+				object-fit: contain;
+				background-color: black;
+			}
+
+			#app {
+				display: flex;
+				flex-direction: row;
+				column-gap: 20px;
+			}
+
+			#input {
+				margin-bottom: 20px;
+			}
+
+			#room-id {
+				width: 600px;
+			}
+		</style>
+		<script type="module" src="/demo/index.ts"></script>
+	</body>
+</html>

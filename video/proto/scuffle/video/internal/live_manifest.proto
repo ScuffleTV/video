@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+package scuffle.video.internal;
+
+message LiveManifest {
+  uint32 screenshot_idx = 1;
+}

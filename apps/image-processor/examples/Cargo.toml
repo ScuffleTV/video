@@ -1,0 +1,15 @@
+[package]
+name = "scuffle-image-processor-examples"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[[example]]
+name = "scuffle-image-processor-enroll"
+path = "src/enroll.rs"
+
+[dependencies]
+scuffle-image-processor-proto = { path = "../proto", features = ["client"] }
+tokio = { version = "1", features = ["full"] }
+tonic = { version = "0.12", features = ["transport"] }
+anyhow = "1.0"

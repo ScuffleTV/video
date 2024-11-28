@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package scuffle.platform.internal.events;
+
+import "scuffle/types/ulid.proto";
+
+// For user.{id}.display_name event
+message UserDisplayName {
+  scuffle.types.Ulid user_id = 1;
+  string display_name = 2;
+}
+
+// For user.{id}.display_color event
+message UserDisplayColor {
+  scuffle.types.Ulid user_id = 1;
+  int32 display_color = 2;
+}
+
+// For channel.{id}.chat.message event
+message ChatMessage {
+  scuffle.types.Ulid id = 1;
+  scuffle.types.Ulid user_id = 2;
+  scuffle.types.Ulid channel_id = 3;
+  string content = 4;
+}
+
+// For user.{id}.follows event
+// And channel.{id}.follows event
+message UserFollowChannel {
+  scuffle.types.Ulid user_id = 1;
+  scuffle.types.Ulid channel_id = 2;
+  bool following = 3;
+}
+
+message ChannelTitle {
+  scuffle.types.Ulid channel_id = 1;
+  string title = 2;
+}
+
+// For channel.{id}.live event
+message ChannelLive {
+  scuffle.types.Ulid channel_id = 1;
+  bool live = 2;
+}
+
+// For user.{id}.profile_picture event
+message UserProfilePicture {
+  scuffle.types.Ulid user_id = 1;
+  scuffle.types.Ulid profile_picture_id = 2;
+}
+
+// For file.{id}.status event
+message UploadedFileStatus {
+  message Success {}
+
+  message Failure {
+    string reason = 1;
+    string friendly_message = 2;
+  }
+
+  scuffle.types.Ulid file_id = 1;
+
+  oneof status {
+    Success success = 2;
+    Failure failure = 3;
+  }
+}

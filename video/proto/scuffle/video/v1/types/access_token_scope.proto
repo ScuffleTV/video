@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package scuffle.video.v1.types;
+
+import "scuffle/video/v1/types/resource.proto";
+
+message AccessTokenScope {
+  // A permission is the ability to perform an action on a resource
+  enum Permission {
+    // The read permission allows reading of a resource.
+    READ = 0;
+    // The write permission allows writing to a resource.
+    WRITE = 1;
+    // The modify permission allows modification of a resource.
+    MODIFY = 2;
+    // The delete permission allows deletion of a resource.
+    DELETE = 3;
+    // The create permission allows creation of a resource.
+    CREATE = 4;
+    // Events allow for the consumption of events for a resource.
+    EVENTS = 5;
+    // The admin permission allows access to all actions on a resource and
+    // all future actions on a resource without needing to update the scope.
+    ADMIN = 6;
+  }
+
+  // Requires at least one permission to be set
+  repeated Permission permission = 1;
+
+  // If not set, the permission applies to all resources
+  optional Resource resource = 2;
+}

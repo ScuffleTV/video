@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package scuffle.video.internal;
+
+import "scuffle/types/ulid.proto";
+
+service Ingest {
+  rpc Watch(stream IngestWatchRequest) returns (stream IngestWatchResponse) {}
+}
+
+message IngestWatchRequest {
+  message Open {
+    scuffle.types.Ulid request_id = 1;
+  }
+
+  enum Shutdown {
+    SHUTDOWN_REQUEST = 0;
+    SHUTDOWN_COMPLETE = 1;
+  }
+
+  oneof message {
+    Open open = 1;
+    Shutdown shutdown = 2;
+  }
+}
+
+message IngestWatchResponse {
+  message Media {
+    enum Type {
+      INIT = 0;
+      AUDIO = 1;
+      VIDEO = 2;
+    }
+
+    Type type = 1;
+    bytes data = 2;
+    bool keyframe = 3;
+    uint64 timestamp = 4;
+    uint32 timescale = 5;
+  }
+
+  enum Shutdown {
+    SHUTDOWN_STREAM = 0;
+    SHUTDOWN_TRANSCODER = 1;
+  }
+
+  enum Ready {
+    READY = 0;
+  }
+
+  oneof message {
+    Media media = 1;
+    Shutdown shutdown = 2;
+    Ready ready = 3;
+  }
+}

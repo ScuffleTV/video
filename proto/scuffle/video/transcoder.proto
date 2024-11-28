@@ -1,7 +1,0 @@
-syntax = "proto3";
-
-package scuffle.video;
-
-// This is an internal Transcoder for the Scuffle service.
-// Used for communication between scuffle microservices.
-service Transcoder {}

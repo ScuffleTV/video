@@ -1,0 +1,203 @@
+syntax = "proto3";
+
+package scuffle.video.v1;
+
+import "scuffle/video/v1/types/room.proto";
+import "scuffle/types/ulid.proto";
+import "scuffle/video/v1/types/tags.proto";
+import "scuffle/video/v1/types/search_options.proto";
+import "scuffle/video/v1/types/failed_resource.proto";
+import "scuffle/video/v1/types/visibility.proto";
+import "scuffle/video/v1/types/room_status.proto";
+
+// This service allows for the creation, modification, and deletion of rooms.
+service Room {
+  // Get a list of rooms.
+  rpc Get(RoomGetRequest) returns (RoomGetResponse) {}
+
+  // Create a new room.
+  rpc Create(RoomCreateRequest) returns (RoomCreateResponse) {}
+
+  // Modify an existing room.
+  rpc Modify(RoomModifyRequest) returns (RoomModifyResponse) {}
+
+  // Delete an existing room.
+  rpc Delete(RoomDeleteRequest) returns (RoomDeleteResponse) {}
+
+  // Disconnect a currently live room.
+  rpc Disconnect(RoomDisconnectRequest) returns (RoomDisconnectResponse) {}
+
+  // Reset the key for an existing room.
+  rpc ResetKey(RoomResetKeyRequest) returns (RoomResetKeyResponse) {}
+
+  // Tag an existing room.
+  rpc Tag(RoomTagRequest) returns (RoomTagResponse) {}
+
+  // Untag an existing room.
+  rpc Untag(RoomUntagRequest) returns (RoomUntagResponse) {}
+}
+
+// The request payload for Room.Get.
+message RoomGetRequest {
+  // A list of ids to retrieve. If empty, all rooms will be returned.
+  // If not empty, only the rooms with the specified ids will be returned.
+  // This will be filtered by the other options. (max: 100, min: 0)
+  repeated scuffle.types.Ulid ids = 1;
+
+  // Filter by the transcoding config id.
+  optional scuffle.types.Ulid transcoding_config_id = 2;
+
+  // Filter by the recording config id.
+  optional scuffle.types.Ulid recording_config_id = 3;
+
+  // Filter by the room's status.
+  optional types.RoomStatus status = 5;
+
+  // Filter by the room's visibility status.
+  optional types.Visibility visibility = 6;
+
+  // The options to use when searching for recording configs.
+  optional types.SearchOptions search_options = 7;
+}
+
+// The response payload for Room.Get.
+message RoomGetResponse {
+  // The list of rooms that were retrieved.
+  repeated types.Room rooms = 1;
+}
+
+// The request payload for Room.Create.
+message RoomCreateRequest {
+  // Optionally specify a transcoding config id to use for the room.
+  // By default, if no transcoding config is specified, no transcoding will be
+  // done. Meaning only the source stream will be available.
+  optional scuffle.types.Ulid transcoding_config_id = 2;
+
+  // Optionally specify a recording config id to use for the room.
+  // By default, if no recording config is specified, no recording will be done.
+  // Meaning that DVR will not be available and the room will not be recorded.
+  optional scuffle.types.Ulid recording_config_id = 3;
+
+  // Specify the visibility of the room.
+  types.Visibility visibility = 4;
+
+  // The tags to apply to the room.
+  types.Tags tags = 5;
+}
+
+// The response payload for Room.Create.
+message RoomCreateResponse {
+  // The room that was created.
+  types.Room room = 1;
+
+  // The key for the room that was created.
+  string stream_key = 2;
+}
+
+// The request payload for Room.Modify.
+message RoomModifyRequest {
+  // The id of the room to modify.
+  scuffle.types.Ulid id = 1;
+
+  // Optionally specify a transcoding config id to use for the room.
+  // To remove the transcoding config, set this to a nil ulid.
+  optional scuffle.types.Ulid transcoding_config_id = 2;
+
+  // Optionally specify a recording config id to use for the room.
+  // To remove the recording config, set this to a nil ulid.
+  optional scuffle.types.Ulid recording_config_id = 3;
+
+  // Specify the visibility of the room.
+  optional types.Visibility visibility = 4;
+
+  // The tags to apply to the room. (will overwrite existing tags)
+  optional types.Tags tags = 5;
+}
+
+// The response payload for Room.Modify.
+message RoomModifyResponse {
+  // The room that was modified. (includes the updated fields)
+  types.Room room = 1;
+}
+
+// The request payload for Room.Delete.
+message RoomDeleteRequest {
+  // The ids of the rooms to delete.
+  repeated scuffle.types.Ulid ids = 1;
+}
+
+// The response payload for Room.Delete.
+message RoomDeleteResponse {
+  // The ids of the rooms that were deleted.
+  repeated scuffle.types.Ulid ids = 1;
+
+  // The rooms that failed to be deleted.
+  repeated types.FailedResource failed_deletes = 2;
+}
+
+// The request payload for Room.Disconnect.
+message RoomDisconnectRequest {
+  // The ids of the rooms to disconnect.
+  repeated scuffle.types.Ulid ids = 1;
+}
+
+// The response payload for Room.Disconnect.
+message RoomDisconnectResponse {
+  // The ids of the rooms that were disconnected.
+  repeated scuffle.types.Ulid ids = 1;
+
+  // The rooms that failed to be disconnected.
+  repeated types.FailedResource failed_disconnects = 2;
+}
+
+// The request payload for Room.ResetKey.
+message RoomResetKeyRequest {
+  // The ids of the rooms to reset the key for.
+  repeated scuffle.types.Ulid ids = 1;
+}
+
+// The response payload for Room.ResetKey.
+message RoomResetKeyResponse {
+  // The ids of the rooms that had their keys reset.
+  message RoomKeyPair {
+    // The id of the room that had its key reset.
+    scuffle.types.Ulid id = 1;
+
+    // The new key for the room.
+    string key = 2;
+  }
+
+  repeated RoomKeyPair rooms = 1;
+
+  repeated types.FailedResource failed_resets = 2;
+}
+
+// The request payload for Room.Tag.
+message RoomTagRequest {
+  // The ids of the rooms to tag.
+  scuffle.types.Ulid id = 1;
+
+  // The tags to apply to the rooms. (will merge with existing tags)
+  types.Tags tags = 2;
+}
+
+// The response payload for Room.Tag.
+message RoomTagResponse {
+  // The tags of the room that was tagged. (includes the updated fields)
+  types.Tags tags = 1;
+}
+
+// The request payload for Room.Untag.
+message RoomUntagRequest {
+  // The ids of the rooms to untag.
+  scuffle.types.Ulid id = 1;
+
+  // The tags to remove from the rooms.
+  repeated string tags = 2;
+}
+
+// The response payload for Room.Untag.
+message RoomUntagResponse {
+  // The tags of the room that was untagged. (includes the updated fields)
+  types.Tags tags = 1;
+}

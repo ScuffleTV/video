@@ -1,7 +1,0 @@
-* @ScuffleTV/maintainers
-
-frontend/ @ScuffleTV/frontend @ScuffleTV/maintainers
-
-video/ @ScuffleTV/video @ScuffleTV/maintainers
-
-backend/ @ScuffleTV/backend @ScuffleTV/maintainers

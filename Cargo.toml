@@ -1,32 +1,31 @@
 [workspace]
 
 members = [
-    "backend/api",
-    "video/edge",
-    "video/ingest",
-    "video/transcoder",
-    "video/bytesio",
-    "video/container/flv",
-    "video/container/mp4",
-    "video/codec/h264",
-    "video/codec/h265",
-    "video/codec/av1",
-    "video/codec/aac",
-    "video/protocol/rtmp",
-    "video/transmuxer",
-    "video/utils/amf0",
-    "video/utils/exp_golomb",
-    "common",
-    "config/config",
-    "config/config_derive",
-    "config/config_test"
+    "crates/batching",
+    "crates/bootstrap",
+    "crates/bootstrap/derive",
+    "crates/bootstrap/examples",
+    "crates/bootstrap/telemetry",
+    "crates/context",
+    "crates/ffmpeg",
+    "crates/h3-webtransport",
+    "crates/http",
+    "crates/http/examples",
+    "crates/metrics",
+    "crates/metrics/derive",
+    "crates/metrics/examples",
+    "crates/pprof",
+    "crates/pprof/examples",
+    "crates/settings",
+    "crates/settings/examples",
+    "crates/signal",
+    "apps/image-processor",
+    "apps/image-processor/proto",
+    "apps/image-processor/examples",
 ]
 
-exclude = [
-    "frontend/player",
-]
+resolver = "2"
 
-[patch.crates-io]
-fred = { git = "https://github.com/ScuffleTV/fred.rs" }
-tracing-log = { git = "https://github.com/ScuffleTV/tracing" }
-tracing-subscriber = { git = "https://github.com/ScuffleTV/tracing" }
+[profile.release-debug]
+inherits = "release"
+debug = true

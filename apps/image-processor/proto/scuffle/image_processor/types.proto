@@ -1,0 +1,429 @@
+syntax = "proto3";
+
+package scuffle.image_processor;
+
+// The output format type
+enum OutputFormat {
+    // Animated WebP format
+    WebpAnim = 0;
+    // Animated AVIF format.
+    AvifAnim = 1;
+    // Animated GIF format.
+    GifAnim = 2;
+    // Static WebP format.
+    WebpStatic = 3;
+    // Static AVIF format.
+    AvifStatic = 4;
+    // Static PNG format.
+    PngStatic = 5;
+}
+
+// DrivePath is used to determine where the image should be stored.
+message DrivePath {
+    // The drive to locate the image.
+    string drive = 1;
+    // The path in the drive.
+    // Possible template argument values are:
+    // - {id}   - The id of the task.
+    string path = 2;
+    // The acl to use for the drive. (used when uploading)
+    optional string acl = 3;
+}
+
+// The resize method determines how the image processor should resize the image.
+enum ResizeMethod {
+    // Fit will resize the image to fit within the desired dimensions without changing the aspect ratio.
+    ResizeMethodFit = 0;
+    // Stretch will stretch the image to fit the desired dimensions. (This will change the aspect ratio of the image.)
+    ResizeMethodStretch = 1;
+    // Pad will resize the image to fit the desired dimentions and pad the bottom left of the image with the background color if necessary.
+    ResizeMethodPadBottomLeft = 2;
+    // Pad will resize the image to fit the desired dimentions and pad the bottom right of the image with the background color if necessary.
+    ResizeMethodPadBottomRight = 3;
+    // Pad will resize the image to fit the desired dimentions and pad the top left of the image with the background color if necessary.
+    ResizeMethodPadTopLeft = 4;
+    // Pad will resize the image to fit the desired dimentions and pad the top right of the image with the background color if necessary.
+    ResizeMethodPadTopRight = 5;
+    // Pad will resize the image to fit the desired dimentions and pad the center of the image with the background color if necessary.
+    ResizeMethodPadCenter = 6;
+    // Pad will resize the image to fit the desired dimentions and pad the center of the image with the background color if necessary.
+    ResizeMethodPadCenterRight = 7;
+    // Pad will resize the image to fit the desired dimentions and pad the center of the image with the background color if necessary.
+    ResizeMethodPadCenterLeft = 8;
+    // Pad will resize the image to fit the desired dimentions and pad the top center of the image with the background color if necessary.
+    ResizeMethodPadTopCenter = 9;
+    // Pad will resize the image to fit the desired dimentions and pad the bottom center of the image with the background color if necessary.
+    ResizeMethodPadBottomCenter = 10;
+    // Pad will resize the image to fit the desired dimentions and pad the top of the image with the background color if necessary, the left and right will be unchanged.
+    ResizeMethodPadTop = 11;
+    // Pad will resize the image to fit the desired dimentions and pad the bottom of the image with the background color if necessary, the left and right will be unchanged.
+    ResizeMethodPadBottom = 12;
+    // Pad will resize the image to fit the desired dimentions and pad the left of the image with the background color if necessary, the top and bottom will be unchanged.
+    ResizeMethodPadLeft = 13;
+    // Pad will resize the image to fit the desired dimentions and pad the right of the image with the background color if necessary, the top and bottom will be unchanged.
+    ResizeMethodPadRight = 14;
+}
+
+// The resize algorithm determines the algorithm used to resize the image.
+enum ResizeAlgorithm {
+    ResizeAlgorithmNearest = 0;
+    ResizeAlgorithmBox = 1;
+    ResizeAlgorithmBilinear = 2;
+    ResizeAlgorithmHamming = 3;
+    ResizeAlgorithmCatmullRom = 4;
+    ResizeAlgorithmMitchell = 5;
+    ResizeAlgorithmLanczos3 = 6;
+}
+
+// Limits are used to determine how much processing time and resources the image processor should use.
+message Limits {
+    // The maximum amount of time the image processor should spend processing the image.
+    optional uint32 max_processing_time_ms = 1;
+    // The maximum input frame count the image processor should accept.
+    optional uint32 max_input_frame_count = 2;
+    // The maximum input width the image processor should accept.
+    optional uint32 max_input_width = 3;
+    // The maximum input height the image processor should accept.
+    optional uint32 max_input_height = 4;
+    // The maximum input file duration the image processor should accept. (if the input is a video or animated image)
+    optional uint32 max_input_duration_ms = 5;
+}
+
+// Crop is used to determine what part of the image the image processor should crop.
+// The processor will crop the image before resizing it.
+message Crop {
+    // The x coordinate of the top left corner of the crop.
+    uint32 x = 1;
+    // The y coordinate of the top left corner of the crop.
+    uint32 y = 2;
+    // The width of the crop.
+    uint32 width = 3;
+    // The height of the crop.
+    uint32 height = 4;
+}
+
+// Provide extra information about the input to the image processor.
+message InputMetadata {
+    // If the input is not animated, this will generate a fatal error. If there are not enough frames this will generate a fatal error.
+    // Otherwise this will be the frame used for static variants.
+    optional uint32 static_frame_index = 1; 
+    // If this is different from the actual frame count the image processor will generate a fatal error.
+    optional uint32 frame_count = 2;
+    // If this is different from the actual width the image processor will generate a fatal error.
+    uint32 width = 3;
+    // If this is different from the actual height the image processor will generate a fatal error.
+    uint32 height = 4;
+    // The loop count of the input image.
+    int32 loop_count = 5;
+}
+
+// InputUpload is used to upload an image to a drive configured in the image processor config.
+message InputUpload {
+    // The input image as a binary blob.
+    bytes binary = 1;
+    // A prefix to use for the folder the image will be stored in.
+    DrivePath drive_path = 2;
+    // Content Type of the image.
+    optional string content_type = 3;
+    // Cache control header for the image.
+    optional string cache_control = 4;
+    // Acl for the image.
+    optional string acl = 5;
+    // Content disposition for the image.
+    optional string content_disposition = 6;
+}
+
+// Input is used to determine the input image to process.
+message Input {
+    // The path to the input image.
+    oneof path {
+        // Drive path to the image.
+        // The image processor will download the image from the drive.
+        DrivePath drive_path = 1;
+        // Public URL to the image.
+        // If public downloads is disabled this will generate a fatal error.
+        string public_url = 2;
+    }
+
+    // Extra information about the input image.
+    optional InputMetadata metadata = 3;
+}
+
+// Scaling is used to specify a linear scaling factor for the various dimensions of the image.
+// For example, if you have an image that is 100x100 (and use this as the base) and you want to generate 1x, 2x, and 3x images you would set the scales to [1, 2, 3].
+// The sizes of the output images would be [100x100, 200x200, 300x300].
+message Scaling {
+    oneof base {
+        // This is the scale for the input image (after cropping or aspect ratio adjustments are made).
+        uint32 fixed_base = 1;
+        // This is used to automatically determine the scale of the input image based on the width.
+        // We know what aspect ratio to use based on the aspect ratio adjustments made to the input image.
+        // We can then use that to determine the (input_width / base_width) scale.
+        // The scale would be the largest integer that is less than or equal to (input_width / base_width), 
+        // or 1 if the input width is less than base_width.
+        uint32 base_width = 2;
+        // Functionally the same as base_width but allows you to specify in terms of height instead.
+        uint32 base_height = 3;
+    }
+
+    // The various scales.
+    // For example to generate a 1x, 2x, and 3x image you would set scales to [1, 2, 3].
+    repeated uint32 scales = 4;
+}
+
+// A list of integers.
+message IntegerList {
+    repeated uint32 values = 1;
+}
+
+message AnimationConfig {
+    // Specify an animation loop count for animated images.
+    // If this is set to -1 the image will loop indefinitely.
+    // If this is set to 0 the image will not loop.
+    // If this is set to a positive number the image will loop that many times.
+    // If this is unset the image will be encoded with the loop value the input image has.
+    optional int32 loop_count = 1;
+    
+    oneof frame_rate {
+        // Specify the frame duration for every frame in the output image.
+        // This can be used to specify a constant frame rate for the output image.
+        // frame_rate = 1000 / frame_duration_ms
+        uint32 frame_duration_ms = 2;
+        // Frame durations for each frame in the output image.
+        // Specify the frame duration for each frame in the output image.
+        // If this number does not match the number of frames in the output image the processor will generate a fatal error.
+        IntegerList frame_durations_ms = 3;
+        // Factor to multiply the frame duration by.
+        // This can be used to speed up or slow down the animation.
+        // The frame duration will be multiplied by this value.
+        // Each frame has a minimum duration of 1ms, if the factor creates some frames that are less than 1ms the processor will,
+        // drop frames and adjust timings of others to ensure that the total duration of the animation is correctly multiplied.
+        // This rule only applies for when the factor is greater than 1.
+        double frame_rate_factor = 4;
+    }
+
+    // Remove frames idx's from the input image.
+    // This can be used to reduce the size of the output image.
+    // If you specify an index that is out of bounds the processor will generate a fatal error.
+    // If you specify the same index multiple times the processor will ignore the duplicates.
+    repeated uint32 remove_frame_idxs = 5;
+}
+
+enum OutputQuality {
+    // Auto quality output. (default)
+    OutputQualityAuto = 0;
+    // High quality output. (large file size)
+    OutputQualityHigh = 1;
+    // Medium quality output. (medium file size)
+    OutputQualityMedium = 2;
+    // Low quality output. (smaller file size)
+    OutputQualityLow = 3;
+    // Lossless output. (very large file size)
+    OutputQualityLossless = 4;
+}
+
+message OutputFormatOptions {
+    // The format of the output image.
+    OutputFormat format = 1;
+    // The quality of the output image.
+    OutputQuality quality = 2;
+    // An optional format name, this will allow you to specify an overwrite for the path variable `{format}`
+    optional string name = 3;
+}
+
+message OutputFile {
+    // The path to the output file.
+    DrivePath path = 1;
+    // The content type of the output file.
+    string content_type = 2;
+    // Width of the output image.
+    uint32 width = 3;
+    // Height of the output image.
+    uint32 height = 4;
+    // The frame count of the output image.
+    uint32 frame_count = 5;
+    // The duration of the output image.
+    uint32 duration_ms = 6;
+    // The size of the output image in bytes.
+    uint32 size = 7;
+    // The format of the output image.
+    OutputFormat format = 8;
+    // Loop count of the output image.
+    int32 loop_count = 9;
+    // Scale if scaling was used
+    optional uint32 scale = 10;
+}
+
+// Returned after the image is processed.
+message InputFileMetadata {
+    // The final path of the input image.
+    DrivePath path = 1;
+    // The content type of the input image.
+    string content_type = 2;
+    // The width of the input image.
+    uint32 width = 3;
+    // The height of the input image.
+    uint32 height = 4;
+    // The frame count of the input image.
+    uint32 frame_count = 5;
+    // The duration of the input image.
+    uint32 duration_ms = 6;
+    // The size of the input image in bytes.
+    uint32 size = 7;
+    // The loop count of the input image.
+    int32 loop_count = 8;
+}
+
+message Output {
+    // The drive path to store the output image.
+    // This is a prefix and the processor will append the suffix to this path to determine the final path.
+    // Possible template argument values are:
+    // - {id}           - The id of the task.
+    // - {format}       - The format of the output image. (e.g 'webp_anim', 'avif_static', 'png_static', etc.)
+    // - {scale}        - The scale of the output image. (if scaling is used, otherwise empty)
+    // - {width}        - The resulting width of the output image.
+    // - {height}       - The resulting height of the output image.
+    // - {format_idx}   - The index of the output format in the list.
+    // - {resize_idx}   - The index of the resize operation, if the operation is width or height its the index of the value in the list.
+    //                    If its scaling its the index of the scale in the list.
+    // - {static}       - '_static' if the input image is static, otherwise empty.
+    // - {ext}          - The extension of the output image. (e.g. 'webp', 'avif', etc.)
+    DrivePath drive_path = 1;
+
+    // The path to the input image to re-upload.
+    optional DrivePath input_reupload_path = 2;
+
+    // The desired format to encode the output image.
+    repeated OutputFormatOptions formats = 3;
+
+    // Allow upscaling if the determined dimensions are larger than the input image.
+    bool upscale = 4;
+
+    // Sometimes we might specify that we want 'WebpAnim' but the input image is a static image.
+    // In this case we would typically fatally error because we can't generate an animated image from a static image.
+    // However if this is set to true the processor will ignore these errors and skip the format.
+    bool skip_impossible_formats = 5;
+
+    // Skips resizing if the resize operation is impossible.
+    // For example if the resize results in a width or height of less than 1.
+    // If this is set to true the processor will ignore these errors and skip the resize operation.
+    bool skip_impossible_resizes = 6;
+
+    // Disables resize chaining.
+    // Resize chaining is when the processor will resize from the source down to the largest size requested.
+    // Then it will form every other size by taking reducing the previous resized image.
+    // Disabling this will resize each image from the source image. Which can be slower but more accurate.
+    bool disable_resize_chaining = 7;
+
+    // Disables 2 pass decoding.
+    // 2 pass decoding allows for the processor to further optimize the image by deduplicating frames.
+    bool disable_two_pass_decoding = 8;
+
+    // The resize method used to resize the image.
+    ResizeMethod resize_method = 9;
+
+    // The resize algorithm used to resize the image.
+    ResizeAlgorithm resize_algorithm = 10;
+
+    // The animation configuration for the output image.
+    optional AnimationConfig animation_config = 11;
+
+    // A crop is applied to the image before resizing and before an aspect ratio change.
+    optional Crop crop = 12;
+
+    // Confine the aspect ratio of the image to a specific range.
+    // For example if you want to allow all images that are 3:1 to 1:3 you would set min_ratio to 1/3 and max_ratio to 3.
+    // Setting the min and max to the same value will restrict the aspect ratio to that value.
+    // Setting both values to 0 will use the input image's aspect ratio.
+    // Setting one of the values to 0 will allow any aspect ratio that is less than or greater than the other value.
+
+
+    // The minimum ratio of the image.
+    // An aspect ratio is the ratio of the width to the height of the image.
+    optional double min_aspect_ratio = 13;
+
+    // The maximum ratio of the image.
+    // An aspect ratio is the ratio of the width to the height of the image.
+    optional double max_aspect_ratio = 14;
+
+    // There must be at least one element in the list.
+    oneof resize {
+        // Resize to a specific width, the height will be determined by the aspect ratio.
+        IntegerList widths = 15;
+        // Resize to a specific height, the width will be determined by the aspect ratio.
+        IntegerList heights = 16;
+        // A scaling config to determine how each dimension should be scaled.
+        Scaling scaling = 17;
+    }
+}
+
+// Events must be in the format
+// <event_queue>://<topic> where event_queue is a queue defined in the image processor config.
+// The topic argument is used in the template for the event queue settings defined in the image processor config.
+message Events {
+    // The event to trigger when the task is completed successfully
+    optional EventQueue on_success = 1;
+    // The event to trigger when the task fails
+    optional EventQueue on_failure = 2;
+    // The event to trigger when the task is cancelled
+    optional EventQueue on_cancel = 3;
+    // The event to trigger when the task is started
+    optional EventQueue on_start = 4;
+
+    // Metadata to send with the event.
+    map<string, string> metadata = 5;
+}
+
+// EventQueue is used to determine where the image processor should send events.
+message EventQueue {
+    // The name of the event queue.
+    string name = 1;
+    // The topic of the event queue.
+    // Possible template argument values are:
+    // - {id}   - The id of the task.
+    string topic = 2;
+}
+
+// A task to process an image.
+message Task {
+    // The input image to process.
+    Input input = 1;
+    // The output image to generate.
+    Output output = 2;
+    // Result output
+    Events events = 3;
+    // The limits for the image processor.
+    optional Limits limits = 4;
+}
+
+// A error message.
+message Error {
+    // The error message.
+    string message = 1;
+    // The error code.
+    ErrorCode code = 2;
+}
+
+// ErrorCode is used to determine the type of error that occurred.
+enum ErrorCode {
+    // Internal error occurred, please file a bug report.
+    ErrorCodeInternal = 0;
+    // Invalid input error. Please refer to the error message for more information, and resubmit the task with valid input.
+    ErrorCodeInvalidInput = 1;
+    // The feature is not implemented.
+    ErrorCodeNotImplemented = 2;
+    // Resize error.
+    ErrorCodeResize = 3;
+    // Encode error.
+    ErrorCodeEncode = 4;
+    // Decode error.
+    ErrorCodeDecode = 5;
+    // Input download error.
+    ErrorCodeInputDownload = 6;
+    // Output upload error.
+    ErrorCodeOutputUpload = 7;
+}
+
+message EventPayload {
+    string id = 1;
+}

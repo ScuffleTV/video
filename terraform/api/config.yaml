@@ -1,6 +1,0 @@
-log_level: info
-bind_address: 0.0.0.0:8080
-database_url: "${database_url}"
-turnstile_secret_key: "${turnstile_secret_key}"
-jwt_issuer: "${jwt_issuer}"
-jwt_secret: "${jwt_secret}"

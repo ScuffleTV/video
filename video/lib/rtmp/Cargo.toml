@@ -1,0 +1,28 @@
+[package]
+name = "rtmp"
+version = "0.0.1"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+byteorder = "1.5"
+bytes = "1.5"
+rand = "0.8"
+hmac = "0.12"
+sha2 = "0.10"
+uuid = { version = "1.6", features = ["v4"] }
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+num-traits = "0.2"
+num-derive = "0.4"
+tokio = "1.36"
+futures = "0.3"
+async-trait = "0.1"
+tracing = "0.1"
+
+bytesio = { workspace = true, features = ["default"] }
+amf0 = { workspace = true }
+scuffle-utils = { workspace = true }
+
+[dev-dependencies]
+tokio = { version = "1.36", features = ["full"] }
+serde_json = "1.0"

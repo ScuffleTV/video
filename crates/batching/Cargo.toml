@@ -1,0 +1,15 @@
+[package]
+name = "scuffle-batching"
+version = "0.0.0"
+edition = "2021"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/scuffle-batching"
+license = "MIT OR Apache-2.0"
+description = "Optimized batching and dataloading for external services."
+keywords = ["batching", "dataloading", "external", "services", "async"]
+
+[dependencies]
+tokio = { version = "1", default-features = false, features = ["time", "sync", "rt"] }
+tokio-util = "0.7"

@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package scuffle.video.v1.types;
+
+import "scuffle/types/ulid.proto";
+import "scuffle/video/v1/types/rendition.proto";
+import "scuffle/video/v1/types/recording_lifecycle_policy.proto";
+import "scuffle/video/v1/types/tags.proto";
+
+// A recording config is used to define how rooms are recorded.
+// It contains a list of renditions, a list of life cycle policies,
+// and a thumbnail interval. The thumbnail interval is the number of
+// seconds between each thumbnail. The life cycle policies are used
+// to define when a recording should be deleted. The renditions are
+// used to define the different renditions that should be saved.
+message RecordingConfig {
+  // The id of the recording config.
+  scuffle.types.Ulid id = 1;
+
+  // The renditions that should be saved.
+  // If no renditions are provided, the recording
+  // will not be saved.
+  repeated Rendition renditions = 2;
+
+  // The life cycle policies that should be used.
+  // If no life cycle policies are provided, the recording
+  // will never be deleted.
+  repeated RecordingLifecyclePolicy lifecycle_policies = 3;
+
+  // The S3 Bucket ID that the recording should be saved to.
+  scuffle.types.Ulid s3_bucket_id = 4;
+
+  // The time the recording config was created.
+  // This is a unix timestamp in nanoseconds.
+  int64 created_at = 5;
+
+  // The time the recording config was last updated.
+  // This is a unix timestamp in nanoseconds.
+  int64 updated_at = 6;
+
+  // The tags associated with the recording config.
+  Tags tags = 7;
+}

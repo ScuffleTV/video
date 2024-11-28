@@ -1,0 +1,26 @@
+[package]
+name = "scuffle-bootstrap"
+version = "0.0.0"
+edition = "2021"
+description = "A utility crate for creating binaries."
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/scuffle-bootstrap"
+license = "MIT OR Apache-2.0"
+keywords = ["bootstrap", "binary", "cli", "config"]
+
+[dependencies]
+anyhow = "1.0"
+tokio = { version = "1", features = ["full"] }
+futures = "0.3"
+pin-project-lite = "0.2"
+
+scuffle-signal = { version = "0.0.0", path = "../signal" }
+scuffle-context = { version = "0.0.0", path = "../context" }
+scuffle-settings = { version = "0.0.0", path = "../settings", optional = true }
+scuffle-bootstrap-derive = { version = "0.0.0", path = "./derive" }
+
+[features]
+settings = ["scuffle-settings"]
+default = ["settings"]

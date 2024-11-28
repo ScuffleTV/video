@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package scuffle.video.v1.types;
+
+enum Visibility {
+  VISIBILITY_PUBLIC = 0;
+  VISIBILITY_PRIVATE = 1;
+}

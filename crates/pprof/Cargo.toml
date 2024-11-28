@@ -1,0 +1,16 @@
+[package]
+name = "scuffle-pprof"
+version = "0.0.0"
+edition = "2021"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/scuffle-pprof"
+license = "MIT OR Apache-2.0"
+description = "Helper crate for adding pprof support to your application."
+keywords = ["pprof", "cpu", "profiling", "flamegraphs"]
+
+[dependencies]
+flate2 = "1.0"
+pprof = { version = "0.14", features = ["prost-codec"] }
+thiserror = "2"

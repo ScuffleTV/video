@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package scuffle.video.v1.types;
+
+import "scuffle/types/ulid.proto";
+import "scuffle/video/v1/types/playback_session_target.proto";
+
+// A playback session represents a user's playback of a recording.
+// Playback sessions are created when a user starts playing a recording or
+// starts watching a live stream. Playback sessions are automatically deleted
+// when they become inactive for a certain amount of time or when the live
+// stream ends.
+message PlaybackSession {
+  // The unique ID of the playback session.
+  scuffle.types.Ulid id = 1;
+
+  // The target of the playback session.
+  PlaybackSessionTarget target = 2;
+
+  // The ID of the user that created the playback session.
+  // If the user was authenticated, this will be their user ID.
+  optional string user_id = 3;
+
+  // The name of the playback key pair used to sign the token for the playback
+  // session. If the user was not authenticated, this will be null.
+  optional scuffle.types.Ulid playback_key_pair_id = 4;
+
+  // If the session was issued using a playback key pair, this is the time the
+  // session was issued.
+  optional int64 issued_at = 5;
+
+  // When this playback session was created.
+  int64 created_at = 6;
+
+  // When this playback session was last active.
+  int64 last_active_at = 7;
+
+  // The IP address of the user that created the playback session.
+  string ip_address = 8;
+
+  // The user agent of the user that created the playback session.
+  optional string user_agent = 9;
+
+  // The referer of the user that created the playback session.
+  optional string referer = 10;
+
+  // The origin of the user that created the playback session.
+  optional string origin = 11;
+
+  enum Device {
+    UNKNOWN_DEVICE = 0;
+  }
+
+  // The device of the user that created the playback session.
+  Device device = 12;
+
+  enum Platform {
+    UNKNOWN_PLATFORM = 0;
+  }
+
+  // The platform of the user that created the playback session.
+  Platform platform = 13;
+
+  enum Browser {
+    UNKNOWN_BROWSER = 0;
+  }
+
+  // The browser of the user that created the playback session.
+  Browser browser = 14;
+
+  // The version of the player used to create the playback session.
+  optional string player_version = 15;
+}

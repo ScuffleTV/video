@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package scuffle.video.v1.types;
+
+import "scuffle/video/v1/types/rendition.proto";
+
+// A policy that can be applied to a recording.
+// Defines what should happen to the recording after a certain number of days.
+// If no policy is applied, the recording will be kept indefinitely.
+message RecordingLifecyclePolicy {
+  // The number of days after which the policy should be applied.
+  int32 after_days = 1;
+
+  // Enum of possible actions to perform after the specified number of days.
+  enum Action {
+    DELETE = 0;
+  }
+
+  // The action to perform after the specified number of days.
+  Action action = 2;
+
+  // The renditions to apply the policy to.
+  // If empty, the policy applies to no renditions.
+  // At least one rendition must be specified for either video or audio.
+  repeated Rendition renditions = 3;
+}

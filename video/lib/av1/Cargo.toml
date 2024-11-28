@@ -1,0 +1,10 @@
+[package]
+name = "av1"
+version = "0.0.1"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+bytes = "1.5"
+byteorder = "1.5"
+bytesio = { workspace = true }

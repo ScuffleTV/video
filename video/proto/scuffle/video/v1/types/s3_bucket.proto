@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package scuffle.video.v1.types;
+
+import "scuffle/types/ulid.proto";
+import "scuffle/video/v1/types/tags.proto";
+
+// An s3 bucket that can be used to store recordings
+message S3Bucket {
+  // The unique ID of the bucket
+  scuffle.types.Ulid id = 1;
+
+  // The name of the bucket
+  string name = 2;
+
+  // The region of the bucket
+  string region = 3;
+
+  // The endpoint of the bucket
+  optional string endpoint = 4;
+
+  // The access key of the bucket
+  string access_key_id = 5;
+
+  // The public url of the bucket
+  optional string public_url = 6;
+
+  // If the bucket is managed by Scuffle or a custom bucket
+  // Managed buckets cannot be deleted or modified.
+  bool managed = 7;
+
+  // The tags of the bucket
+  Tags tags = 8;
+}

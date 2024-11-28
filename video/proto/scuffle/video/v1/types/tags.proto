@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package scuffle.video.v1.types;
+
+// Tags is a map of string keys to string values.
+message Tags {
+  map<string, string> tags = 1;
+}
