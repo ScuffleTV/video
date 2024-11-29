@@ -11,7 +11,7 @@ use scuffle_bootstrap_telemetry::opentelemetry::KeyValue;
 use scuffle_bootstrap_telemetry::opentelemetry_sdk::logs::LoggerProvider;
 use scuffle_bootstrap_telemetry::opentelemetry_sdk::metrics::{PeriodicReader, SdkMeterProvider, Temporality};
 use scuffle_bootstrap_telemetry::opentelemetry_sdk::trace::{Sampler, TracerProvider};
-use scuffle_bootstrap_telemetry::opentelemetry_sdk::{self, runtime, Resource};
+use scuffle_bootstrap_telemetry::opentelemetry_sdk::{runtime, Resource};
 use scuffle_bootstrap_telemetry::{opentelemetry, opentelemetry_appender_tracing, prometheus, tracing_opentelemetry};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -38,14 +38,6 @@ impl scuffle_bootstrap::global::Global for Global {
 	type Config = ImageProcessorConfig;
 
 	async fn init(config: Self::Config) -> anyhow::Result<Arc<Self>> {
-		let tracing_pre_init = tracing::subscriber::set_default(tracing_subscriber::registry().with(match config.telemetry.logs.stdout {
-				Some(LogFormat::Json) => tracing_subscriber::fmt::layer().with_file(true).with_line_number(true).json().boxed(),
-				None | Some(LogFormat::Text) => tracing_subscriber::fmt::layer().with_file(true).with_line_number(true).boxed(),
-			})
-		);
-
-		tracing::info!("initializing image processor");
-
 		let filter = EnvFilter::from_str(&config.level).context("invalid logging level")?;
 
 		let mut prometheus_registry = None;
@@ -60,14 +52,20 @@ impl scuffle_bootstrap::global::Global for Global {
 				let make_layer = || tracing_subscriber::fmt::layer().with_file(true).with_line_number(true);
 				match fmt {
 					LogFormat::Json => {
-						default_trace = Some(tracing::subscriber::set_default(tracing_subscriber::registry().with(make_layer().json())));
+						default_trace = Some(tracing::subscriber::set_default(
+							tracing_subscriber::registry().with(make_layer().json()),
+						));
 						layers.push(make_layer().json().boxed());
 					}
 					LogFormat::Text => {
-						default_trace = Some(tracing::subscriber::set_default(tracing_subscriber::registry().with(make_layer())));
+						default_trace = Some(tracing::subscriber::set_default(
+							tracing_subscriber::registry().with(make_layer()),
+						));
 						layers.push(make_layer().boxed());
 					}
 				}
+
+				tracing::info!("initializing logging");
 			}
 
 			if config.telemetry.logs.push {
@@ -174,11 +172,8 @@ impl scuffle_bootstrap::global::Global for Global {
 				.context("otlp trace exporter")?;
 
 			let provider = TracerProvider::builder()
-				.with_config(
-					opentelemetry_sdk::trace::Config::default()
-						.with_resource(resource.clone())
-						.with_sampler(Sampler::TraceIdRatioBased(config.telemetry.traces.sample_rate)),
-				)
+				.with_resource(resource.clone())
+				.with_sampler(Sampler::TraceIdRatioBased(config.telemetry.traces.sample_rate))
 				.with_batch_exporter(exporter, runtime::Tokio)
 				.build();
 
@@ -191,14 +186,12 @@ impl scuffle_bootstrap::global::Global for Global {
 			opentelemetry = opentelemetry.with_traces(provider);
 		}
 
-		drop(default_trace);
-
 		tracing_subscriber::registry()
 			.with(layers.with_filter(filter))
 			.try_init()
 			.context("set_global_default")?;
 
-		drop(tracing_pre_init);
+		drop(default_trace);
 
 		const DEFAULT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(3);
 		tracing::debug!("setting up mongo client");
@@ -273,11 +266,7 @@ impl scuffle_bootstrap::global::Global for Global {
 		Ok(())
 	}
 
-	async fn on_service_exit(
-		self: &Arc<Self>,
-		name: &'static str,
-		result: anyhow::Result<()>,
-	) -> anyhow::Result<()> {
+	async fn on_service_exit(self: &Arc<Self>, name: &'static str, result: anyhow::Result<()>) -> anyhow::Result<()> {
 		if let Err(ref err) = result {
 			tracing::error!("service {name} exited with error: {:#}", err);
 			self.failed.store(true, std::sync::atomic::Ordering::Relaxed);

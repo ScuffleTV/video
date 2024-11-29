@@ -31,11 +31,10 @@ scuffle-bootstrap = { version = "0.0.0", path = ".." }
 scuffle-context = { version = "0.0.0", path = "../../context" }
 scuffle-http = { version = "0.0.0", path = "../../http" }
 scuffle-pprof = { version = "0.0.0", path = "../../pprof", optional = true }
-scuffle-metrics = { version = "0.0.0", path = "../../metrics", optional = true }
 
 [features]
 default = ["prometheus", "pprof", "opentelemetry-metrics", "opentelemetry-traces", "opentelemetry-logs"]
-prometheus = ["dep:prometheus", "scuffle-metrics", "opentelemetry"]
+prometheus = ["dep:prometheus", "opentelemetry"]
 pprof = ["scuffle-pprof", "querystring", "tokio"]
 opentelemetry = ["dep:opentelemetry", "dep:opentelemetry_sdk", "thiserror"]
 opentelemetry-metrics = ["opentelemetry"]

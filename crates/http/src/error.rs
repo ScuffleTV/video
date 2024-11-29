@@ -162,52 +162,52 @@ pub(crate) trait ResultErrorExt<R>: Sized {
 
 impl<R, E: std::error::Error + Send + Sync + 'static> ResultErrorExt<R> for Result<R, E> {
 	fn downcast(self) -> Result<R, Error> {
-		self.map_err(|error| {
-			let error = Box::new(error) as Box<dyn std::error::Error + Send + Sync>;
-
-			if error.is::<Error>() {
-				return *error.downcast::<Error>().unwrap();
-			}
-
-			if error.is::<ErrorKind>() {
-				return Error::with_kind(*error.downcast().unwrap());
-			}
-
-			if error.is::<http::Error>() {
-				return Error::with_kind(ErrorKind::Http(*error.downcast().unwrap()));
-			}
-
-			#[cfg(feature = "http3")]
-			if error.is::<h3::Error>() {
-				return Error::with_kind(ErrorKind::H3(*error.downcast().unwrap()));
-			}
-
-			#[cfg(feature = "http2")]
-			if error.is::<h2::Error>() {
-				return Error::with_kind(ErrorKind::H2(*error.downcast().unwrap()));
-			}
-
-			#[cfg(feature = "quic-quinn")]
-			if error.is::<quinn::ConnectionError>() {
-				return Error::with_kind(ErrorKind::QuinnConnection(*error.downcast().unwrap()));
-			}
-
-			if error.is::<std::io::Error>() {
-				return Error::with_kind(ErrorKind::Io(*error.downcast().unwrap()));
-			}
-
-			#[cfg(feature = "axum")]
-			if error.is::<axum_core::Error>() {
-				return Error::with_kind(ErrorKind::Axum(*error.downcast().unwrap()));
-			}
-
-			if error.is::<tokio::time::error::Elapsed>() {
-				return Error::with_kind(ErrorKind::Timeout);
-			}
-
-			Error::with_kind(ErrorKind::Unknown(error))
-		})
+		self.map_err(|error| downcast(Box::new(error)))
 	}
+}
+
+pub(crate) fn downcast(error: Box<dyn std::error::Error + Send + Sync + 'static>) -> Error {
+	if error.is::<Error>() {
+		return *error.downcast::<Error>().unwrap();
+	}
+
+	if error.is::<ErrorKind>() {
+		return Error::with_kind(*error.downcast().unwrap());
+	}
+
+	if error.is::<http::Error>() {
+		return Error::with_kind(ErrorKind::Http(*error.downcast().unwrap()));
+	}
+
+	#[cfg(feature = "http3")]
+	if error.is::<h3::Error>() {
+		return Error::with_kind(ErrorKind::H3(*error.downcast().unwrap()));
+	}
+
+	#[cfg(any(feature = "http1", feature = "http2"))]
+	if error.is::<hyper::Error>() {
+		return Error::with_kind(ErrorKind::Hyper(*error.downcast().unwrap()));
+	}
+
+	#[cfg(feature = "quic-quinn")]
+	if error.is::<quinn::ConnectionError>() {
+		return Error::with_kind(ErrorKind::QuinnConnection(*error.downcast().unwrap()));
+	}
+
+	if error.is::<std::io::Error>() {
+		return Error::with_kind(ErrorKind::Io(*error.downcast().unwrap()));
+	}
+
+	#[cfg(feature = "axum")]
+	if error.is::<axum_core::Error>() {
+		return Error::with_kind(ErrorKind::Axum(*error.downcast().unwrap()));
+	}
+
+	if error.is::<tokio::time::error::Elapsed>() {
+		return Error::with_kind(ErrorKind::Timeout);
+	}
+
+	Error::with_kind(ErrorKind::Unknown(error))
 }
 
 impl std::error::Error for Error {
@@ -253,9 +253,9 @@ pub enum ErrorKind {
 	#[cfg(feature = "http3")]
 	#[error(transparent)]
 	H3(#[from] h3::Error),
-	#[cfg(feature = "http2")]
+	#[cfg(any(feature = "http1", feature = "http2"))]
 	#[error(transparent)]
-	H2(#[from] h2::Error),
+	Hyper(#[from] hyper::Error),
 	#[error("closed")]
 	Closed,
 	#[error(transparent)]

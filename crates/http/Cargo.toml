@@ -17,7 +17,6 @@ http-body = { version = "1" }
 pin-project-lite = { version = "0.2" }
 thiserror = { version = "2.0.0" }
 derive_more = { version = "1.0.0", features = ["debug", "from"] }
-scuffle-context = { version = "0.0.0", path = "../context" }
 futures = { version = "0.3" }
 bytes = { version = "1" }
 libc = { version = "0.2" }
@@ -48,8 +47,10 @@ scuffle-h3-webtransport = { version = "0.0.0", path = "../h3-webtransport", opti
 h3-quinn = { version = "0", optional = true }
 quinn = { version = "0.11", optional = true }
 
-h2 = { version = "0.4.6", optional = true } # http2
-httparse = { version = "1.9.5", optional = true } # http1
+hyper = { version = "1.5.1", optional = true, features = ["server"] } # http1, http2
+hyper-util = { version = "0.1.10", optional = true, features = ["server", "tokio"] } # http1, http2
+
+scuffle-context = { version = "0.0.0", path = "../context" }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros"] }
@@ -59,19 +60,24 @@ axum = { version = "0.7" }
 tokio-stream = { version = "0.1" }
 
 [features]
-_tcp = []
+_tcp = [
+    "hyper",
+    "hyper-util",
+]
 _quic = []
 
 error-backtrace = []
 
 http1 = [
     "_tcp",
-    "httparse",
+    "hyper/http1",
+    "hyper-util/http1",
 ]
 
 http2 = [
     "_tcp",
-    "h2",
+    "hyper/http2",
+    "hyper-util/http2",
 ]
 
 http3 = [
@@ -128,5 +134,6 @@ http3-default = [
 default = [
     "http1",
     "http2",
+    "http3",
     "tracing",
 ]

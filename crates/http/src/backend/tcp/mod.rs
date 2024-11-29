@@ -1,59 +1,9 @@
-#[cfg(feature = "http1")]
-mod http1;
-
-#[cfg(feature = "http2")]
-mod http2;
-
 mod util;
-
-pub(crate) enum TcpIncomingBody {
-	#[cfg(feature = "http1")]
-	Http1(http1::io::RecvStream),
-	#[cfg(feature = "http2")]
-	Http2(http2::io::RecvStream),
-}
-
-impl http_body::Body for TcpIncomingBody {
-	type Data = Bytes;
-	type Error = crate::Error;
-
-	fn is_end_stream(&self) -> bool {
-		match self {
-			#[cfg(feature = "http1")]
-			TcpIncomingBody::Http1(body) => body.is_end_stream(),
-			#[cfg(feature = "http2")]
-			TcpIncomingBody::Http2(body) => body.is_end_stream(),
-		}
-	}
-
-	fn poll_frame(
-		mut self: std::pin::Pin<&mut Self>,
-		cx: &mut std::task::Context<'_>,
-	) -> std::task::Poll<Option<Result<http_body::Frame<Self::Data>, Self::Error>>> {
-		match &mut *self {
-			#[cfg(feature = "http1")]
-			TcpIncomingBody::Http1(body) => Pin::new(body).poll_frame(cx).map_err(Into::into),
-			#[cfg(feature = "http2")]
-			TcpIncomingBody::Http2(body) => Pin::new(body).poll_frame(cx).map_err(Into::into),
-		}
-	}
-
-	fn size_hint(&self) -> http_body::SizeHint {
-		match self {
-			#[cfg(feature = "http1")]
-			TcpIncomingBody::Http1(body) => body.size_hint(),
-			#[cfg(feature = "http2")]
-			TcpIncomingBody::Http2(body) => body.size_hint(),
-		}
-	}
-}
 
 pub mod config;
 
-use std::pin::Pin;
 use std::sync::Arc;
 
-use bytes::Bytes;
 pub use config::TcpServerConfig;
 use scuffle_context::ContextFutExt;
 use serve::serve_tcp;
@@ -133,11 +83,9 @@ impl HttpServer for TcpServer {
 		let handler = scuffle_context::Handler::new();
 
 		#[cfg(all(feature = "http1", feature = "tls-rustls"))]
-		let allow_http10 = config.http1_builder.as_ref().map_or(false, |b| b.allow_http10);
-		#[cfg(all(feature = "http1", feature = "tls-rustls"))]
-		let allow_http1 = config.http1_builder.is_some();
+		let allow_http1 = config.allow_upgrades || config.only_http.is_none_or(|v| v == config::HttpVersion::Http1);
 		#[cfg(all(feature = "http2", feature = "tls-rustls"))]
-		let allow_http2 = config.http2_builder.is_some();
+		let allow_http2 = config.allow_upgrades || config.only_http.is_none_or(|v| v == config::HttpVersion::Http2);
 
 		#[cfg(feature = "tls-rustls")]
 		if let Some(acceptor) = &mut config.acceptor {
@@ -149,9 +97,6 @@ impl HttpServer for TcpServer {
 			#[cfg(feature = "http1")]
 			if allow_http1 {
 				alpn.push(b"http/1.1".to_vec());
-				if allow_http10 {
-					alpn.push(b"http/1.0".to_vec());
-				}
 			}
 
 			acceptor.set_alpn(alpn);

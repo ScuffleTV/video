@@ -1,9 +1,13 @@
 use std::sync::Arc;
 
+use futures::future::Either;
+use http::HeaderValue;
+
 use super::config::{TcpServerConfigInner, TlsAcceptor};
 use super::{util, TcpServerError};
-use crate::error::ResultErrorExt;
-use crate::svc::{ConnectionAcceptor, ConnectionHandle};
+use crate::body::{has_body, Tracker};
+use crate::svc::{ConnectionAcceptor, ConnectionHandle, IncommingConnection};
+use crate::util::{TimeoutTracker, TimeoutTrackerDropGuard};
 
 pub(super) async fn serve_tcp<S: ConnectionAcceptor + Clone>(
 	listener: std::net::TcpListener,
@@ -20,7 +24,7 @@ pub(super) async fn serve_tcp<S: ConnectionAcceptor + Clone>(
 			Err(e) => return Err(TcpServerError::Io(e)),
 		};
 
-		let Some(handle) = service.accept() else {
+		let Some(handle) = service.accept(IncommingConnection { addr }) else {
 			continue;
 		};
 
@@ -42,9 +46,13 @@ async fn serve_stream(
 		tls_acceptor: Option<TlsAcceptor>,
 		config: TcpServerConfigInner,
 	) -> Result<(), crate::Error> {
+		handle.accept(IncommingConnection { addr }).await.map_err(Into::into)?;
+
 		match tls_acceptor {
 			#[cfg(feature = "tls-rustls")]
 			Some(acceptor) => {
+				use crate::error::ResultErrorExt;
+
 				// We should read a bit of the stream to see if they are attempting to use TLS
 				// or not. This is so we can immediately return a bad request if they arent
 				// using TLS.
@@ -94,6 +102,14 @@ async fn serve_stream(
 	handle.on_close();
 }
 
+struct DropTracker {
+	_guard: Option<TimeoutTrackerDropGuard>,
+}
+
+impl Tracker for DropTracker {
+	type Error = crate::Error;
+}
+
 async fn serve_handle(
 	stream: impl tokio::io::AsyncRead + tokio::io::AsyncWrite + Send + Sync + Unpin + 'static,
 	addr: std::net::SocketAddr,
@@ -102,47 +118,69 @@ async fn serve_handle(
 ) -> Result<(), crate::Error> {
 	tracing::info!("serving connection");
 
-	#[cfg(all(feature = "http1", feature = "http2"))]
-	serve_either_http1_or_http2(stream, addr, handle, config).await?;
+	let io = hyper_util::rt::TokioIo::new(stream);
 
-	#[cfg(all(feature = "http1", not(feature = "http2")))]
-	super::http1::serve(stream, addr, &handle, config)
-		.await
-		.with_context("http1")?;
+	let timeout_tracker = config.idle_timeout.map(TimeoutTracker::new).map(Arc::new);
 
-	#[cfg(all(not(feature = "http1"), feature = "http2"))]
-	super::http2::serve(stream, addr, &handle, config)
-		.await
-		.with_context("http2")?;
+	let service = hyper::service::service_fn(|req: hyper::Request<hyper::body::Incoming>| {
+		let guard = timeout_tracker.as_ref().map(|t| t.new_guard());
+		let handle = handle.clone();
+		let has_body = has_body(req.method());
+		let mut req = req.map(|body| {
+			if has_body {
+				crate::body::IncomingBody::new(body)
+			} else {
+				crate::body::IncomingBody::empty()
+			}
+		});
 
-	Ok(())
-}
+		req.extensions_mut().insert(addr);
+		let server_name = config.server_name.clone();
+		async move {
+			match handle.on_request(req).await {
+				Ok(res) => {
+					let mut res = res.map(|body| crate::body::TrackedBody::new(body, DropTracker { _guard: guard }));
+					if let Some(server_name) = server_name.as_ref() {
+						res.headers_mut()
+							.insert(hyper::header::SERVER, HeaderValue::from_str(server_name).unwrap());
+					}
 
-#[cfg(all(feature = "http1", feature = "http2"))]
-async fn serve_either_http1_or_http2(
-	stream: impl tokio::io::AsyncRead + tokio::io::AsyncWrite + Send + Sync + Unpin + 'static,
-	addr: std::net::SocketAddr,
-	handle: &Arc<impl ConnectionHandle>,
-	config: TcpServerConfigInner,
-) -> Result<(), crate::Error> {
-	match (&config.http1_builder, &config.http2_builder) {
-		(Some(_), Some(_)) => {
-			let fut = util::read_version(stream);
-			let (version, rewind) = match config.idle_timeout {
-				None => fut.await.with_context("read version")?,
-				Some(timeout) => tokio::time::timeout(timeout, fut)
-					.await
-					.with_context("read version timeout")?
-					.with_context("read version")?,
-			};
-
-			match version {
-				util::Version::H1 => super::http1::serve(rewind, addr, handle, config).await.with_context("http1"),
-				util::Version::H2 => super::http2::serve(rewind, addr, handle, config).await.with_context("http2"),
+					Ok(res)
+				}
+				Err(e) => Err(e.into()),
 			}
 		}
-		(Some(_), None) => super::http1::serve(stream, addr, handle, config).await.with_context("http1"),
-		(None, Some(_)) => super::http2::serve(stream, addr, handle, config).await.with_context("http2"),
-		(None, None) => Err(crate::Error::from("No HTTP/1 or HTTP/2 builder configured")),
+	});
+
+	let conn = async {
+		if config.allow_upgrades {
+			config.http_builder.serve_connection_with_upgrades(io, service).await
+		} else {
+			config.http_builder.serve_connection(io, service).await
+		}
+	};
+
+	match futures::future::select(
+		std::pin::pin!(conn),
+		std::pin::pin!(async {
+			if let Some(timeout_tracker) = timeout_tracker.as_ref() {
+				timeout_tracker.wait().await
+			} else {
+				std::future::pending().await
+			}
+		}),
+	)
+	.await
+	{
+		Either::Left((e, _)) => {
+			if let Err(e) = e {
+				handle.on_error(crate::error::downcast(e).with_context("hyper"));
+			}
+		}
+		Either::Right(_) => {}
 	}
+
+	handle.on_close();
+
+	Ok(())
 }

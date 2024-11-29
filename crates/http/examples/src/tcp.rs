@@ -3,7 +3,6 @@ use std::net::SocketAddr;
 
 use bytes::Bytes;
 use http::Response;
-use scuffle_http::backend::tcp::config::Http1Builder;
 use scuffle_http::backend::tcp::{TcpServer, TcpServerConfig};
 use scuffle_http::backend::HttpServer;
 use scuffle_http::svc::function_service;
@@ -15,7 +14,6 @@ async fn main() {
 	let tcp_server = TcpServer::new(
 		TcpServerConfig::builder()
 			.with_bind(SocketAddr::from(([0, 0, 0, 0], 8080)))
-			.with_http1_builder(Http1Builder::default().with_allow_http10(true))
 			.with_idle_timeout(std::time::Duration::from_secs(5))
 			.build(),
 	);

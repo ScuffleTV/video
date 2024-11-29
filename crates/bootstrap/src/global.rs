@@ -19,10 +19,9 @@ fn default_runtime() -> tokio::runtime::Runtime {
 		builder.worker_threads(worker_threads);
 	}
 
-	if let Some(max_blocking_threads) = std::env::var("TOKIO_MAX_BLOCKING_THREADS")
+	if let Ok(max_blocking_threads) = std::env::var("TOKIO_MAX_BLOCKING_THREADS")
 		.unwrap_or_default()
 		.parse::<usize>()
-		.ok()
 	{
 		builder.max_blocking_threads(max_blocking_threads);
 	}
@@ -45,30 +44,27 @@ fn default_runtime() -> tokio::runtime::Runtime {
 		builder.enable_io();
 	}
 
-	if let Some(thread_stack_size) = std::env::var("TOKIO_THREAD_STACK_SIZE")
+	if let Ok(thread_stack_size) = std::env::var("TOKIO_THREAD_STACK_SIZE")
 		.unwrap_or_default()
 		.parse::<usize>()
-		.ok()
 	{
 		builder.thread_stack_size(thread_stack_size);
 	}
 
-	if let Some(global_queue_interval) = std::env::var("TOKIO_GLOBAL_QUEUE_INTERVAL")
+	if let Ok(global_queue_interval) = std::env::var("TOKIO_GLOBAL_QUEUE_INTERVAL")
 		.unwrap_or_default()
 		.parse::<u32>()
-		.ok()
 	{
 		builder.global_queue_interval(global_queue_interval);
 	}
 
-	if let Some(event_interval) = std::env::var("TOKIO_EVENT_INTERVAL").unwrap_or_default().parse::<u32>().ok() {
+	if let Ok(event_interval) = std::env::var("TOKIO_EVENT_INTERVAL").unwrap_or_default().parse::<u32>() {
 		builder.event_interval(event_interval);
 	}
 
-	if let Some(max_io_events_per_tick) = std::env::var("TOKIO_MAX_IO_EVENTS_PER_TICK")
+	if let Ok(max_io_events_per_tick) = std::env::var("TOKIO_MAX_IO_EVENTS_PER_TICK")
 		.unwrap_or_default()
 		.parse::<usize>()
-		.ok()
 	{
 		builder.max_io_events_per_tick(max_io_events_per_tick);
 	}

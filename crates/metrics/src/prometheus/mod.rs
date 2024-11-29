@@ -83,13 +83,14 @@ use std::any::TypeId;
 use std::borrow::Cow;
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
-use std::sync::{Arc, Mutex, OnceLock, Weak};
+use std::sync::{Arc, OnceLock, Weak};
 
 use opentelemetry::{otel_error, InstrumentationScope, Key, Value};
 use opentelemetry_sdk::metrics::data::{self, ResourceMetrics};
 use opentelemetry_sdk::metrics::reader::MetricReader;
-use opentelemetry_sdk::metrics::{InstrumentKind, ManualReader, MetricError, MetricResult, Pipeline, Temporality};
+use opentelemetry_sdk::metrics::{InstrumentKind, ManualReader, MetricResult, Pipeline, Temporality};
 use opentelemetry_sdk::Resource;
+use parking_lot::Mutex;
 use prometheus::core::Desc;
 use prometheus::proto::{LabelPair, MetricFamily, MetricType};
 
@@ -254,20 +255,14 @@ impl prometheus::core::Collector for Collector {
 	}
 
 	fn collect(&self) -> Vec<MetricFamily> {
-		let mut inner = match self.inner.lock() {
-			Ok(guard) => guard,
-			Err(err) => {
-				otel_error!(name: "prometheus_collector_lock_error", error = err);
-				return Vec::new();
-			}
-		};
+		let mut inner = self.inner.lock();
 
 		let mut metrics = ResourceMetrics {
 			resource: Resource::empty(),
 			scope_metrics: vec![],
 		};
 		if let Err(err) = self.reader.collect(&mut metrics) {
-			otel_error!(name: "prometheus_collector_collect_error", error = err);
+			otel_error!(name: "prometheus_collector_collect_error", error = err.to_string());
 			return vec![];
 		}
 		let mut res = Vec::with_capacity(metrics.scope_metrics.len() + 1);
@@ -396,11 +391,11 @@ fn validate_metrics(
 ) -> (bool, Option<String>) {
 	if let Some(existing) = mfs.get(name) {
 		if existing.get_field_type() != metric_type {
-			otel_error!(name: "prometheus_collector_collect_error", error = MetricError::Other(format!("Instrument type conflict, using existing type definition. Instrument {name}, Existing: {:?}, dropped: {:?}", existing.get_field_type(), metric_type)));
+			otel_error!(name: "prometheus_collector_collect_error", error = format!("Instrument type conflict, using existing type definition. Instrument {name}, Existing: {:?}, dropped: {:?}", existing.get_field_type(), metric_type));
 			return (true, None);
 		}
 		if existing.get_help() != description {
-			otel_error!(name: "prometheus_collector_collect_error", error = MetricError::Other(format!("Instrument description conflict, using existing. Instrument {name}, Existing: {:?}, dropped: {:?}", existing.get_help(), description)));
+			otel_error!(name: "prometheus_collector_collect_error", error = format!("Instrument description conflict, using existing. Instrument {name}, Existing: {:?}, dropped: {:?}", existing.get_help(), description));
 			return (false, Some(existing.get_help().to_string()));
 		}
 		(false, None)

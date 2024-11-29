@@ -11,16 +11,18 @@ description = "Helper crate to instrument your code with metrics."
 keywords = ["metrics", "prometheus", "opentelemetry"]
 
 [dependencies]
-thiserror = "2"
 prometheus = { version = "0.13", optional = true }
 opentelemetry = { version = "0.27.0", default-features = false, features = ["metrics"] }
 opentelemetry_sdk = { version = "0.27.0", default-features = false, features = ["metrics"] }
-itoa = "1"
-ryu = "1"
 # Prometheus uses protobuf 2.x, so we need to use the same version.
 protobuf = { version = "^2", optional = true }
 scuffle-metrics-derive = { version = "0.0.0", path = "./derive" }
+tracing = { version = "0.1", optional = true }
+parking_lot = "0.12"
+
 
 [features]
+internal-logs = ["dep:tracing"]
 prometheus = ["dep:prometheus", "protobuf"]
 default = ["prometheus"]
+tracing = ["internal-logs", "dep:tracing"]

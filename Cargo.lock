@@ -4406,7 +4406,6 @@ dependencies = [
  "scuffle-bootstrap",
  "scuffle-context",
  "scuffle-http",
- "scuffle-metrics",
  "scuffle-pprof",
  "thiserror 2.0.3",
  "tokio",
@@ -4447,7 +4446,6 @@ dependencies = [
  "http 1.1.0",
  "pin-project-lite",
  "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -4460,13 +4458,13 @@ dependencies = [
  "bytes",
  "derive_more 1.0.0",
  "futures",
- "h2 0.4.7",
  "h3",
  "h3-quinn",
  "http 1.1.0",
  "http-body 1.0.1",
- "httparse",
  "httpdate",
+ "hyper 1.5.1",
+ "hyper-util",
  "itoa",
  "libc",
  "pin-project-lite",
@@ -4578,14 +4576,13 @@ dependencies = [
 name = "scuffle-metrics"
 version = "0.0.0"
 dependencies = [
- "itoa",
  "opentelemetry",
  "opentelemetry_sdk",
+ "parking_lot",
  "prometheus",
  "protobuf",
- "ryu",
  "scuffle-metrics-derive",
- "thiserror 2.0.3",
+ "tracing",
 ]
 
 [[package]]

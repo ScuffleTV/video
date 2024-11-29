@@ -189,7 +189,7 @@ impl StructTy {
 fn type_to_struct_type(ty: syn::Type) -> syn::Result<StructTy> {
 	match ty.clone() {
 		syn::Type::Reference(syn::TypeReference { elem, lifetime, .. }) => {
-			if lifetime.map_or(false, |lifetime| lifetime.ident == "static") {
+			if lifetime.is_some_and(|lifetime| lifetime.ident == "static") {
 				return Ok(StructTy::Raw(ty));
 			}
 

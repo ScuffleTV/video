@@ -16,6 +16,6 @@ pub fn main(input: TokenStream) -> TokenStream {
 fn handle_error(input: Result<proc_macro2::TokenStream, syn::Error>) -> TokenStream {
 	match input {
 		Ok(value) => value.into(),
-		Err(err) => return err.to_compile_error().into(),
+		Err(err) => err.to_compile_error().into(),
 	}
 }

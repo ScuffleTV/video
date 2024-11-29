@@ -1,3 +1,5 @@
+use std::net::SocketAddr;
+
 use crate::body::IncomingBody;
 
 #[cfg(feature = "axum")]
@@ -19,8 +21,17 @@ use crate::error::ErrorSeverity;
 pub trait ConnectionHandle: Send + Sync + 'static {
 	type Body: http_body::Body<Error = Self::BodyError, Data = Self::BodyData> + Send + 'static;
 	type BodyData: bytes::Buf + Send;
-	type BodyError: Into<crate::Error> + Send;
+	type BodyError: Into<crate::Error> + Send + Sync;
 	type Error: Into<crate::Error> + Send;
+
+	/// After the previous accept call has returned, we call this method to
+	/// allow for a deferred accept in an async context, returning an error
+	/// here will reject the connection before any work is done (such as a
+	/// TLS handshake).
+	async fn accept(&self, conn: IncommingConnection) -> Result<(), Self::Error> {
+		let _ = conn;
+		Ok(())
+	}
 
 	/// The `on_request` method is called when a new request is received.
 	/// You need to provide a `RequestHandle` that will be used to handle the
@@ -39,17 +50,6 @@ pub trait ConnectionHandle: Send + Sync + 'static {
 	/// closed.
 	fn on_close(&self) {}
 
-	/// The `on_hijack` method is called when the connection is hijacked.
-	/// This is called when the entire connection has been hijacked and is no
-	/// longer available to the service. Typically this happens when the
-	/// implementator invokes some sort of upgrade that requires the entire
-	/// connection. Such as `WebTransport` for Quic or to `hijack` the TCP
-	/// connection for your own protocol. Or for a HTTP/1.1 connection that has
-	/// been upgraded to a WebSocket connection. Note HTTP/2 & HTTP/3 do not
-	/// call this method when they become WebSockets as they support streams
-	/// over the same connection.
-	fn on_hijack(&self) {}
-
 	/// The `on_error` method is called when an error occurs on the connection.
 	fn on_error(&self, err: crate::Error) {
 		#[cfg(feature = "tracing")]
@@ -65,7 +65,12 @@ pub trait ConnectionHandle: Send + Sync + 'static {
 	}
 }
 
-#[async_trait::async_trait]
+/// A struct representing an incoming connection.
+pub struct IncommingConnection {
+	/// The address the connection is coming from.
+	pub addr: SocketAddr,
+}
+
 pub trait ConnectionAcceptor: Send + Sync + 'static {
 	type Handle: ConnectionHandle;
 
@@ -75,14 +80,14 @@ pub trait ConnectionAcceptor: Send + Sync + 'static {
 	/// connections before any work is done. This method also blocks accepting
 	/// other connections until it returns, so you should not do any blocking
 	/// work here.
-	fn accept(&self) -> Option<Self::Handle>;
+	fn accept(&self, conn: IncommingConnection) -> Option<Self::Handle>;
 }
 
 #[async_trait::async_trait]
 impl<T: ConnectionHandle + Clone + Sync> ConnectionAcceptor for T {
 	type Handle = T;
 
-	fn accept(&self) -> Option<Self::Handle> {
+	fn accept(&self, _: IncommingConnection) -> Option<Self::Handle> {
 		Some(self.clone())
 	}
 }

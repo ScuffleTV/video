@@ -6,8 +6,6 @@ use http_body::Frame;
 
 #[cfg(feature = "_quic")]
 use crate::backend::quic::QuicIncomingBody;
-#[cfg(feature = "_tcp")]
-use crate::backend::tcp::TcpIncomingBody;
 
 pub struct IncomingBody {
 	inner: IncomingBodyInner,
@@ -36,7 +34,7 @@ impl std::fmt::Debug for IncomingBody {
 #[derive(derive_more::From)]
 pub(crate) enum IncomingBodyInner {
 	#[cfg(feature = "_tcp")]
-	Tcp(#[from] TcpIncomingBody),
+	Tcp(#[from] hyper::body::Incoming),
 	#[cfg(feature = "_quic")]
 	Quic(#[from] QuicIncomingBody),
 	#[cfg_attr(not(any(feature = "_quic", feature = "_tcp")), allow(dead_code))]

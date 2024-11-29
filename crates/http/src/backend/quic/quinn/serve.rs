@@ -13,7 +13,7 @@ use crate::backend::quic::body::{copy_body, QuicIncomingBodyInner};
 use crate::backend::quic::QuicIncomingBody;
 use crate::body::{has_body, IncomingBody};
 use crate::error::{ErrorScope, ResultErrorExt};
-use crate::svc::{ConnectionAcceptor, ConnectionHandle};
+use crate::svc::{ConnectionAcceptor, ConnectionHandle, IncommingConnection};
 use crate::util::TimeoutTracker;
 use crate::Error;
 
@@ -31,7 +31,9 @@ async fn serve_quinn_inner(
 	config: Arc<QuinnServerConfigInner>,
 ) -> Result<(), QuinnServerError> {
 	while let Some(conn) = endpoint.accept().await {
-		let Some(handle) = service.accept() else {
+		let Some(handle) = service.accept(IncommingConnection {
+			addr: conn.remote_address(),
+		}) else {
 			continue;
 		};
 

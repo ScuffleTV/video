@@ -21,7 +21,7 @@ async fn main() -> anyhow::Result<()> {
 	let response = client
 		.process_image(ProcessImageRequest {
 			input_upload: Some(InputUpload {
-				binary: image.into(),
+				binary: image,
 				drive_path: Some(DrivePath {
 					drive: "cdn".to_string(),
 					path: "test/input.avif".to_string(),
@@ -34,22 +34,18 @@ async fn main() -> anyhow::Result<()> {
 					on_cancel: Some(EventQueue {
 						name: "nats".to_string(),
 						topic: "image-processor.cancel".to_string(),
-						..Default::default()
 					}),
 					on_failure: Some(EventQueue {
 						name: "nats".to_string(),
 						topic: "image-processor.failure".to_string(),
-						..Default::default()
 					}),
 					on_start: Some(EventQueue {
 						name: "nats".to_string(),
 						topic: "image-processor.start".to_string(),
-						..Default::default()
 					}),
 					on_success: Some(EventQueue {
 						name: "nats".to_string(),
 						topic: "image-processor.success".to_string(),
-						..Default::default()
 					}),
 					..Default::default()
 				}),

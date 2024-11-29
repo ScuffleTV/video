@@ -14,75 +14,6 @@ pub enum TlsAcceptor {
 	RustlsLazy(Arc<dyn RustlsLazyAcceptor>),
 }
 
-#[cfg(feature = "http1")]
-#[derive(Debug, Clone, Copy)]
-#[must_use = "Http1Builder must be used to create a Http1Server"]
-pub struct Http1Builder {
-	/// The buffer size to use for underlying TCP stream. (default: 32KiB)
-	pub recv_buffer_size: usize,
-	/// The buffer size to use for sending data. (default: 32KiB)
-	pub send_buffer_size: usize,
-	/// The maximum header length. (default: 100)
-	pub max_headers: usize,
-	/// Whether to use half-close for the HTTP/1.1 connection. (default: false)
-	pub half_close: bool,
-	/// Whether to allow reusing the connection after a request. (default: true)
-	pub keep_alive: bool,
-	/// Whether to allow HTTP/1.0 requests. (default: false)
-	pub allow_http10: bool,
-}
-
-#[cfg(feature = "http1")]
-impl Default for Http1Builder {
-	fn default() -> Self {
-		Self::new()
-	}
-}
-
-#[cfg(feature = "http1")]
-impl Http1Builder {
-	pub fn new() -> Self {
-		Self {
-			recv_buffer_size: 32 * 1024,
-			send_buffer_size: 32 * 1024,
-			max_headers: 100,
-			half_close: false,
-			keep_alive: true,
-			allow_http10: false,
-		}
-	}
-
-	pub fn with_recv_buffer_size(mut self, size: usize) -> Self {
-		self.recv_buffer_size = size;
-		self
-	}
-
-	pub fn with_send_buffer_size(mut self, size: usize) -> Self {
-		self.send_buffer_size = size;
-		self
-	}
-
-	pub fn with_max_header(mut self, size: usize) -> Self {
-		self.max_headers = size;
-		self
-	}
-
-	pub fn with_half_close(mut self, half_close: bool) -> Self {
-		self.half_close = half_close;
-		self
-	}
-
-	pub fn with_keep_alive(mut self, keep_alive: bool) -> Self {
-		self.keep_alive = keep_alive;
-		self
-	}
-
-	pub fn with_allow_http10(mut self, allow_http10: bool) -> Self {
-		self.allow_http10 = allow_http10;
-		self
-	}
-}
-
 #[cfg(feature = "tls-rustls")]
 impl TlsAcceptor {
 	pub(crate) async fn accept(&self, client_hello: rustls::server::ClientHello<'_>) -> Option<Arc<rustls::ServerConfig>> {
@@ -147,10 +78,7 @@ impl<A: RustlsLazyAcceptor + 'static> From<A> for TlsAcceptor {
 #[derive(Debug)]
 #[must_use = "TcpServerConfig must be used to create a TcpServer"]
 pub struct TcpServerConfig {
-	#[cfg(feature = "http2")]
-	pub http2_builder: Option<h2::server::Builder>,
-	#[cfg(feature = "http1")]
-	pub http1_builder: Option<Http1Builder>,
+	pub http_builder: hyper_util::server::conn::auto::Builder<hyper_util::rt::TokioExecutor>,
 	pub acceptor: Option<TlsAcceptor>,
 	/// The maximum time a connection can be idle before it is closed. (default:
 	/// 30 seconds)
@@ -158,6 +86,8 @@ pub struct TcpServerConfig {
 	/// The maximum time a TLS handshake can take. (default: 5 seconds)
 	pub handshake_timeout: Option<std::time::Duration>,
 	pub server_name: Option<Arc<str>>,
+	pub allow_upgrades: bool,
+	pub only_http: Option<HttpVersion>,
 	pub make_listener: MakeListener<std::net::TcpListener>,
 }
 
@@ -167,10 +97,8 @@ impl TcpServerConfig {
 			idle_timeout: self.idle_timeout,
 			handshake_timeout: self.handshake_timeout,
 			server_name: self.server_name.clone(),
-			#[cfg(feature = "http1")]
-			http1_builder: self.http1_builder,
-			#[cfg(feature = "http2")]
-			http2_builder: self.http2_builder.clone(),
+			allow_upgrades: self.allow_upgrades,
+			http_builder: self.http_builder.clone(),
 		}
 	}
 }
@@ -181,10 +109,8 @@ pub(crate) struct TcpServerConfigInner {
 	#[cfg_attr(not(feature = "tls-rustls"), allow(unused))]
 	pub handshake_timeout: Option<std::time::Duration>,
 	pub server_name: Option<Arc<str>>,
-	#[cfg(feature = "http1")]
-	pub http1_builder: Option<Http1Builder>,
-	#[cfg(feature = "http2")]
-	pub http2_builder: Option<h2::server::Builder>,
+	pub allow_upgrades: bool,
+	pub http_builder: hyper_util::server::conn::auto::Builder<hyper_util::rt::TokioExecutor>,
 }
 
 pub fn builder() -> TcpServerConfigBuilder {
@@ -201,18 +127,25 @@ impl TcpServerConfig {
 	}
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HttpVersion {
+	#[cfg(feature = "http2")]
+	Http2,
+	#[cfg(feature = "http1")]
+	Http1,
+}
+
 #[must_use = "TcpServerConfigBuilder must be built to create a TcpServerConfig"]
 pub struct TcpServerConfigBuilder<A = (), L = ()> {
-	#[cfg(feature = "http2")]
-	http2_builder: Option<h2::server::Builder>,
-	#[cfg(feature = "http1")]
-	http1_builder: Option<Http1Builder>,
+	http_builder: hyper_util::server::conn::auto::Builder<hyper_util::rt::TokioExecutor>,
 	listener: L,
 	acceptor: A,
 	connection_limit: Option<usize>,
 	idle_timeout: Option<std::time::Duration>,
 	handshake_timeout: Option<std::time::Duration>,
 	server_name: Option<Arc<str>>,
+	allow_upgrades: bool,
+	only_http: Option<HttpVersion>,
 }
 
 impl Default for TcpServerConfigBuilder {
@@ -224,16 +157,15 @@ impl Default for TcpServerConfigBuilder {
 impl TcpServerConfigBuilder {
 	pub fn new() -> Self {
 		Self {
-			#[cfg(feature = "http2")]
-			http2_builder: Some(h2::server::Builder::new()),
-			#[cfg(feature = "http1")]
-			http1_builder: Some(Http1Builder::new()),
+			http_builder: hyper_util::server::conn::auto::Builder::new(hyper_util::rt::TokioExecutor::new()),
 			listener: (),
 			acceptor: (),
 			connection_limit: None,
 			idle_timeout: Some(std::time::Duration::from_secs(30)),
 			handshake_timeout: Some(std::time::Duration::from_secs(5)),
 			server_name: None,
+			allow_upgrades: true,
+			only_http: None,
 		}
 	}
 }
@@ -241,16 +173,15 @@ impl TcpServerConfigBuilder {
 impl<A> TcpServerConfigBuilder<A, ()> {
 	pub fn with_bind(self, addr: SocketAddr) -> TcpServerConfigBuilder<A, MakeListener<std::net::TcpListener>> {
 		TcpServerConfigBuilder {
-			#[cfg(feature = "http2")]
-			http2_builder: self.http2_builder,
-			#[cfg(feature = "http1")]
-			http1_builder: self.http1_builder,
+			http_builder: self.http_builder,
 			listener: MakeListener::bind(addr),
 			acceptor: self.acceptor,
 			connection_limit: self.connection_limit,
 			idle_timeout: self.idle_timeout,
 			handshake_timeout: self.handshake_timeout,
 			server_name: self.server_name,
+			allow_upgrades: self.allow_upgrades,
+			only_http: self.only_http,
 		}
 	}
 
@@ -259,16 +190,15 @@ impl<A> TcpServerConfigBuilder<A, ()> {
 		listener: std::net::TcpListener,
 	) -> TcpServerConfigBuilder<A, MakeListener<std::net::TcpListener>> {
 		TcpServerConfigBuilder {
-			#[cfg(feature = "http2")]
-			http2_builder: self.http2_builder,
-			#[cfg(feature = "http1")]
-			http1_builder: self.http1_builder,
+			http_builder: self.http_builder,
 			listener: MakeListener::listener(listener),
 			acceptor: self.acceptor,
 			connection_limit: self.connection_limit,
 			idle_timeout: self.idle_timeout,
 			handshake_timeout: self.handshake_timeout,
 			server_name: self.server_name,
+			allow_upgrades: self.allow_upgrades,
+			only_http: self.only_http,
 		}
 	}
 
@@ -277,16 +207,15 @@ impl<A> TcpServerConfigBuilder<A, ()> {
 		make_listener: impl Fn() -> std::io::Result<std::net::TcpListener> + 'static + Send,
 	) -> TcpServerConfigBuilder<A, MakeListener<std::net::TcpListener>> {
 		TcpServerConfigBuilder {
-			#[cfg(feature = "http2")]
-			http2_builder: self.http2_builder,
-			#[cfg(feature = "http1")]
-			http1_builder: self.http1_builder,
+			http_builder: self.http_builder,
 			listener: MakeListener::custom(make_listener),
 			acceptor: self.acceptor,
 			connection_limit: self.connection_limit,
 			idle_timeout: self.idle_timeout,
 			handshake_timeout: self.handshake_timeout,
 			server_name: self.server_name,
+			allow_upgrades: self.allow_upgrades,
+			only_http: self.only_http,
 		}
 	}
 }
@@ -305,16 +234,15 @@ impl<L> TcpServerConfigBuilder<(), L> {
 	#[cfg(feature = "tls-rustls")]
 	pub fn with_tls_acceptor(self, acceptor: impl Into<TlsAcceptor>) -> TcpServerConfigBuilder<TlsAcceptor, L> {
 		TcpServerConfigBuilder {
-			#[cfg(feature = "http2")]
-			http2_builder: self.http2_builder,
-			#[cfg(feature = "http1")]
-			http1_builder: self.http1_builder,
-			listener: self.listener,
 			acceptor: acceptor.into(),
+			http_builder: self.http_builder,
+			listener: self.listener,
 			connection_limit: self.connection_limit,
 			idle_timeout: self.idle_timeout,
 			handshake_timeout: self.handshake_timeout,
 			server_name: self.server_name,
+			allow_upgrades: self.allow_upgrades,
+			only_http: self.only_http,
 		}
 	}
 
@@ -338,34 +266,42 @@ impl<L> TcpServerConfigBuilder<(), L> {
 }
 
 impl<C, L> TcpServerConfigBuilder<C, L> {
-	pub fn with_http2_builder(self, builder: h2::server::Builder) -> Self {
-		Self {
-			#[cfg(feature = "http2")]
-			http2_builder: Some(builder),
-			#[cfg(feature = "http1")]
-			http1_builder: self.http1_builder,
-			listener: self.listener,
-			acceptor: self.acceptor,
-			connection_limit: self.connection_limit,
-			idle_timeout: self.idle_timeout,
-			handshake_timeout: self.handshake_timeout,
-			server_name: self.server_name,
-		}
+	pub fn with_http_builder(
+		mut self,
+		builder: hyper_util::server::conn::auto::Builder<hyper_util::rt::TokioExecutor>,
+	) -> Self {
+		self.http_builder = builder;
+		self
 	}
 
-	pub fn with_http2_builder_fn(self, builder: impl FnOnce() -> h2::server::Builder) -> Self {
-		Self {
-			#[cfg(feature = "http2")]
-			http2_builder: Some(builder()),
-			#[cfg(feature = "http1")]
-			http1_builder: self.http1_builder,
-			listener: self.listener,
-			acceptor: self.acceptor,
-			connection_limit: self.connection_limit,
-			idle_timeout: self.idle_timeout,
-			handshake_timeout: self.handshake_timeout,
-			server_name: self.server_name,
-		}
+	pub fn with_http_builder_fn(
+		mut self,
+		builder: impl FnOnce() -> hyper_util::server::conn::auto::Builder<hyper_util::rt::TokioExecutor>,
+	) -> Self {
+		self.http_builder = builder();
+		self
+	}
+
+	pub fn modify_http_builder(
+		mut self,
+		f: impl FnOnce(&mut hyper_util::server::conn::auto::Builder<hyper_util::rt::TokioExecutor>),
+	) -> Self {
+		f(&mut self.http_builder);
+		self
+	}
+
+	#[cfg(feature = "http2")]
+	pub fn http2_only(mut self) -> Self {
+		self.only_http = Some(HttpVersion::Http2);
+		self.http_builder = self.http_builder.http2_only();
+		self
+	}
+
+	#[cfg(feature = "http1")]
+	pub fn http1_only(mut self) -> Self {
+		self.only_http = Some(HttpVersion::Http1);
+		self.http_builder = self.http_builder.http1_only();
+		self
 	}
 
 	pub fn with_connection_limit(mut self, limit: usize) -> Self {
@@ -383,28 +319,13 @@ impl<C, L> TcpServerConfigBuilder<C, L> {
 		self
 	}
 
-	pub fn with_http1_builder(mut self, builder: Http1Builder) -> Self {
-		self.http1_builder = Some(builder);
-		self
-	}
-
-	pub fn disable_http2(mut self) -> Self {
-		self.http2_builder = None;
-		self
-	}
-
-	pub fn disable_http1(mut self) -> Self {
-		self.http1_builder = None;
-		self
-	}
-
-	pub fn with_http1_builder_fn(mut self, builder: impl FnOnce() -> Http1Builder) -> Self {
-		self.http1_builder = Some(builder());
-		self
-	}
-
 	pub fn with_server_name(mut self, server_name: impl Into<Arc<str>>) -> Self {
 		self.server_name = Some(server_name.into());
+		self
+	}
+
+	pub fn with_allow_upgrades(mut self, allow_upgrades: bool) -> Self {
+		self.allow_upgrades = allow_upgrades;
 		self
 	}
 }
@@ -428,15 +349,14 @@ impl MaybeTlsAcceptor for TlsAcceptor {
 impl<A: MaybeTlsAcceptor> TcpServerConfigBuilder<A, MakeListener<std::net::TcpListener>> {
 	pub fn build(self) -> TcpServerConfig {
 		TcpServerConfig {
-			#[cfg(feature = "http2")]
-			http2_builder: self.http2_builder,
-			#[cfg(feature = "http1")]
-			http1_builder: self.http1_builder,
+			http_builder: self.http_builder,
 			make_listener: self.listener,
 			idle_timeout: self.idle_timeout,
 			handshake_timeout: self.handshake_timeout,
 			server_name: self.server_name,
 			acceptor: self.acceptor.into_tls_acceptor(),
+			allow_upgrades: self.allow_upgrades,
+			only_http: self.only_http,
 		}
 	}
 }

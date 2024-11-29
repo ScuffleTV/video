@@ -1,7 +1,5 @@
-use std::pin::Pin;
 #[cfg(feature = "tls-rustls")]
 use std::sync::Arc;
-use std::task::Poll;
 
 #[cfg(feature = "tls-rustls")]
 use bytes::{BufMut, Bytes, BytesMut};
@@ -10,8 +8,6 @@ use tokio::io::AsyncWriteExt;
 
 #[cfg(feature = "tls-rustls")]
 use crate::svc::ConnectionHandle;
-
-const H2_PREFACE: &[u8] = b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
 
 pub fn is_fatal_tcp_error(err: &std::io::Error) -> bool {
 	matches!(
@@ -27,6 +23,8 @@ pub fn is_fatal_tcp_error(err: &std::io::Error) -> bool {
 
 #[cfg(feature = "tls-rustls")]
 pub async fn is_tls(stream: &mut tokio::net::TcpStream, handle: &Arc<impl ConnectionHandle>) -> bool {
+	const H2_PREFACE: &[u8] = b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
+
 	let mut buf = [0; 24];
 	let n = match stream.peek(&mut buf).await {
 		Ok(n) => n,
@@ -86,91 +84,4 @@ pub fn make_bad_response(message: &'static str) -> Bytes {
 	buf.put_slice(b"\r\n\r\n");
 	buf.put_slice(message.as_bytes());
 	buf.freeze()
-}
-
-#[cfg(all(feature = "http1", feature = "http2"))]
-pub enum Version {
-	H2,
-	H1,
-}
-
-#[cfg(all(feature = "http1", feature = "http2"))]
-pub struct Rewind<I> {
-	inner: I,
-	buf: [u8; 24],
-	pos: u8,
-}
-
-#[cfg(all(feature = "http1", feature = "http2"))]
-impl<I: tokio::io::AsyncRead + Unpin> tokio::io::AsyncRead for Rewind<I> {
-	fn poll_read(
-		mut self: Pin<&mut Self>,
-		cx: &mut std::task::Context<'_>,
-		buf: &mut tokio::io::ReadBuf<'_>,
-	) -> Poll<std::io::Result<()>> {
-		if self.pos != 0 {
-			let n = (self.pos as usize).min(buf.remaining());
-			let start = 24 - self.pos as usize;
-			let end = start + n;
-			buf.put_slice(&self.buf[start..end]);
-			self.pos -= n as u8;
-
-			// If we have no remaining bytes to fill, we should return ready and wake the
-			// task This is because we dont drive the underlying reader.
-			if buf.remaining() == 0 {
-				cx.waker().wake_by_ref();
-				return Poll::Ready(Ok(()));
-			}
-		}
-
-		Pin::new(&mut self.inner).poll_read(cx, buf)
-	}
-}
-
-#[cfg(all(feature = "http1", feature = "http2"))]
-impl<I: tokio::io::AsyncWrite + Unpin> tokio::io::AsyncWrite for Rewind<I> {
-	fn poll_write(mut self: Pin<&mut Self>, cx: &mut std::task::Context<'_>, buf: &[u8]) -> Poll<std::io::Result<usize>> {
-		Pin::new(&mut self.inner).poll_write(cx, buf)
-	}
-
-	fn poll_flush(mut self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<std::io::Result<()>> {
-		Pin::new(&mut self.inner).poll_flush(cx)
-	}
-
-	fn is_write_vectored(&self) -> bool {
-		self.inner.is_write_vectored()
-	}
-
-	fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<std::io::Result<()>> {
-		Pin::new(&mut self.inner).poll_shutdown(cx)
-	}
-
-	fn poll_write_vectored(
-		mut self: Pin<&mut Self>,
-		cx: &mut std::task::Context<'_>,
-		bufs: &[std::io::IoSlice<'_>],
-	) -> Poll<Result<usize, std::io::Error>> {
-		Pin::new(&mut self.inner).poll_write_vectored(cx, bufs)
-	}
-}
-
-#[cfg(all(feature = "http1", feature = "http2"))]
-impl<I> Rewind<I> {
-	fn new(inner: I, buf: [u8; 24]) -> Self {
-		Self { inner, buf, pos: 24 }
-	}
-}
-
-#[cfg(all(feature = "http1", feature = "http2"))]
-pub async fn read_version<I: tokio::io::AsyncRead + Unpin>(mut io: I) -> std::io::Result<(Version, Rewind<I>)> {
-	use tokio::io::AsyncReadExt;
-	let mut buf = [0; 24];
-	io.read_exact(&mut buf).await?;
-	let rewind = Rewind::new(io, buf);
-
-	if buf == H2_PREFACE {
-		Ok((Version::H2, rewind))
-	} else {
-		Ok((Version::H1, rewind))
-	}
 }

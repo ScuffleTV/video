@@ -1,7 +1,8 @@
 use core::fmt;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, OnceLock};
 
 use opentelemetry_sdk::metrics::{ManualReaderBuilder, MetricError, MetricResult};
+use parking_lot::Mutex;
 
 use super::{Collector, PrometheusExporter, ResourceSelector};
 

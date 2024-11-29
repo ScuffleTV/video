@@ -59,6 +59,10 @@ impl QuinnServerConfig {
 	pub fn builder() -> QuinnServerConfigBuilder {
 		QuinnServerConfigBuilder::new()
 	}
+
+	pub fn into_server(self) -> super::QuinnServer {
+		super::QuinnServer::new(self)
+	}
 }
 
 pub fn builder() -> QuinnServerConfigBuilder {
