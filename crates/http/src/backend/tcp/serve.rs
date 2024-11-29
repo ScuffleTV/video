@@ -134,7 +134,7 @@ async fn serve_handle(
 			}
 		});
 
-		req.extensions_mut().insert(addr);
+		req.extensions_mut().insert(addr.ip());
 		let server_name = config.server_name.clone();
 		async move {
 			match handle.on_request(req).await {
