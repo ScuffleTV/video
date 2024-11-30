@@ -13,7 +13,7 @@ use crate::backend::quic::body::{copy_body, QuicIncomingBodyInner};
 use crate::backend::quic::QuicIncomingBody;
 use crate::body::{has_body, IncomingBody};
 use crate::error::{ErrorConfig, ErrorScope, ErrorSeverity, ResultErrorExt};
-use crate::svc::{ConnectionAcceptor, ConnectionHandle, IncommingConnection};
+use crate::svc::{ConnectionAcceptor, ConnectionHandle, IncomingConnection};
 use crate::util::TimeoutTracker;
 
 pub async fn serve_quinn(
@@ -32,7 +32,7 @@ async fn serve_quinn_inner(
 	ctx: &scuffle_context::Context,
 ) -> Result<(), QuinnServerError> {
 	while let Some(Some(conn)) = endpoint.accept().with_context(ctx).await {
-		let Some(handle) = service.accept(IncommingConnection {
+		let Some(handle) = service.accept(IncomingConnection {
 			addr: conn.remote_address(),
 		}) else {
 			continue;
@@ -75,7 +75,7 @@ async fn serve_handle_inner(
 	ctx: scuffle_context::Context,
 ) -> Result<(), crate::Error> {
 	handle
-		.accept(IncommingConnection {
+		.accept(IncomingConnection {
 			addr: conn.remote_address(),
 		})
 		.with_context(&ctx)

@@ -7,7 +7,7 @@ use scuffle_context::ContextFutExt;
 use super::config::{TcpServerConfigInner, TlsAcceptor};
 use super::{util, TcpServerError};
 use crate::body::{has_body, Tracker};
-use crate::svc::{ConnectionAcceptor, ConnectionHandle, IncommingConnection};
+use crate::svc::{ConnectionAcceptor, ConnectionHandle, IncomingConnection};
 use crate::util::{TimeoutTracker, TimeoutTrackerDropGuard};
 
 pub(super) async fn serve_tcp<S: ConnectionAcceptor + Clone>(
@@ -26,7 +26,7 @@ pub(super) async fn serve_tcp<S: ConnectionAcceptor + Clone>(
 			Err(e) => return Err(TcpServerError::Io(e)),
 		};
 
-		let Some(handle) = service.accept(IncommingConnection { addr }) else {
+		let Some(handle) = service.accept(IncomingConnection { addr }) else {
 			continue;
 		};
 
@@ -58,7 +58,7 @@ async fn serve_stream(
 		ctx: scuffle_context::Context,
 	) -> Result<(), crate::Error> {
 		if handle
-			.accept(IncommingConnection { addr })
+			.accept(IncomingConnection { addr })
 			.with_context(&ctx)
 			.await
 			.transpose()
