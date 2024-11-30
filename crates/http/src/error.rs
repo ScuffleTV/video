@@ -272,6 +272,8 @@ pub enum ErrorKind {
 	Timeout,
 	#[error("configuration")]
 	Configuration,
+	#[error("bad request")]
+	BadRequest,
 }
 
 impl From<tokio::time::error::Elapsed> for ErrorKind {

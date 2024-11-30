@@ -44,10 +44,7 @@ fn default_runtime() -> tokio::runtime::Runtime {
 		builder.enable_io();
 	}
 
-	if let Ok(thread_stack_size) = std::env::var("TOKIO_THREAD_STACK_SIZE")
-		.unwrap_or_default()
-		.parse::<usize>()
-	{
+	if let Ok(thread_stack_size) = std::env::var("TOKIO_THREAD_STACK_SIZE").unwrap_or_default().parse::<usize>() {
 		builder.thread_stack_size(thread_stack_size);
 	}
 

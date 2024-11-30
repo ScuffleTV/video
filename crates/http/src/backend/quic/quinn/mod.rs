@@ -3,7 +3,6 @@ mod serve;
 use std::sync::Arc;
 
 pub use config::QuinnServerConfig;
-use scuffle_context::ContextFutExt;
 use serve::serve_quinn;
 use tokio::sync::Mutex;
 
@@ -32,7 +31,7 @@ struct StartGroup {
 	handler: scuffle_context::Handler,
 	address: std::net::SocketAddr,
 	#[allow(clippy::type_complexity)]
-	threads: Arc<Mutex<Vec<AbortOnDrop<Option<Result<(), QuinnServerError>>>>>>,
+	threads: Arc<Mutex<Vec<AbortOnDrop<Result<(), QuinnServerError>>>>>,
 }
 
 impl StartGroup {
@@ -42,9 +41,7 @@ impl StartGroup {
 		while !threads.is_empty() {
 			let (result, _, remaining) = futures::future::select_all(threads.drain(..).map(|thread| thread.disarm())).await;
 			*threads = remaining.into_iter().map(AbortOnDrop::new).collect();
-			if let Some(Err(result)) = result? {
-				return Err(result);
-			}
+			result??;
 		}
 
 		Ok(())
@@ -101,9 +98,12 @@ impl HttpServer for QuinnServer {
 		let threads = endpoints
 			.into_iter()
 			.map(|endpoint| {
-				AbortOnDrop::new(tokio::spawn(
-					serve_quinn(endpoint, service.clone(), inner_config.clone()).with_context(handler.context()),
-				))
+				AbortOnDrop::new(tokio::spawn(serve_quinn(
+					endpoint,
+					service.clone(),
+					inner_config.clone(),
+					handler.context(),
+				)))
 			})
 			.collect::<Vec<_>>();
 

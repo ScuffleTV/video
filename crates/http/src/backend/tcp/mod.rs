@@ -5,7 +5,6 @@ pub mod config;
 use std::sync::Arc;
 
 pub use config::TcpServerConfig;
-use scuffle_context::ContextFutExt;
 use serve::serve_tcp;
 use tokio::sync::Mutex;
 
@@ -30,7 +29,7 @@ struct StartGroup {
 	handler: scuffle_context::Handler,
 	address: std::net::SocketAddr,
 	#[allow(clippy::type_complexity)]
-	threads: Arc<Mutex<Vec<AbortOnDrop<Option<Result<(), TcpServerError>>>>>>,
+	threads: Arc<Mutex<Vec<AbortOnDrop<Result<(), TcpServerError>>>>>,
 }
 
 impl StartGroup {
@@ -40,9 +39,7 @@ impl StartGroup {
 		while !threads.is_empty() {
 			let (result, _, remaining) = futures::future::select_all(threads.drain(..).map(|thread| thread.disarm())).await;
 			*threads = remaining.into_iter().map(AbortOnDrop::new).collect();
-			if let Some(Err(result)) = result? {
-				return Err(result);
-			}
+			result??;
 		}
 
 		Ok(())
@@ -105,10 +102,13 @@ impl HttpServer for TcpServer {
 		let threads = listeners
 			.into_iter()
 			.map(|listener| {
-				AbortOnDrop::new(tokio::spawn(
-					serve_tcp(listener, service.clone(), config.acceptor.clone(), config.inner())
-						.with_context(handler.context()),
-				))
+				AbortOnDrop::new(tokio::spawn(serve_tcp(
+					listener,
+					service.clone(),
+					config.acceptor.clone(),
+					config.inner(),
+					handler.context(),
+				)))
 			})
 			.collect::<Vec<_>>();
 
