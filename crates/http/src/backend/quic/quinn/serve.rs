@@ -158,7 +158,7 @@ async fn serve_handle_inner(
 	.with_config(ErrorConfig {
 		context: "quinn handshake",
 		scope: ErrorScope::Connection,
-		severity: ErrorSeverity::Error,
+		severity: ErrorSeverity::Debug,
 	})?
 	else {
 		return Ok(());
