@@ -22,16 +22,22 @@ pub async fn serve_quinn(
 	config: Arc<QuinnServerConfigInner>,
 	ctx: scuffle_context::Context,
 ) -> Result<(), QuinnServerError> {
-	serve_quinn_inner(endpoint, service, config, &ctx).await
+	let (ctx, ctx_handler) = ctx.new_child();
+
+	serve_quinn_inner(endpoint, service, config, ctx).await?;
+
+	ctx_handler.shutdown().await;
+
+	Ok(())
 }
 
 async fn serve_quinn_inner(
 	endpoint: quinn::Endpoint,
 	service: impl ConnectionAcceptor,
 	config: Arc<QuinnServerConfigInner>,
-	ctx: &scuffle_context::Context,
+	ctx: scuffle_context::Context,
 ) -> Result<(), QuinnServerError> {
-	while let Some(Some(conn)) = endpoint.accept().with_context(ctx).await {
+	while let Some(Some(conn)) = endpoint.accept().with_context(&ctx).await {
 		let Some(handle) = service.accept(IncomingConnection {
 			addr: conn.remote_address(),
 		}) else {

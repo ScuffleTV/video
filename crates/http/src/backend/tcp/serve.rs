@@ -10,20 +10,39 @@ use crate::body::{has_body, Tracker};
 use crate::svc::{ConnectionAcceptor, ConnectionHandle, IncomingConnection};
 use crate::util::{TimeoutTracker, TimeoutTrackerDropGuard};
 
-pub(super) async fn serve_tcp<S: ConnectionAcceptor + Clone>(
+pub(super) async fn serve_tcp(
 	listener: std::net::TcpListener,
-	service: S,
+	service: impl ConnectionAcceptor + Clone,
 	tls_acceptor: Option<TlsAcceptor>,
 	config: TcpServerConfigInner,
 	ctx: scuffle_context::Context,
 ) -> Result<(), TcpServerError> {
+	let (ctx, ctx_handler) = ctx.new_child();
+
+	serve_tcp_inner(listener, service, tls_acceptor, config, ctx).await?;
+
+	ctx_handler.shutdown().await;
+
+	Ok(())
+}
+
+async fn serve_tcp_inner(
+	listener: std::net::TcpListener,
+	service: impl ConnectionAcceptor + Clone,
+	tls_acceptor: Option<TlsAcceptor>,
+	config: TcpServerConfigInner,
+	ctx: scuffle_context::Context,
+) -> Result<(), TcpServerError> {
+	listener.set_nonblocking(true)?;
+
 	let listener = tokio::net::TcpListener::from_std(listener)?;
 
 	loop {
-		let (stream, addr) = match listener.accept().await {
-			Ok(stream) => stream,
-			Err(e) if !util::is_fatal_tcp_error(&e) => continue,
-			Err(e) => return Err(TcpServerError::Io(e)),
+		let (stream, addr) = match listener.accept().with_context(&ctx).await {
+			Some(Ok(stream)) => stream,
+			Some(Err(e)) if !util::is_fatal_tcp_error(&e) => continue,
+			Some(Err(e)) => return Err(TcpServerError::Io(e)),
+			None => break,
 		};
 
 		let Some(handle) = service.accept(IncomingConnection { addr }) else {
@@ -39,6 +58,8 @@ pub(super) async fn serve_tcp<S: ConnectionAcceptor + Clone>(
 			ctx.clone(),
 		));
 	}
+
+	Ok(())
 }
 
 async fn serve_stream(
@@ -49,109 +70,6 @@ async fn serve_stream(
 	config: TcpServerConfigInner,
 	ctx: scuffle_context::Context,
 ) {
-	async fn serve_stream_inner(
-		stream: tokio::net::TcpStream,
-		addr: std::net::SocketAddr,
-		handle: &Arc<impl ConnectionHandle>,
-		tls_acceptor: Option<TlsAcceptor>,
-		config: TcpServerConfigInner,
-		ctx: scuffle_context::Context,
-	) -> Result<(), crate::Error> {
-		if handle
-			.accept(IncomingConnection { addr })
-			.with_context(&ctx)
-			.await
-			.transpose()
-			.map_err(Into::into)?
-			.is_none()
-		{
-			// The ctx expired so we just exit early.
-			return Ok(());
-		}
-
-		match tls_acceptor {
-			#[cfg(feature = "tls-rustls")]
-			Some(acceptor) => {
-				use crate::error::{ErrorConfig, ErrorKind, ErrorScope, ErrorSeverity, ResultErrorExt};
-
-				let Some(stream) = async {
-					// We should read a bit of the stream to see if they are attempting to use TLS
-					// or not. This is so we can immediately return a bad request if they arent
-					// using TLS.
-					let mut stream = stream;
-					let is_tls = util::is_tls(&mut stream, handle);
-
-					let is_tls = if let Some(timeout) = config.handshake_timeout {
-						tokio::time::timeout(timeout, is_tls).await.with_config(ErrorConfig {
-							context: "tls handshake",
-							scope: ErrorScope::Connection,
-							severity: ErrorSeverity::Debug,
-						})?
-					} else {
-						is_tls.await
-					};
-
-					if !is_tls {
-						return Err(crate::Error::with_kind(ErrorKind::BadRequest).with_config(ErrorConfig {
-							context: "tls handshake",
-							scope: ErrorScope::Connection,
-							severity: ErrorSeverity::Debug,
-						}));
-					}
-
-					let lazy = tokio_rustls::LazyConfigAcceptor::new(Default::default(), stream);
-
-					let accepted = if let Some(timeout) = config.handshake_timeout {
-						tokio::time::timeout(timeout, lazy).await.with_config(ErrorConfig {
-							context: "tls handshake",
-							scope: ErrorScope::Connection,
-							severity: ErrorSeverity::Debug,
-						})?
-					} else {
-						lazy.await
-					}
-					.with_config(ErrorConfig {
-						context: "tls handshake",
-						scope: ErrorScope::Connection,
-						severity: ErrorSeverity::Debug,
-					})?;
-
-					let Some(tls_config) = acceptor.accept(accepted.client_hello()).await else {
-						return Ok(None);
-					};
-
-					let stream = if let Some(timeout) = config.handshake_timeout {
-						tokio::time::timeout(timeout, accepted.into_stream(tls_config))
-							.await
-							.with_config(ErrorConfig {
-								context: "tls handshake",
-								scope: ErrorScope::Connection,
-								severity: ErrorSeverity::Debug,
-							})?
-					} else {
-						accepted.into_stream(tls_config).await
-					};
-
-					stream.map(Some).with_config(ErrorConfig {
-						context: "tls handshake",
-						scope: ErrorScope::Connection,
-						severity: ErrorSeverity::Debug,
-					})
-				}
-				.with_context(&ctx)
-				.await
-				.transpose()?
-				.flatten() else {
-					// Either the ctx expired or the handshake failed so we just exit early.
-					return Ok(());
-				};
-
-				serve_handle(stream, addr, handle, config, &ctx).await
-			}
-			None => serve_handle(stream, addr, handle, config, &ctx).await,
-		}
-	}
-
 	let (ctx, ctx_handler) = ctx.new_child();
 
 	let handle = Arc::new(handle);
@@ -162,6 +80,109 @@ async fn serve_stream(
 	ctx_handler.shutdown().await;
 
 	handle.on_close();
+}
+
+async fn serve_stream_inner(
+	stream: tokio::net::TcpStream,
+	addr: std::net::SocketAddr,
+	handle: &Arc<impl ConnectionHandle>,
+	tls_acceptor: Option<TlsAcceptor>,
+	config: TcpServerConfigInner,
+	ctx: scuffle_context::Context,
+) -> Result<(), crate::Error> {
+	if handle
+		.accept(IncomingConnection { addr })
+		.with_context(&ctx)
+		.await
+		.transpose()
+		.map_err(Into::into)?
+		.is_none()
+	{
+		// The ctx expired so we just exit early.
+		return Ok(());
+	}
+
+	match tls_acceptor {
+		#[cfg(feature = "tls-rustls")]
+		Some(acceptor) => {
+			use crate::error::{ErrorConfig, ErrorKind, ErrorScope, ErrorSeverity, ResultErrorExt};
+
+			let Some(stream) = async {
+				// We should read a bit of the stream to see if they are attempting to use TLS
+				// or not. This is so we can immediately return a bad request if they arent
+				// using TLS.
+				let mut stream = stream;
+				let is_tls = util::is_tls(&mut stream, handle);
+
+				let is_tls = if let Some(timeout) = config.handshake_timeout {
+					tokio::time::timeout(timeout, is_tls).await.with_config(ErrorConfig {
+						context: "tls handshake",
+						scope: ErrorScope::Connection,
+						severity: ErrorSeverity::Debug,
+					})?
+				} else {
+					is_tls.await
+				};
+
+				if !is_tls {
+					return Err(crate::Error::with_kind(ErrorKind::BadRequest).with_config(ErrorConfig {
+						context: "tls handshake",
+						scope: ErrorScope::Connection,
+						severity: ErrorSeverity::Debug,
+					}));
+				}
+
+				let lazy = tokio_rustls::LazyConfigAcceptor::new(Default::default(), stream);
+
+				let accepted = if let Some(timeout) = config.handshake_timeout {
+					tokio::time::timeout(timeout, lazy).await.with_config(ErrorConfig {
+						context: "tls handshake",
+						scope: ErrorScope::Connection,
+						severity: ErrorSeverity::Debug,
+					})?
+				} else {
+					lazy.await
+				}
+				.with_config(ErrorConfig {
+					context: "tls handshake",
+					scope: ErrorScope::Connection,
+					severity: ErrorSeverity::Debug,
+				})?;
+
+				let Some(tls_config) = acceptor.accept(accepted.client_hello()).await else {
+					return Ok(None);
+				};
+
+				let stream = if let Some(timeout) = config.handshake_timeout {
+					tokio::time::timeout(timeout, accepted.into_stream(tls_config))
+						.await
+						.with_config(ErrorConfig {
+							context: "tls handshake",
+							scope: ErrorScope::Connection,
+							severity: ErrorSeverity::Debug,
+						})?
+				} else {
+					accepted.into_stream(tls_config).await
+				};
+
+				stream.map(Some).with_config(ErrorConfig {
+					context: "tls handshake",
+					scope: ErrorScope::Connection,
+					severity: ErrorSeverity::Debug,
+				})
+			}
+			.with_context(&ctx)
+			.await
+			.transpose()?
+			.flatten() else {
+				// Either the ctx expired or the handshake failed so we just exit early.
+				return Ok(());
+			};
+
+			serve_handle(stream, addr, handle, config, &ctx).await
+		}
+		None => serve_handle(stream, addr, handle, config, &ctx).await,
+	}
 }
 
 struct DropTracker {
