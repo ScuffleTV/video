@@ -54,9 +54,7 @@ impl TimeoutTracker {
 	}
 
 	fn incr_inflight(&self) {
-		if self.requests_inflight.fetch_add(1, std::sync::atomic::Ordering::Relaxed) == 0 {
-			self.notify.notify_one();
-		}
+		self.requests_inflight.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
 	}
 
 	fn decr_inflight(&self) {
@@ -67,18 +65,16 @@ impl TimeoutTracker {
 
 	pub async fn wait(&self) {
 		loop {
-			if self.requests_inflight.load(std::sync::atomic::Ordering::Relaxed) != 0 {
-				self.notify.notified().await;
-			}
-
 			match futures::future::select(
 				std::pin::pin!(tokio::time::sleep(self.timeout)),
 				std::pin::pin!(self.notify.notified()),
 			)
 			.await
 			{
-				futures::future::Either::Left(_) => break,
-				futures::future::Either::Right(_) => continue,
+				futures::future::Either::Left(_) if self.requests_inflight.load(std::sync::atomic::Ordering::Relaxed) == 0 => {
+					break;
+				}
+				_ => {}
 			}
 		}
 	}
