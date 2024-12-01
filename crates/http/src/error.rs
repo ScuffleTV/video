@@ -1,4 +1,4 @@
-use std::convert::Infallible;
+use std::{convert::Infallible, error::Error as StdError};
 
 #[derive(Debug)]
 pub struct Error {
@@ -211,6 +211,53 @@ pub(crate) fn downcast(error: Box<dyn std::error::Error + Send + Sync + 'static>
 	Error::with_kind(ErrorKind::Unknown(error))
 }
 
+#[cfg(any(feature = "http1", feature = "http2"))]
+pub(crate) fn find_hyper_source(error: &hyper::Error) -> Option<ErrorSeverity> {
+	let mut source = error.source();
+
+	while let Some(src) = source {
+		if let Some(err) = src.downcast_ref::<Error>() {
+			return Some(err.severity());
+		}
+	
+		if let Some(err) = src.downcast_ref::<http::Error>() {
+			return Some(err.severity());
+		}
+	
+		#[cfg(feature = "http3")]
+		if let Some(err) = src.downcast_ref::<h3::Error>() {
+			return Some(err.severity());
+		}
+	
+		#[cfg(any(feature = "http1", feature = "http2"))]
+		if let Some(err) = src.downcast_ref::<hyper::Error>() {
+			return Some(err.severity());
+		}
+	
+		#[cfg(feature = "quic-quinn")]
+		if let Some(err) = src.downcast_ref::<quinn::ConnectionError>() {
+			return Some(err.severity());
+		}
+	
+		if let Some(err) = src.downcast_ref::<std::io::Error>() {
+			return Some(err.severity());
+		}
+	
+		#[cfg(feature = "axum")]
+		if let Some(err) = src.downcast_ref::<axum_core::Error>() {
+			return Some(err.severity());
+		}
+	
+		if src.is::<tokio::time::error::Elapsed>() {
+			return Some(ErrorSeverity::Debug);
+		}
+
+		source = src.source();
+	}
+
+	None
+}
+
 impl std::error::Error for Error {
 	fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
 		self.inner.kind.as_ref().map(|k| k as &(dyn std::error::Error + 'static))
@@ -277,6 +324,73 @@ pub enum ErrorKind {
 	BadRequest,
 }
 
+trait ErrorKindExt {
+	fn severity(&self) -> ErrorSeverity;
+}
+
+impl ErrorKindExt for http::Error {
+	fn severity(&self) -> ErrorSeverity {
+		ErrorSeverity::Debug
+	}
+}
+
+#[cfg(feature = "http3")]
+impl ErrorKindExt for h3::Error {
+	fn severity(&self) -> ErrorSeverity {
+		match self.kind() {
+			h3::error::Kind::Application { code, .. } => match code {
+				h3::error::Code::H3_NO_ERROR => ErrorSeverity::Debug,
+				h3::error::Code::H3_REQUEST_CANCELLED => ErrorSeverity::Debug,
+				h3::error::Code::H3_REQUEST_INCOMPLETE => ErrorSeverity::Debug,
+				_ => ErrorSeverity::Error,
+			},
+			_ => ErrorSeverity::Error,
+		}
+	}
+}
+
+#[cfg(any(feature = "http1", feature = "http2"))]
+impl ErrorKindExt for hyper::Error {
+	fn severity(&self) -> ErrorSeverity {
+		find_hyper_source(self).unwrap_or(ErrorSeverity::Error)
+	}
+}
+
+#[cfg(feature = "quic-quinn")]
+impl ErrorKindExt for quinn::ConnectionError {
+	fn severity(&self) -> ErrorSeverity {
+		match self {
+			Self::TimedOut => ErrorSeverity::Debug,
+			Self::ConnectionClosed(..) => ErrorSeverity::Debug,
+			Self::Reset => ErrorSeverity::Debug,
+			Self::VersionMismatch => ErrorSeverity::Error,
+			Self::CidsExhausted => ErrorSeverity::Error,
+			Self::TransportError(..) => ErrorSeverity::Error,
+			Self::ApplicationClosed(..) => ErrorSeverity::Debug,
+			Self::LocallyClosed => ErrorSeverity::Debug,
+		}
+	}
+}
+
+impl ErrorKindExt for std::io::Error {
+	fn severity(&self) -> ErrorSeverity {
+		match self.kind() {
+			std::io::ErrorKind::TimedOut => ErrorSeverity::Debug,
+			std::io::ErrorKind::ConnectionReset => ErrorSeverity::Debug,
+			std::io::ErrorKind::ConnectionAborted => ErrorSeverity::Debug,
+			std::io::ErrorKind::UnexpectedEof => ErrorSeverity::Debug,
+			_ => ErrorSeverity::Error,
+		}
+	}
+}
+
+#[cfg(feature = "axum")]
+impl ErrorKindExt for axum_core::Error {
+	fn severity(&self) -> ErrorSeverity {
+		ErrorSeverity::Error
+	}
+}
+
 impl ErrorKind {
 	pub fn severity(&self) -> ErrorSeverity {
 		match self {
@@ -286,43 +400,15 @@ impl ErrorKind {
 			Self::Closed => ErrorSeverity::Debug,
 			Self::Unknown(_) => ErrorSeverity::Error,
 			#[cfg(feature = "http3")]
-			Self::H3(err) => match err.kind() {
-				h3::error::Kind::Application { code, .. } => match code {
-					h3::error::Code::H3_NO_ERROR => ErrorSeverity::Debug,
-					h3::error::Code::H3_REQUEST_CANCELLED => ErrorSeverity::Debug,
-					h3::error::Code::H3_REQUEST_INCOMPLETE => ErrorSeverity::Debug,
-					_ => ErrorSeverity::Error,
-				},
-				_ => ErrorSeverity::Error,
-			},
+			Self::H3(err) => err.severity(),
 			#[cfg(any(feature = "http1", feature = "http2"))]
-			Self::Hyper(err) => {
-				if err.is_closed() || err.is_canceled() || err.is_parse() || err.is_incomplete_message() || err.is_body_write_aborted() || err.is_timeout() {
-					ErrorSeverity::Debug
-				} else {
-					ErrorSeverity::Error
-				}
-			},
+			Self::Hyper(err) => err.severity(),
 			#[cfg(feature = "axum")]
-			Self::Axum(_) => ErrorSeverity::Error,
+			Self::Axum(err) => err.severity(),
 			#[cfg(feature = "quic-quinn")]
-			Self::QuinnConnection(err) => match err {
-				quinn::ConnectionError::TimedOut => ErrorSeverity::Debug,
-				quinn::ConnectionError::ConnectionClosed(..) => ErrorSeverity::Debug,
-				quinn::ConnectionError::Reset => ErrorSeverity::Debug,
-				quinn::ConnectionError::VersionMismatch => ErrorSeverity::Error,
-				quinn::ConnectionError::CidsExhausted => ErrorSeverity::Error,
-				quinn::ConnectionError::TransportError(..) => ErrorSeverity::Error,
-				quinn::ConnectionError::ApplicationClosed(..) => ErrorSeverity::Debug,
-				quinn::ConnectionError::LocallyClosed => ErrorSeverity::Debug,
-			},
-			Self::Io(io) => match io.kind() {
-				std::io::ErrorKind::TimedOut => ErrorSeverity::Debug,
-				std::io::ErrorKind::ConnectionReset => ErrorSeverity::Debug,
-				std::io::ErrorKind::ConnectionAborted => ErrorSeverity::Debug,
-				_ => ErrorSeverity::Error,
-			},
-			Self::Http(_) => ErrorSeverity::Debug,
+			Self::QuinnConnection(err) => err.severity(),
+			Self::Io(io) => io.severity(),
+			Self::Http(err) => err.severity(),
 		}
 	}
 }
