@@ -212,47 +212,49 @@ pub(crate) fn downcast(error: Box<dyn std::error::Error + Send + Sync + 'static>
 }
 
 #[cfg(any(feature = "http1", feature = "http2"))]
-pub(crate) fn find_hyper_source(error: &hyper::Error) -> Option<ErrorSeverity> {
-	let mut source = error.source();
-
-	while let Some(src) = source {
-		if let Some(err) = src.downcast_ref::<Error>() {
+pub(crate) fn find_source(mut error: &(dyn std::error::Error + 'static)) -> Option<ErrorSeverity> {
+	loop {
+		if let Some(err) = error.downcast_ref::<Error>() {
 			return Some(err.severity());
 		}
 	
-		if let Some(err) = src.downcast_ref::<http::Error>() {
+		if let Some(err) = error.downcast_ref::<http::Error>() {
 			return Some(err.severity());
 		}
 	
 		#[cfg(feature = "http3")]
-		if let Some(err) = src.downcast_ref::<h3::Error>() {
+		if let Some(err) = error.downcast_ref::<h3::Error>() {
 			return Some(err.severity());
 		}
 	
 		#[cfg(any(feature = "http1", feature = "http2"))]
-		if let Some(err) = src.downcast_ref::<hyper::Error>() {
+		if let Some(err) = error.downcast_ref::<hyper::Error>() {
 			return Some(err.severity());
 		}
 	
 		#[cfg(feature = "quic-quinn")]
-		if let Some(err) = src.downcast_ref::<quinn::ConnectionError>() {
+		if let Some(err) = error.downcast_ref::<quinn::ConnectionError>() {
 			return Some(err.severity());
 		}
 	
-		if let Some(err) = src.downcast_ref::<std::io::Error>() {
+		if let Some(err) = error.downcast_ref::<std::io::Error>() {
 			return Some(err.severity());
 		}
 	
 		#[cfg(feature = "axum")]
-		if let Some(err) = src.downcast_ref::<axum_core::Error>() {
+		if let Some(err) = error.downcast_ref::<axum_core::Error>() {
 			return Some(err.severity());
 		}
 	
-		if src.is::<tokio::time::error::Elapsed>() {
+		if error.is::<tokio::time::error::Elapsed>() {
 			return Some(ErrorSeverity::Debug);
 		}
 
-		source = src.source();
+		let Some(err) = error.source() else {
+			break;
+		};
+
+		error = err;
 	}
 
 	None
@@ -344,7 +346,13 @@ impl ErrorKindExt for h3::Error {
 				h3::error::Code::H3_REQUEST_INCOMPLETE => ErrorSeverity::Debug,
 				_ => ErrorSeverity::Error,
 			},
-			_ => ErrorSeverity::Error,
+			_ => {
+				if let Some(severity) = self.source().and_then(find_source) {
+					severity
+				} else {
+					ErrorSeverity::Error
+				}
+			},
 		}
 	}
 }
@@ -352,7 +360,7 @@ impl ErrorKindExt for h3::Error {
 #[cfg(any(feature = "http1", feature = "http2"))]
 impl ErrorKindExt for hyper::Error {
 	fn severity(&self) -> ErrorSeverity {
-		find_hyper_source(self).unwrap_or(ErrorSeverity::Error)
+		self.source().and_then(find_source).unwrap_or(ErrorSeverity::Error)
 	}
 }
 
@@ -360,14 +368,27 @@ impl ErrorKindExt for hyper::Error {
 impl ErrorKindExt for quinn::ConnectionError {
 	fn severity(&self) -> ErrorSeverity {
 		match self {
+			Self::CidsExhausted => ErrorSeverity::Error,
 			Self::TimedOut => ErrorSeverity::Debug,
 			Self::ConnectionClosed(..) => ErrorSeverity::Debug,
 			Self::Reset => ErrorSeverity::Debug,
-			Self::VersionMismatch => ErrorSeverity::Error,
-			Self::CidsExhausted => ErrorSeverity::Error,
-			Self::TransportError(..) => ErrorSeverity::Error,
+			Self::VersionMismatch => ErrorSeverity::Debug,
+			Self::TransportError(transport) => transport.code.severity(),
 			Self::ApplicationClosed(..) => ErrorSeverity::Debug,
 			Self::LocallyClosed => ErrorSeverity::Debug,
+		}
+	}
+}
+
+#[cfg(feature = "quic-quinn")]
+impl ErrorKindExt for quinn::TransportErrorCode {
+	fn severity(&self) -> ErrorSeverity {
+		match self {
+			&Self::NO_ERROR => ErrorSeverity::Debug,
+			&Self::FLOW_CONTROL_ERROR => ErrorSeverity::Debug,
+			&Self::STREAM_LIMIT_ERROR => ErrorSeverity::Debug,
+			&Self::STREAM_STATE_ERROR => ErrorSeverity::Debug,
+			_ => ErrorSeverity::Error,
 		}
 	}
 }
@@ -379,6 +400,7 @@ impl ErrorKindExt for std::io::Error {
 			std::io::ErrorKind::ConnectionReset => ErrorSeverity::Debug,
 			std::io::ErrorKind::ConnectionAborted => ErrorSeverity::Debug,
 			std::io::ErrorKind::UnexpectedEof => ErrorSeverity::Debug,
+			std::io::ErrorKind::BrokenPipe => ErrorSeverity::Debug,
 			_ => ErrorSeverity::Error,
 		}
 	}
