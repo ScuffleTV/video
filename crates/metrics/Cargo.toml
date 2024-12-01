@@ -16,7 +16,7 @@ opentelemetry = { version = "0.27.0", default-features = false, features = ["met
 opentelemetry_sdk = { version = "0.27.0", default-features = false, features = ["metrics"] }
 # Prometheus uses protobuf 2.x, so we need to use the same version.
 protobuf = { version = "^2", optional = true }
-scuffle-metrics-derive = { version = "0.0.0", path = "./derive" }
+scuffle-metrics-derive = { version = "0.0.1", path = "./derive" }
 tracing = { version = "0.1", optional = true }
 parking_lot = "0.12"
 
