@@ -84,6 +84,7 @@ impl Error {
 
 	pub fn with_kind(kind: ErrorKind) -> Self {
 		let mut error = Self::new();
+		error.inner.severity = kind.severity();
 		error.inner.kind = Some(kind);
 		error
 	}
@@ -248,25 +249,25 @@ impl std::fmt::Display for Error {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ErrorKind {
-	#[error(transparent)]
+	#[error("http: {0}")]
 	Http(#[from] http::Error),
 	#[cfg(feature = "http3")]
-	#[error(transparent)]
+	#[error("h3: {0}")]
 	H3(#[from] h3::Error),
 	#[cfg(any(feature = "http1", feature = "http2"))]
-	#[error(transparent)]
+	#[error("hyper: {0}")]
 	Hyper(#[from] hyper::Error),
 	#[error("closed")]
 	Closed,
 	#[error(transparent)]
 	Unknown(#[from] Box<dyn std::error::Error + Send + Sync>),
 	#[cfg(feature = "axum")]
-	#[error(transparent)]
+	#[error("axum: {0}")]
 	Axum(#[from] axum_core::Error),
 	#[cfg(feature = "quic-quinn")]
-	#[error(transparent)]
+	#[error("quinn: {0}")]
 	QuinnConnection(#[from] quinn::ConnectionError),
-	#[error(transparent)]
+	#[error("io: {0}")]
 	Io(#[from] std::io::Error),
 	#[error("timeout")]
 	Timeout,

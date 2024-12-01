@@ -115,7 +115,7 @@ async fn serve_handle_inner(
 	.with_config(ErrorConfig {
 		context: "quinn accept",
 		scope: ErrorScope::Connection,
-		severity: ErrorSeverity::Error,
+		severity: ErrorSeverity::Debug,
 	})?
 	.with_context(&ctx);
 
@@ -132,7 +132,7 @@ async fn serve_handle_inner(
 	.with_config(ErrorConfig {
 		context: "quinn handshake",
 		scope: ErrorScope::Connection,
-		severity: ErrorSeverity::Error,
+		severity: ErrorSeverity::Debug,
 	})?
 	else {
 		return Ok(());
