@@ -16,11 +16,13 @@ tokio = { version = "1", features = ["full"] }
 futures = "0.3"
 pin-project-lite = "0.2"
 
-scuffle-signal = { version = "0.0.0", path = "../signal" }
 scuffle-context = { version = "0.0.0", path = "../context" }
-scuffle-settings = { version = "0.0.0", path = "../settings", optional = true }
 scuffle-bootstrap-derive = { version = "0.0.0", path = "./derive" }
+
+scuffle-signal = { version = "0.0.0", path = "../signal", optional = true }
+scuffle-settings = { version = "0.0.0", path = "../settings", optional = true, features = ["cli"] }
 
 [features]
 settings = ["scuffle-settings"]
-default = ["settings"]
+signal = ["scuffle-signal"]
+default = []

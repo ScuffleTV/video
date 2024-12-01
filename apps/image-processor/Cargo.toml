@@ -49,10 +49,11 @@ strfmt = "0.2"
 opentelemetry-otlp = { version = "0.27", features = ["metrics", "logs"] }
 opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
 
-scuffle-bootstrap = { version = "0.0.0", path = "../../crates/bootstrap" }
+scuffle-bootstrap = { version = "0.0.0", path = "../../crates/bootstrap", features = ["signal", "settings"] }
 scuffle-bootstrap-telemetry = { version = "0.0.0", path = "../../crates/bootstrap/telemetry", features = ["prometheus", "opentelemetry-metrics", "opentelemetry-logs", "opentelemetry-traces"] }
 scuffle-ffmpeg = { version = "0.0.0", path = "../../crates/ffmpeg", features = ["tracing"] }
 scuffle-http = { version = "0.0.0", path = "../../crates/http", features = ["axum"]}
 scuffle-context = { version = "0.0.0", path = "../../crates/context" }
 scuffle-image-processor-proto = { version = "0.0.0", path = "./proto", features = ["server", "serde"]}
 scuffle-metrics = { version = "0.0.0", path = "../../crates/metrics" }
+scuffle-settings = { version = "0.0.0", path = "../../crates/settings", features = ["full"] }

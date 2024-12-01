@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use scuffle_bootstrap::cli_config;
+use scuffle_bootstrap::cli_settings;
 use scuffle_bootstrap::prelude::*;
 use scuffle_bootstrap::service::Service;
-use scuffle_bootstrap::signals::{SignalSvc, SignalSvcConfig};
+use scuffle_bootstrap::signal::{SignalSvc, SignalConfig};
 
 scuffle_bootstrap::main! {
 	Global {
@@ -13,7 +13,7 @@ scuffle_bootstrap::main! {
 	}
 }
 
-impl SignalSvcConfig for Global {}
+impl SignalConfig for Global {}
 
 struct MySvc;
 
@@ -54,7 +54,7 @@ struct Config {
 	pub arg: String,
 }
 
-cli_config!(Config);
+cli_settings!(Config);
 
 impl scuffle_bootstrap::global::Global for Global {
 	type Config = Config;

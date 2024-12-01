@@ -16,7 +16,6 @@ clap = { version = "4", optional = true }
 minijinja = { version = "2.5", optional = true, features = ["json", "custom_syntax", "urlencode"] }
 serde = "1"
 thiserror = "2"
-bon = "3"
 
 [features]
 cli = ["clap"]
@@ -28,7 +27,9 @@ json5 = ["config/json5"]
 ini = ["config/ini"]
 templates = ["minijinja"]
 
-default = ["toml", "json", "yaml", "json5", "ini", "ron", "cli", "templates"]
+all-formats = ["toml", "json", "yaml", "json5", "ini", "ron"]
+full = ["all-formats", "templates", "cli"]
+default = []
 
 [dev-dependencies]
 serde_derive = "1"

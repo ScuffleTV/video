@@ -8,7 +8,7 @@ use crate::service::Service;
 #[derive(Default, Debug, Clone, Copy)]
 pub struct SignalSvc;
 
-pub trait SignalSvcConfig: Global {
+pub trait SignalConfig: Global {
 	fn signals(&self) -> Vec<tokio::signal::unix::SignalKind> {
 		vec![
 			tokio::signal::unix::SignalKind::terminate(),
@@ -38,7 +38,7 @@ pub trait SignalSvcConfig: Global {
 	}
 }
 
-impl<Global: SignalSvcConfig> Service<Global> for SignalSvc {
+impl<Global: SignalConfig> Service<Global> for SignalSvc {
 	fn enabled(&self, global: &Arc<Global>) -> impl std::future::Future<Output = anyhow::Result<bool>> + Send {
 		std::future::ready(Ok(!global.signals().is_empty()))
 	}

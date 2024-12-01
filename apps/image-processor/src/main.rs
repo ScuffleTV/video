@@ -1,6 +1,6 @@
 use global::Global;
 use management::ManagementSvc;
-use scuffle_bootstrap::signals::SignalSvc;
+use scuffle_bootstrap::signal::SignalSvc;
 use scuffle_bootstrap_telemetry::TelemetrySvc;
 use worker::WorkerSvc;
 

@@ -55,12 +55,12 @@ struct FormatWrapper;
 use std::borrow::Cow;
 
 #[cfg(not(feature = "templates"))]
-fn template_text(text: &str, _: config::FileFormat) -> Result<Cow<'_, str>, Box<dyn std::error::Error + Send + Sync>> {
+fn template_text<'a>(text: &'a str, _: &config::FileFormat) -> Result<Cow<'a, str>, Box<dyn std::error::Error + Send + Sync>> {
 	Ok(Cow::Borrowed(text))
 }
 
 #[cfg(feature = "templates")]
-fn template_text(text: &str, _: config::FileFormat) -> Result<Cow<'_, str>, Box<dyn std::error::Error + Send + Sync>> {
+fn template_text<'a>(text: &'a str, _: &config::FileFormat) -> Result<Cow<'a, str>, Box<dyn std::error::Error + Send + Sync>> {
 	use minijinja::syntax::SyntaxConfig;
 
 	let mut env = minijinja::Environment::new();
@@ -86,21 +86,63 @@ impl config::Format for FormatWrapper {
 	) -> Result<config::Map<String, config::Value>, Box<dyn std::error::Error + Send + Sync>> {
 		match uri.and_then(|s| Path::new(s.as_str()).extension()).and_then(|s| s.to_str()) {
 			#[cfg(feature = "toml")]
-			Some("toml") => config::FileFormat::Toml.parse(uri, template_text(text, config::FileFormat::Toml)?.as_ref()),
+			Some("toml") => config::FileFormat::Toml.parse(uri, template_text(text, &config::FileFormat::Toml)?.as_ref()),
+			#[cfg(not(feature = "toml"))]
+			Some("toml") => {
+				return Err(Box::new(std::io::Error::new(
+					std::io::ErrorKind::InvalidData,
+					format!("toml support is not enabled, consider building with the `toml` feature enabled"),
+				)))
+			}
 			#[cfg(feature = "json")]
-			Some("json") => config::FileFormat::Json.parse(uri, template_text(text, config::FileFormat::Json)?.as_ref()),
+			Some("json") => config::FileFormat::Json.parse(uri, template_text(text, &config::FileFormat::Json)?.as_ref()),
+			#[cfg(not(feature = "json"))]
+			Some("json") => {
+				return Err(Box::new(std::io::Error::new(
+					std::io::ErrorKind::InvalidData,
+					format!("json support is not enabled, consider building with the `json` feature enabled"),
+				)))
+			}
 			#[cfg(feature = "yaml")]
 			Some("yaml") | Some("yml") => {
-				config::FileFormat::Yaml.parse(uri, template_text(text, config::FileFormat::Yaml)?.as_ref())
+				config::FileFormat::Yaml.parse(uri, template_text(text, &config::FileFormat::Yaml)?.as_ref())
+			}
+			#[cfg(not(feature = "yaml"))]
+			Some("yaml") | Some("yml") => {
+				return Err(Box::new(std::io::Error::new(
+					std::io::ErrorKind::InvalidData,
+					format!("yaml support is not enabled, consider building with the `yaml` feature enabled"),
+				)))
 			}
 			#[cfg(feature = "json5")]
-			Some("json5") => config::FileFormat::Json5.parse(uri, template_text(text, config::FileFormat::Json5)?.as_ref()),
+			Some("json5") => config::FileFormat::Json5.parse(uri, template_text(text, &config::FileFormat::Json5)?.as_ref()),
+			#[cfg(not(feature = "json5"))]
+			Some("json5") => {
+				return Err(Box::new(std::io::Error::new(
+					std::io::ErrorKind::InvalidData,
+					format!("json5 support is not enabled, consider building with the `json5` feature enabled"),
+				)))
+			}
 			#[cfg(feature = "ini")]
-			Some("ini") => config::FileFormat::Ini.parse(uri, template_text(text, config::FileFormat::Ini)?.as_ref()),
+			Some("ini") => config::FileFormat::Ini.parse(uri, template_text(text, &config::FileFormat::Ini)?.as_ref()),
+			#[cfg(not(feature = "ini"))]
+			Some("ini") => {
+				return Err(Box::new(std::io::Error::new(
+					std::io::ErrorKind::InvalidData,
+					format!("ini support is not enabled, consider building with the `ini` feature enabled"),
+				)))
+			}
 			#[cfg(feature = "ron")]
-			Some("ron") => config::FileFormat::Ron.parse(uri, template_text(text, config::FileFormat::Ron)?.as_ref()),
+			Some("ron") => config::FileFormat::Ron.parse(uri, template_text(text, &config::FileFormat::Ron)?.as_ref()),
+			#[cfg(not(feature = "ron"))]
+			Some("ron") => {
+				return Err(Box::new(std::io::Error::new(
+					std::io::ErrorKind::InvalidData,
+					format!("ron support is not enabled, consider building with the `ron` feature enabled"),
+				)))
+			}
 			_ => {
-				let formats = [
+				let formats: &[config::FileFormat] = &[
 					#[cfg(feature = "toml")]
 					config::FileFormat::Toml,
 					#[cfg(feature = "json")]
@@ -151,7 +193,7 @@ impl config::FileStoredFormat for FormatWrapper {
 	}
 }
 
-#[derive(Debug, Clone, bon::Builder)]
+#[derive(Debug, Clone)]
 pub struct Options {
 	/// The CLI options
 	#[cfg(feature = "cli")]
@@ -165,6 +207,7 @@ pub struct Options {
 impl Default for Options {
 	fn default() -> Self {
 		Self {
+			#[cfg(feature = "cli")]
 			cli: None,
 			default_config_file: Some("config"),
 			env_prefix: Some("APP"),

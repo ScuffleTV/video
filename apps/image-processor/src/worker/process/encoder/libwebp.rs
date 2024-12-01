@@ -140,6 +140,11 @@ impl Encoder for WebpEncoder {
 							LoopCount::Infinite => 0,
 						};
 
+						config.allow_mixed = match self.settings.quality {
+							OutputQuality::High | OutputQuality::Auto => 1,
+							_ => 0,
+						};
+
 						config
 					})
 				})

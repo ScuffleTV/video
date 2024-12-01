@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use scuffle_bootstrap::prelude::*;
 use scuffle_bootstrap::service::Service;
-use scuffle_bootstrap::signals::{SignalSvc, SignalSvcConfig};
+use scuffle_bootstrap::signal::{SignalSvc, SignalConfig};
 
 scuffle_bootstrap::main! {
 	Global {
@@ -44,7 +44,7 @@ impl Service<Global> for MySvc2 {
 }
 
 // Optional methods
-impl SignalSvcConfig for Global {}
+impl SignalConfig for Global {}
 
 struct Global;
 

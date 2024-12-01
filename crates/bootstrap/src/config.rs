@@ -23,18 +23,19 @@ impl ConfigParser for EmptyConfig {
 /// using the `scuffle-settings` crate
 #[cfg(feature = "settings")]
 #[macro_export]
-macro_rules! cli_config {
+macro_rules! cli_settings {
 	($ty:ty) => {
 		impl $crate::config::ConfigParser for $ty {
-			async fn parse() -> anyhow::Result<Self> {
-				use $crate::prelude::anyhow::Context;
-
-				$crate::prelude::scuffle_settings::parse_settings(
-					$crate::prelude::scuffle_settings::Options::builder()
-						.cli($crate::prelude::scuffle_settings::cli!())
-						.build(),
+			async fn parse() -> $crate::prelude::anyhow::Result<Self> {
+				$crate::prelude::anyhow::Context::context(
+					$crate::prelude::scuffle_settings::parse_settings(
+						$crate::prelude::scuffle_settings::Options {
+							cli: Some($crate::prelude::scuffle_settings::cli!()),
+							..::std::default::Default::default()
+						}
+					),
+					"config"
 				)
-				.context("config")
 			}
 		}
 	};

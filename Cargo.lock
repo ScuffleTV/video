@@ -863,31 +863,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bon"
-version = "3.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e47d5c63335658326076cf7c81795af665c534ea552da69526d6cef51b12ed9"
-dependencies = [
- "bon-macros",
- "rustversion",
-]
-
-[[package]]
-name = "bon-macros"
-version = "3.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b162272b6d55562ea30cc937d74ef4d07399e507bfd6eb3860f6a845c7264eef"
-dependencies = [
- "darling",
- "ident_case",
- "prettyplease",
- "proc-macro2",
- "quote",
- "rustversion",
- "syn 2.0.89",
-]
-
-[[package]]
 name = "bson"
 version = "2.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4381,6 +4356,7 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "scuffle-bootstrap",
+ "scuffle-context",
  "scuffle-settings",
  "serde",
  "serde_derive",
@@ -4537,6 +4513,7 @@ dependencies = [
  "scuffle-http",
  "scuffle-image-processor-proto",
  "scuffle-metrics",
+ "scuffle-settings",
  "serde",
  "serde_json",
  "smart-default",
@@ -4629,7 +4606,6 @@ dependencies = [
 name = "scuffle-settings"
 version = "0.0.0"
 dependencies = [
- "bon",
  "clap",
  "config",
  "minijinja",

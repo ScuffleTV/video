@@ -9,7 +9,11 @@ struct Config {
 
 fn main() {
 	let config = scuffle_settings::parse_settings::<Config>(
-		scuffle_settings::Options::builder().cli(scuffle_settings::cli!()).build(),
+		scuffle_settings::Options {
+			cli: Some(scuffle_settings::cli!()),
+			default_config_file: Some("config"),
+			env_prefix: Some("APP"),
+		},
 	);
 
 	println!("{:#?}", config);
