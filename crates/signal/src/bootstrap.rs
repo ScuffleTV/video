@@ -1,9 +1,8 @@
 use std::sync::Arc;
 
+use scuffle_bootstrap::global::Global;
+use scuffle_bootstrap::service::Service;
 use scuffle_context::ContextFutExt;
-
-use crate::global::Global;
-use crate::service::Service;
 
 #[derive(Default, Debug, Clone, Copy)]
 pub struct SignalSvc;
@@ -47,7 +46,7 @@ impl<Global: SignalConfig> Service<Global> for SignalSvc {
 		let timeout = global.timeout();
 
 		let signals = global.signals();
-		let mut handler = scuffle_signal::SignalHandler::with_signals(signals);
+		let mut handler = crate::SignalHandler::with_signals(signals);
 
 		// Wait for a signal, or for the context to be done.
 		handler.recv().with_context(ctx).await;

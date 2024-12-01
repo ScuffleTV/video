@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::Context;
-use scuffle_bootstrap::signal::{SignalSvc, SignalConfig};
+use scuffle_signal::{SignalConfig, SignalSvc};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 

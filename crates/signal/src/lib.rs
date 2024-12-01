@@ -5,6 +5,12 @@ use std::task::{Context, Poll};
 
 use tokio::signal::unix::{Signal, SignalKind};
 
+#[cfg(feature = "bootstrap")]
+mod bootstrap;
+
+#[cfg(feature = "bootstrap")]
+pub use bootstrap::{SignalConfig, SignalSvc};
+
 /// A handler for listening to multiple Unix signals, and providing a future for
 /// receiving them.
 ///

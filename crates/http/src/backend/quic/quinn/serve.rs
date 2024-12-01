@@ -55,6 +55,7 @@ async fn serve_handle(
 	config: Arc<QuinnServerConfigInner>,
 	ctx: scuffle_context::Context,
 ) {
+	tracing::debug!("serving quinn connection: {:?}", conn.remote_address());
 	let handle = Arc::new(handle);
 
 	let (ctx, ctx_handler) = ctx.new_child();

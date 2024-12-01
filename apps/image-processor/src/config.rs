@@ -400,4 +400,4 @@ pub enum MessageEncoding {
 	Protobuf,
 }
 
-scuffle_bootstrap::cli_settings!(ImageProcessorConfig);
+scuffle_settings::bootstrap!(ImageProcessorConfig);

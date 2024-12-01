@@ -1,7 +1,7 @@
 use global::Global;
 use management::ManagementSvc;
-use scuffle_bootstrap::signal::SignalSvc;
 use scuffle_bootstrap_telemetry::TelemetrySvc;
+use scuffle_signal::SignalSvc;
 use worker::WorkerSvc;
 
 mod config;

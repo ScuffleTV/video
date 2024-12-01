@@ -179,7 +179,7 @@ async fn serve_handle(
 	config: TcpServerConfigInner,
 	ctx: &scuffle_context::Context,
 ) -> Result<(), crate::Error> {
-	tracing::info!("serving connection");
+	tracing::debug!("serving connection: {:?}", addr);
 
 	let io = hyper_util::rt::TokioIo::new(stream);
 

@@ -1,6 +1,6 @@
 [package]
 name = "scuffle-settings"
-version = "0.0.0"
+version = "0.0.1"
 edition = "2021"
 repository = "https://github.com/scufflecloud/scuffle"
 authors = ["Scuffle <opensource@scuffle.cloud>"]
@@ -16,6 +16,8 @@ clap = { version = "4", optional = true }
 minijinja = { version = "2.5", optional = true, features = ["json", "custom_syntax", "urlencode"] }
 serde = "1"
 thiserror = "2"
+anyhow = { version = "1.0", optional = true }
+scuffle-bootstrap = { version = "0.0.1", path = "../bootstrap", optional = true }
 
 [features]
 cli = ["clap"]
@@ -28,7 +30,8 @@ ini = ["config/ini"]
 templates = ["minijinja"]
 
 all-formats = ["toml", "json", "yaml", "json5", "ini", "ron"]
-full = ["all-formats", "templates", "cli"]
+full = ["all-formats", "templates", "cli", "bootstrap"]
+bootstrap = ["scuffle-bootstrap", "anyhow", "cli"]
 default = []
 
 [dev-dependencies]

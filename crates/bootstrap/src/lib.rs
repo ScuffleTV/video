@@ -2,16 +2,12 @@ pub mod config;
 pub mod global;
 pub mod service;
 
-#[cfg(feature = "signal")]
-pub mod signal;
-
+pub use config::{ConfigParser, EmptyConfig};
+pub use global::Global;
 pub use scuffle_bootstrap_derive::main;
+pub use service::Service;
 
 #[doc(hidden)]
 pub mod prelude {
-	#[cfg(feature = "settings")]
-	pub use scuffle_settings;
-	#[cfg(feature = "signal")]
-	pub use scuffle_signal;
 	pub use {anyhow, futures, scuffle_context, tokio};
 }

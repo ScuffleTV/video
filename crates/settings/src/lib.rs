@@ -55,12 +55,18 @@ struct FormatWrapper;
 use std::borrow::Cow;
 
 #[cfg(not(feature = "templates"))]
-fn template_text<'a>(text: &'a str, _: &config::FileFormat) -> Result<Cow<'a, str>, Box<dyn std::error::Error + Send + Sync>> {
+fn template_text<'a>(
+	text: &'a str,
+	_: &config::FileFormat,
+) -> Result<Cow<'a, str>, Box<dyn std::error::Error + Send + Sync>> {
 	Ok(Cow::Borrowed(text))
 }
 
 #[cfg(feature = "templates")]
-fn template_text<'a>(text: &'a str, _: &config::FileFormat) -> Result<Cow<'a, str>, Box<dyn std::error::Error + Send + Sync>> {
+fn template_text<'a>(
+	text: &'a str,
+	_: &config::FileFormat,
+) -> Result<Cow<'a, str>, Box<dyn std::error::Error + Send + Sync>> {
 	use minijinja::syntax::SyntaxConfig;
 
 	let mut env = minijinja::Environment::new();
@@ -279,4 +285,31 @@ pub fn parse_settings<T: serde::de::DeserializeOwned>(options: Options) -> Resul
 	}
 
 	Ok(config.build()?.try_deserialize()?)
+}
+
+#[doc(hidden)]
+#[cfg(feature = "bootstrap")]
+pub mod macros {
+	pub use {anyhow, scuffle_bootstrap};
+}
+
+/// A macro to create a config parser from a CLI struct
+/// This macro will automatically parse the CLI struct into the given type
+/// using the `scuffle-settings` crate
+#[cfg(feature = "bootstrap")]
+#[macro_export]
+macro_rules! bootstrap {
+	($ty:ty) => {
+		impl $crate::macros::scuffle_bootstrap::config::ConfigParser for $ty {
+			async fn parse() -> $crate::macros::anyhow::Result<Self> {
+				$crate::macros::anyhow::Context::context(
+					$crate::parse_settings($crate::Options {
+						cli: Some($crate::cli!()),
+						..::std::default::Default::default()
+					}),
+					"config",
+				)
+			}
+		}
+	};
 }

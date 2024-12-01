@@ -1,5 +1,5 @@
 use fred::interfaces::{ClientLike, PubsubInterface};
-use fred::types::RedisConfig;
+use fred::types::config::Config;
 use prost::Message;
 use scuffle_image_processor_proto::EventCallback;
 
@@ -8,7 +8,7 @@ use crate::config::{MessageEncoding, RedisEventQueueConfig};
 
 #[derive(Debug)]
 pub struct RedisEventQueue {
-	client: fred::clients::RedisClient,
+	client: fred::clients::Client,
 	name: String,
 	message_encoding: MessageEncoding,
 }
@@ -16,7 +16,7 @@ pub struct RedisEventQueue {
 #[derive(Debug, thiserror::Error)]
 pub enum RedisEventQueueError {
 	#[error("redis: {0}")]
-	Redis(#[from] fred::error::RedisError),
+	Redis(#[from] fred::error::Error),
 	#[error("json encode: {0}")]
 	JsonEncode(#[from] serde_json::Error),
 }
@@ -25,8 +25,8 @@ impl RedisEventQueue {
 	#[tracing::instrument(skip(config), name = "RedisEventQueue::new", fields(name = %config.name), err)]
 	pub async fn new(config: &RedisEventQueueConfig) -> Result<Self, EventQueueError> {
 		Ok(Self {
-			client: fred::clients::RedisClient::new(
-				RedisConfig::from_url(&config.url).map_err(RedisEventQueueError::from)?,
+			client: fred::clients::Client::new(
+				Config::from_url(&config.url).map_err(RedisEventQueueError::from)?,
 				None,
 				None,
 				None,
@@ -61,6 +61,6 @@ impl EventQueue for RedisEventQueue {
 	}
 
 	async fn healthy(&self) -> bool {
-		self.client.ping::<()>().await.is_ok()
+		self.client.ping::<()>(None).await.is_ok()
 	}
 }
