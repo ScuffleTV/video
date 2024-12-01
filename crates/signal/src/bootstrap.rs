@@ -49,9 +49,9 @@ impl<Global: SignalConfig> Service<Global> for SignalSvc {
 		let mut handler = crate::SignalHandler::with_signals(signals);
 
 		// Wait for a signal, or for the context to be done.
-		handler.recv().with_context(ctx).await;
-
+		handler.recv().with_context(&ctx).await;
 		global.on_shutdown().await?;
+		drop(ctx);
 
 		tokio::select! {
 			signal = handler.recv() => {

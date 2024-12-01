@@ -14,7 +14,6 @@ scuffle_bootstrap::main! {
 impl SignalConfig for Global {
 	async fn on_shutdown(self: &Arc<Self>) -> anyhow::Result<()> {
 		tracing::info!("on_shutdown");
-		scuffle_context::Handler::global().shutdown().await;
 		Ok(())
 	}
 }
