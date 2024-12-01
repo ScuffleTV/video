@@ -1,0 +1,544 @@
+  Lines                Copies             Function name
+  -----                ------             -------------
+  33596                808                (TOTAL)
+    910 (2.7%,  2.7%)    1 (0.1%,  0.1%)  <scuffle_metrics::prometheus::Collector as prometheus::metrics::Collector>::collect
+    847 (2.5%,  5.2%)   11 (1.4%,  1.5%)  core::iter::traits::iterator::Iterator::advance_by
+    702 (2.1%,  7.3%)    3 (0.4%,  1.9%)  scuffle_metrics::prometheus::add_histogram_metric
+    669 (2.0%,  9.3%)    3 (0.4%,  2.2%)  scuffle_metrics::prometheus::add_sum_metric
+    559 (1.7%, 11.0%)    4 (0.5%,  2.7%)  <core::slice::iter::Iter<T> as core::iter::traits::iterator::Iterator>::fold
+    558 (1.7%, 12.6%)    3 (0.4%,  3.1%)  scuffle_metrics::prometheus::add_gauge_metric
+    534 (1.6%, 14.2%)    2 (0.2%,  3.3%)  alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut,K,V,NodeType>,alloc::collections::btree::node::marker::KV>::split_leaf_data
+    484 (1.4%, 15.7%)   11 (1.4%,  4.7%)  core::iter::traits::iterator::Iterator::nth
+    395 (1.2%, 16.8%)    1 (0.1%,  4.8%)  hashbrown::raw::RawTableInner::resize_inner
+    359 (1.1%, 17.9%)    1 (0.1%,  5.0%)  hashbrown::raw::RawTableInner::rehash_in_place
+    358 (1.1%, 19.0%)    1 (0.1%,  5.1%)  alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut,K,V,alloc::collections::btree::node::marker::Internal>,alloc::collections::btree::node::marker::Edge>::insert
+    340 (1.0%, 20.0%)    1 (0.1%,  5.2%)  alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut,K,V,alloc::collections::btree::node::marker::Leaf>,alloc::collections::btree::node::marker::Edge>::insert
+    334 (1.0%, 21.0%)    5 (0.6%,  5.8%)  std::sync::once_lock::OnceLock<T>::get_or_try_init
+    306 (0.9%, 21.9%)    9 (1.1%,  6.9%)  <core::iter::adapters::map::Map<I,F> as core::iter::traits::iterator::Iterator>::next
+    290 (0.9%, 22.8%)   14 (1.7%,  8.7%)  core::ops::function::FnOnce::call_once
+    290 (0.9%, 23.6%)    2 (0.2%,  8.9%)  hashbrown::raw::RawIterRange<T>::next_impl
+    282 (0.8%, 24.5%)    2 (0.2%,  9.2%)  core::slice::sort::unstable::quicksort::partition_lomuto_branchless_cyclic
+    279 (0.8%, 25.3%)    5 (0.6%,  9.8%)  std::sync::once_lock::OnceLock<T>::initialize::{{closure}}
+    277 (0.8%, 26.1%)    5 (0.6%, 10.4%)  std::sync::once::Once::call_once_force
+    275 (0.8%, 26.9%)    1 (0.1%, 10.5%)  alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut,K,V,alloc::collections::btree::node::marker::Leaf>,alloc::collections::btree::node::marker::Edge>::insert_recursing
+    264 (0.8%, 27.7%)    6 (0.7%, 11.3%)  scuffle_metrics::prometheus::add_histogram_metric::{{closure}}
+    258 (0.8%, 28.5%)    3 (0.4%, 11.6%)  core::iter::traits::iterator::Iterator::try_fold
+    257 (0.8%, 29.3%)    2 (0.2%, 11.9%)  <core::iter::adapters::chain::Chain<A,B> as core::iter::traits::iterator::Iterator>::size_hint
+    246 (0.7%, 30.0%)    6 (0.7%, 12.6%)  <&alloc::vec::Vec<T,A> as core::iter::traits::collect::IntoIterator>::into_iter
+    245 (0.7%, 30.7%)    1 (0.1%, 12.7%)  core::slice::sort::shared::smallsort::small_sort_general_with_scratch
+    238 (0.7%, 31.4%)    1 (0.1%, 12.9%)  hashbrown::raw::RawTableInner::find_or_find_insert_slot_inner
+    231 (0.7%, 32.1%)    2 (0.2%, 13.1%)  <core::iter::adapters::chain::Chain<A,B> as core::iter::traits::iterator::Iterator>::fold
+    227 (0.7%, 32.8%)    1 (0.1%, 13.2%)  <core::str::pattern::CharSearcher as core::str::pattern::Searcher>::next_match
+    224 (0.7%, 33.5%)    1 (0.1%, 13.4%)  core::slice::sort::shared::find_existing_run
+    223 (0.7%, 34.1%)    1 (0.1%, 13.5%)  scuffle_metrics::prometheus::create_scope_info_metric
+    220 (0.7%, 34.8%)    1 (0.1%, 13.6%)  alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut,K,V,alloc::collections::btree::node::marker::Internal>,alloc::collections::btree::node::marker::Edge>::insert_fit
+    214 (0.6%, 35.4%)    1 (0.1%, 13.7%)  scuffle_metrics::prometheus::Collector::metric_type_and_name
+    213 (0.6%, 36.0%)    1 (0.1%, 13.9%)  alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut,K,V,alloc::collections::btree::node::marker::Internal>::push
+    212 (0.6%, 36.7%)    2 (0.2%, 14.1%)  alloc::collections::btree::node::NodeRef<BorrowType,K,V,Type>::ascend
+    210 (0.6%, 37.3%)    1 (0.1%, 14.2%)  scuffle_metrics::prometheus::validate_metrics
+    208 (0.6%, 37.9%)    1 (0.1%, 14.4%)  scuffle_metrics::prometheus::config::ExporterBuilder::build
+    206 (0.6%, 38.5%)    1 (0.1%, 14.5%)  core::slice::sort::unstable::quicksort::quicksort
+    201 (0.6%, 39.1%)    1 (0.1%, 14.6%)  scuffle_metrics::prometheus::get_attrs
+    200 (0.6%, 39.7%)    2 (0.2%, 14.9%)  alloc::vec::Vec<T,A>::extend_trusted
+    199 (0.6%, 40.3%)    1 (0.1%, 15.0%)  scuffle_metrics::prometheus::utils::get_prom_units
+    198 (0.6%, 40.9%)    3 (0.4%, 15.3%)  <T as alloc::string::ToString>::to_string
+    197 (0.6%, 41.5%)    1 (0.1%, 15.5%)  core::slice::sort::shared::smallsort::sort4_stable
+    196 (0.6%, 42.1%)    4 (0.5%, 16.0%)  core::iter::traits::iterator::Iterator::fold
+    192 (0.6%, 42.6%)    2 (0.2%, 16.2%)  hashbrown::raw::RawTableInner::drop_elements
+    190 (0.6%, 43.2%)    1 (0.1%, 16.3%)  core::slice::sort::shared::smallsort::bidirectional_merge
+    190 (0.6%, 43.8%)    1 (0.1%, 16.5%)  hashbrown::raw::RawTableInner::find_inner
+    187 (0.6%, 44.3%)    1 (0.1%, 16.6%)  <prometheus::proto::Metric as core::clone::Clone>::clone
+    183 (0.5%, 44.9%)    1 (0.1%, 16.7%)  scuffle_metrics::prometheus::utils::get_unit_suffixes
+    177 (0.5%, 45.4%)    1 (0.1%, 16.8%)  <prometheus::proto::Metric as core::default::Default>::default
+    174 (0.5%, 45.9%)    2 (0.2%, 17.1%)  alloc::boxed::Box<T,A>::try_new_uninit_in
+    173 (0.5%, 46.4%)    1 (0.1%, 17.2%)  alloc::collections::btree::map::entry::VacantEntry<K,V,A>::insert
+    173 (0.5%, 47.0%)    1 (0.1%, 17.3%)  alloc::collections::btree::navigate::<impl alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<BorrowType,K,V,alloc::collections::btree::node::marker::LeafOrInternal>,alloc::collections::btree::node::marker::KV>>::next_leaf_edge
+    172 (0.5%, 47.5%)    1 (0.1%, 17.5%)  hashbrown::raw::RawTableInner::prepare_rehash_in_place
+    170 (0.5%, 48.0%)    5 (0.6%, 18.1%)  <protobuf::singular::SingularPtrField<T> as core::clone::Clone>::clone
+    170 (0.5%, 48.5%)    5 (0.6%, 18.7%)  std::sync::once::Once::call_once_force::{{closure}}
+    169 (0.5%, 49.0%)    1 (0.1%, 18.8%)  scuffle_metrics::prometheus::Collector::get_name
+    163 (0.5%, 49.5%)    1 (0.1%, 18.9%)  alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut,K,V,alloc::collections::btree::node::marker::Leaf>,alloc::collections::btree::node::marker::Edge>::insert_fit
+    160 (0.5%, 49.9%)    2 (0.2%, 19.2%)  core::slice::sort::unstable::quicksort::partition
+    157 (0.5%, 50.4%)    1 (0.1%, 19.3%)  core::ptr::swap_nonoverlapping
+    150 (0.4%, 50.9%)    3 (0.4%, 19.7%)  <core::iter::adapters::enumerate::Enumerate<I> as core::iter::traits::iterator::Iterator>::fold::enumerate::{{closure}}
+    148 (0.4%, 51.3%)    4 (0.5%, 20.2%)  <alloc::boxed::Box<T,A> as core::ops::drop::Drop>::drop
+    147 (0.4%, 51.7%)    1 (0.1%, 20.3%)  <T as alloc::slice::hack::ConvertVec>::to_vec
+    147 (0.4%, 52.2%)    1 (0.1%, 20.4%)  hashbrown::raw::TableLayout::calculate_layout_for
+    146 (0.4%, 52.6%)    2 (0.2%, 20.7%)  core::slice::sort::unstable::quicksort::partition_lomuto_branchless_cyclic::{{closure}}
+    145 (0.4%, 53.0%)    1 (0.1%, 20.8%)  alloc::collections::btree::search::<impl alloc::collections::btree::node::NodeRef<BorrowType,K,V,alloc::collections::btree::node::marker::LeafOrInternal>>::search_tree
+    144 (0.4%, 53.5%)    2 (0.2%, 21.0%)  <alloc::vec::Vec<T,A> as core::iter::traits::collect::IntoIterator>::into_iter
+    144 (0.4%, 53.9%)    1 (0.1%, 21.2%)  alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut,K,V,alloc::collections::btree::node::marker::Internal>,alloc::collections::btree::node::marker::KV>::split
+    141 (0.4%, 54.3%)    1 (0.1%, 21.3%)  alloc::collections::btree::navigate::<impl alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Dying,K,V,alloc::collections::btree::node::marker::Leaf>,alloc::collections::btree::node::marker::Edge>>::deallocating_next
+    139 (0.4%, 54.7%)    1 (0.1%, 21.4%)  alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut,K,V,alloc::collections::btree::node::marker::Leaf>::push_with_handle
+    136 (0.4%, 55.1%)    2 (0.2%, 21.7%)  hashbrown::raw::RawTable<T,A>::find
+    135 (0.4%, 55.5%)    9 (1.1%, 22.8%)  core::any::TypeId::of
+    134 (0.4%, 55.9%)    1 (0.1%, 22.9%)  alloc::alloc::Global::alloc_impl
+    133 (0.4%, 56.3%)    5 (0.6%, 23.5%)  std::sync::once_lock::OnceLock<T>::initialize
+    127 (0.4%, 56.7%)    1 (0.1%, 23.6%)  core::char::methods::encode_utf8_raw
+    126 (0.4%, 57.1%)    1 (0.1%, 23.8%)  alloc::collections::btree::map::BTreeMap<K,V,A>::entry
+    126 (0.4%, 57.5%)    1 (0.1%, 23.9%)  hashbrown::raw::RawTable<T,A>::insert_no_grow
+    126 (0.4%, 57.8%)    1 (0.1%, 24.0%)  std::collections::hash::map::Entry<K,V>::or_insert_with_key
+    124 (0.4%, 58.2%)    1 (0.1%, 24.1%)  alloc::collections::btree::navigate::LazyLeafRange<BorrowType,K,V>::init_front
+    124 (0.4%, 58.6%)    1 (0.1%, 24.3%)  core::str::<impl str>::split_once
+    123 (0.4%, 58.9%)    1 (0.1%, 24.4%)  <alloc::collections::btree::map::BTreeMap<K,V,A> as core::iter::traits::collect::IntoIterator>::into_iter
+    122 (0.4%, 59.3%)    2 (0.2%, 24.6%)  <alloc::vec::into_iter::IntoIter<T,A> as core::iter::traits::iterator::Iterator>::next
+    117 (0.3%, 59.6%)    9 (1.1%, 25.7%)  <dyn core::any::Any>::downcast_ref
+    117 (0.3%, 60.0%)    1 (0.1%, 25.9%)  alloc::collections::btree::search::<impl alloc::collections::btree::node::NodeRef<BorrowType,K,V,Type>>::find_key_index
+    115 (0.3%, 60.3%)    1 (0.1%, 26.0%)  hashbrown::raw::FullBucketsIndices::next_impl
+    113 (0.3%, 60.7%)    1 (0.1%, 26.1%)  hashbrown::map::HashMap<K,V,S,A>::insert
+    112 (0.3%, 61.0%)    1 (0.1%, 26.2%)  alloc::collections::btree::navigate::LazyLeafRange<alloc::collections::btree::node::marker::Dying,K,V>::take_front
+    111 (0.3%, 61.3%)    3 (0.4%, 26.6%)  opentelemetry::metrics::instruments::gauge::Gauge<T>::record
+    108 (0.3%, 61.7%)    1 (0.1%, 26.7%)  hashbrown::raw::RawTable<T,A>::insert_in_slot
+    107 (0.3%, 62.0%)    1 (0.1%, 26.9%)  scuffle_metrics::prometheus::create_info_metric
+    106 (0.3%, 62.3%)    4 (0.5%, 27.4%)  hashbrown::raw::RawTable<T,A>::reserve_rehash::{{closure}}
+    106 (0.3%, 62.6%)    2 (0.2%, 27.6%)  alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut,K,V,alloc::collections::btree::node::marker::Internal>::correct_childrens_parent_links
+    106 (0.3%, 62.9%)    1 (0.1%, 27.7%)  core::str::<impl str>::split_at_checked
+    100 (0.3%, 63.2%)    2 (0.2%, 28.0%)  hashbrown::raw::RawTable<T,A>::reserve
+    100 (0.3%, 63.5%)    2 (0.2%, 28.2%)  hashbrown::raw::RawTableInner::drop_inner_table
+    100 (0.3%, 63.8%)    1 (0.1%, 28.3%)  alloc::collections::btree::map::entry::VacantEntry<K,V,A>::insert::{{closure}}
+     99 (0.3%, 64.1%)    9 (1.1%, 29.5%)  core::ops::function::impls::<impl core::ops::function::FnOnce<A> for &mut F>::call_once
+     99 (0.3%, 64.4%)    3 (0.4%, 29.8%)  std::sync::once_lock::OnceLock<T>::get
+     99 (0.3%, 64.7%)    2 (0.2%, 30.1%)  core::iter::traits::iterator::Iterator::chain
+     99 (0.3%, 65.0%)    1 (0.1%, 30.2%)  hashbrown::raw::RawTableInner::find_insert_slot
+     99 (0.3%, 65.3%)    1 (0.1%, 30.3%)  hashbrown::raw::RawTableInner::find_insert_slot_in_group
+     98 (0.3%, 65.6%)    2 (0.2%, 30.6%)  hashbrown::raw::RawTable<T,A>::find::{{closure}}
+     96 (0.3%, 65.9%)   12 (1.5%, 32.1%)  core::iter::traits::iterator::Iterator::map
+     96 (0.3%, 66.2%)    1 (0.1%, 32.2%)  core::ptr::swap_nonoverlapping::precondition_check
+     96 (0.3%, 66.4%)    1 (0.1%, 32.3%)  core::slice::sort::shared::smallsort::insert_tail
+     94 (0.3%, 66.7%)   10 (1.2%, 33.5%)  core::ops::function::FnOnce::call_once{{vtable.shim}}
+     94 (0.3%, 67.0%)    2 (0.2%, 33.8%)  <alloc::vec::into_iter::IntoIter<T,A> as core::iter::traits::iterator::Iterator>::size_hint
+     94 (0.3%, 67.3%)    1 (0.1%, 33.9%)  core::intrinsics::copy_nonoverlapping::precondition_check
+     93 (0.3%, 67.6%)    3 (0.4%, 34.3%)  core::iter::adapters::map::map_fold::{{closure}}
+     93 (0.3%, 67.8%)    1 (0.1%, 34.4%)  core::slice::sort::shared::smallsort::merge_down
+     93 (0.3%, 68.1%)    1 (0.1%, 34.5%)  hashbrown::raw::RawTableInner::reserve_rehash_inner
+     92 (0.3%, 68.4%)    2 (0.2%, 34.8%)  hashbrown::raw::RawIterRange<T>::new
+     91 (0.3%, 68.7%)    2 (0.2%, 35.0%)  core::iter::traits::iterator::Iterator::find
+     90 (0.3%, 68.9%)    2 (0.2%, 35.3%)  core::iter::traits::exact_size::ExactSizeIterator::len
+     89 (0.3%, 69.2%)    4 (0.5%, 35.8%)  <alloc::sync::Arc<T,A> as core::ops::deref::Deref>::deref
+     88 (0.3%, 69.4%)    1 (0.1%, 35.9%)  alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Owned,K,V,alloc::collections::btree::node::marker::Internal>::from_new_internal
+     87 (0.3%, 69.7%)    1 (0.1%, 36.0%)  core::intrinsics::copy::precondition_check
+     85 (0.3%, 70.0%)    2 (0.2%, 36.3%)  alloc::collections::btree::mem::replace
+     82 (0.2%, 70.2%)    2 (0.2%, 36.5%)  <alloc::vec::into_iter::IntoIter<T,A> as core::ops::drop::Drop>::drop
+     82 (0.2%, 70.4%)    2 (0.2%, 36.8%)  <core::ops::range::Range<usize> as core::slice::index::SliceIndex<[T]>>::index_mut
+     82 (0.2%, 70.7%)    1 (0.1%, 36.9%)  hashbrown::raw::RawTable<T,A>::find_or_find_insert_slot
+     81 (0.2%, 70.9%)    2 (0.2%, 37.1%)  alloc::collections::btree::node::slice_insert
+     80 (0.2%, 71.2%)    3 (0.4%, 37.5%)  <std::sync::once_lock::OnceLock<T> as core::ops::drop::Drop>::drop
+     80 (0.2%, 71.4%)    2 (0.2%, 37.7%)  <alloc::string::String as core::iter::traits::collect::Extend<char>>::extend
+     80 (0.2%, 71.6%)    2 (0.2%, 38.0%)  alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut,K,V,NodeType>,alloc::collections::btree::node::marker::KV>::into_val_mut
+     79 (0.2%, 71.9%)    2 (0.2%, 38.2%)  <core::ops::control_flow::ControlFlow<B,C> as core::ops::try_trait::Try>::branch
+     79 (0.2%, 72.1%)    2 (0.2%, 38.5%)  core::iter::traits::iterator::Iterator::find::check::{{closure}}
+     79 (0.2%, 72.4%)    1 (0.1%, 38.6%)  <alloc::sync::Weak<T,A> as core::ops::drop::Drop>::drop
+     79 (0.2%, 72.6%)    1 (0.1%, 38.7%)  <prometheus::proto::MetricFamily as core::clone::Clone>::clone
+     79 (0.2%, 72.8%)    1 (0.1%, 38.9%)  hashbrown::raw::RawTableInner::fix_insert_slot
+     78 (0.2%, 73.1%)    2 (0.2%, 39.1%)  <alloc::string::String as core::iter::traits::collect::FromIterator<char>>::from_iter
+     78 (0.2%, 73.3%)    1 (0.1%, 39.2%)  alloc::collections::btree::navigate::<impl alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Dying,K,V,alloc::collections::btree::node::marker::Leaf>,alloc::collections::btree::node::marker::Edge>>::deallocating_end
+     78 (0.2%, 73.5%)    1 (0.1%, 39.4%)  alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Dying,K,V,NodeType>,alloc::collections::btree::node::marker::KV>::into_key_val
+     76 (0.2%, 73.7%)    2 (0.2%, 39.6%)  hashbrown::raw::RawTable<T,A>::reserve_rehash
+     76 (0.2%, 74.0%)    1 (0.1%, 39.7%)  alloc::collections::btree::map::entry::Entry<K,V,A>::or_insert_with
+     76 (0.2%, 74.2%)    1 (0.1%, 39.9%)  alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut,K,V,NodeType>,alloc::collections::btree::node::marker::KV>::kv_mut
+     75 (0.2%, 74.4%)    5 (0.6%, 40.5%)  core::option::Option<T>::unwrap
+     74 (0.2%, 74.6%)    2 (0.2%, 40.7%)  opentelemetry::metrics::instruments::counter::Counter<T>::add
+     74 (0.2%, 74.9%)    2 (0.2%, 41.0%)  opentelemetry::metrics::instruments::histogram::Histogram<T>::record
+     74 (0.2%, 75.1%)    2 (0.2%, 41.2%)  opentelemetry::metrics::instruments::up_down_counter::UpDownCounter<T>::add
+     74 (0.2%, 75.3%)    1 (0.1%, 41.3%)  scuffle_metrics::prometheus::utils::sanitize_name
+     73 (0.2%, 75.5%)    1 (0.1%, 41.5%)  parking_lot::raw_rwlock::RawRwLock::try_lock_shared_fast
+     72 (0.2%, 75.7%)    2 (0.2%, 41.7%)  alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<BorrowType,K,V,alloc::collections::btree::node::marker::Internal>,alloc::collections::btree::node::marker::Edge>::descend
+     72 (0.2%, 75.9%)    1 (0.1%, 41.8%)  <prometheus::proto::MetricFamily as core::default::Default>::default
+     71 (0.2%, 76.2%)    1 (0.1%, 42.0%)  core::slice::sort::unstable::heapsort::heapsort
+     70 (0.2%, 76.4%)    2 (0.2%, 42.2%)  <<alloc::vec::into_iter::IntoIter<T,A> as core::ops::drop::Drop>::drop::DropGuard<T,A> as core::ops::drop::Drop>::drop
+     70 (0.2%, 76.6%)    1 (0.1%, 42.3%)  alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Dying,K,V,alloc::collections::btree::node::marker::LeafOrInternal>::deallocate_and_ascend
+     70 (0.2%, 76.8%)    1 (0.1%, 42.5%)  alloc::string::String::push
+     70 (0.2%, 77.0%)    1 (0.1%, 42.6%)  core::ptr::drop_in_place<scuffle_metrics::prometheus::Collector>
+     70 (0.2%, 77.2%)    1 (0.1%, 42.7%)  core::slice::sort::shared::pivot::choose_pivot
+     69 (0.2%, 77.4%)    1 (0.1%, 42.8%)  alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Dying,K,V,NodeType>,alloc::collections::btree::node::marker::KV>::drop_key_val
+     69 (0.2%, 77.6%)    1 (0.1%, 42.9%)  core::slice::raw::from_raw_parts::precondition_check
+     69 (0.2%, 77.8%)    1 (0.1%, 43.1%)  core::slice::raw::from_raw_parts_mut::precondition_check
+     68 (0.2%, 78.0%)    1 (0.1%, 43.2%)  core::slice::sort::unstable::heapsort::sift_down
+     67 (0.2%, 78.2%)    1 (0.1%, 43.3%)  alloc::vec::Vec<T,A>::push
+     67 (0.2%, 78.4%)    1 (0.1%, 43.4%)  core::core_arch::simd::i8x16::new
+     67 (0.2%, 78.6%)    1 (0.1%, 43.6%)  core::slice::sort::shared::smallsort::merge_up
+     67 (0.2%, 78.8%)    1 (0.1%, 43.7%)  hashbrown::rustc_entry::<impl hashbrown::map::HashMap<K,V,S,A>>::rustc_entry
+     66 (0.2%, 79.0%)    1 (0.1%, 43.8%)  <alloc::vec::Vec<T,A1> as core::cmp::PartialOrd<alloc::vec::Vec<T,A2>>>::partial_cmp
+     66 (0.2%, 79.2%)    1 (0.1%, 43.9%)  <core::iter::adapters::enumerate::Enumerate<I> as core::iter::traits::iterator::Iterator>::next
+     65 (0.2%, 79.4%)    1 (0.1%, 44.1%)  <prometheus::proto::Histogram as core::clone::Clone>::clone
+     65 (0.2%, 79.6%)    1 (0.1%, 44.2%)  <prometheus::proto::Summary as core::clone::Clone>::clone
+     65 (0.2%, 79.8%)    1 (0.1%, 44.3%)  hashbrown::map::HashMap<K,V,S,A>::get_inner
+     64 (0.2%, 80.0%)    1 (0.1%, 44.4%)  <char as core::str::pattern::Pattern>::into_searcher
+     64 (0.2%, 80.2%)    1 (0.1%, 44.6%)  alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut,K,V,alloc::collections::btree::node::marker::Leaf>,alloc::collections::btree::node::marker::KV>::split
+     62 (0.2%, 80.4%)    1 (0.1%, 44.7%)  <core::str::iter::CharIndices as core::iter::traits::iterator::Iterator>::next
+     62 (0.2%, 80.5%)    1 (0.1%, 44.8%)  <prometheus::proto::LabelPair as core::clone::Clone>::clone
+     62 (0.2%, 80.7%)    1 (0.1%, 44.9%)  core::slice::sort::shared::pivot::median3_rec
+     61 (0.2%, 80.9%)    1 (0.1%, 45.0%)  <scuffle_metrics::prometheus::config::ExporterBuilder as core::default::Default>::default
+     59 (0.2%, 81.1%)    1 (0.1%, 45.2%)  <prometheus::proto::Histogram as core::default::Default>::default
+     58 (0.2%, 81.3%)    2 (0.2%, 45.4%)  <protobuf::repeated::RepeatedField<T> as core::clone::Clone>::clone
+     58 (0.2%, 81.4%)    1 (0.1%, 45.5%)  <core::slice::iter::Iter<T> as core::iter::traits::iterator::Iterator>::next
+     57 (0.2%, 81.6%)    2 (0.2%, 45.8%)  scuffle_metrics::prometheus::utils::sanitize_name::{{closure}}
+     57 (0.2%, 81.8%)    1 (0.1%, 45.9%)  <opentelemetry::common::InstrumentationScope as core::clone::Clone>::clone
+     57 (0.2%, 81.9%)    1 (0.1%, 46.0%)  core::slice::<impl [T]>::reverse
+     57 (0.2%, 82.1%)    1 (0.1%, 46.2%)  core::slice::<impl [T]>::reverse::revswap
+     56 (0.2%, 82.3%)    2 (0.2%, 46.4%)  alloc::boxed::Box<T,A>::new_uninit_in
+     55 (0.2%, 82.4%)    1 (0.1%, 46.5%)  scuffle_metrics::prometheus::utils::get_prom_per_unit
+     54 (0.2%, 82.6%)    5 (0.6%, 47.2%)  std::sync::once_lock::OnceLock<T>::get_or_init
+     54 (0.2%, 82.8%)    1 (0.1%, 47.3%)  <lock_api::rwlock::RwLock<R,T> as core::fmt::Debug>::fmt
+     53 (0.2%, 82.9%)    1 (0.1%, 47.4%)  <core::iter::adapters::cloned::Cloned<I> as core::iter::traits::iterator::Iterator>::fold
+     53 (0.2%, 83.1%)    1 (0.1%, 47.5%)  core::slice::memchr::memchr
+     53 (0.2%, 83.2%)    1 (0.1%, 47.6%)  core::slice::sort::unstable::ipnsort
+     52 (0.2%, 83.4%)    2 (0.2%, 47.9%)  alloc::vec::Vec<T,A>::extend_trusted::{{closure}}
+     52 (0.2%, 83.5%)    1 (0.1%, 48.0%)  core::slice::<impl [T]>::split_at_mut_unchecked
+     52 (0.2%, 83.7%)    1 (0.1%, 48.1%)  core::ub_checks::is_nonoverlapping::runtime
+     49 (0.1%, 83.8%)    2 (0.2%, 48.4%)  <core::option::Option<T> as core::fmt::Debug>::fmt
+     49 (0.1%, 84.0%)    2 (0.2%, 48.6%)  scuffle_metrics::prometheus::get_attrs::{{closure}}
+     49 (0.1%, 84.1%)    1 (0.1%, 48.8%)  <alloc::borrow::Cow<str> as alloc::string::ToString>::to_string
+     49 (0.1%, 84.3%)    1 (0.1%, 48.9%)  alloc::collections::btree::map::entry::Entry<K,V,A>::and_modify
+     49 (0.1%, 84.4%)    1 (0.1%, 49.0%)  hashbrown::raw::RawTable<T,A>::find_or_find_insert_slot::{{closure}}
+     48 (0.1%, 84.6%)    2 (0.2%, 49.3%)  alloc::collections::btree::node::move_to_slice
+     48 (0.1%, 84.7%)    1 (0.1%, 49.4%)  alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Mut,K,V,alloc::collections::btree::node::marker::Internal>,alloc::collections::btree::node::marker::Edge>::correct_parent_link
+     48 (0.1%, 84.9%)    1 (0.1%, 49.5%)  alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Owned,K,V,alloc::collections::btree::node::marker::Internal>::new_internal
+     47 (0.1%, 85.0%)    1 (0.1%, 49.6%)  <prometheus::proto::Bucket as core::default::Default>::default
+     47 (0.1%, 85.1%)    1 (0.1%, 49.8%)  core::ptr::read_volatile::precondition_check
+     47 (0.1%, 85.3%)    1 (0.1%, 49.9%)  core::ptr::swap
+     46 (0.1%, 85.4%)    2 (0.2%, 50.1%)  alloc::boxed::Box<T>::new
+     46 (0.1%, 85.5%)    1 (0.1%, 50.2%)  alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Immut,K,V,Type>::keys
+     46 (0.1%, 85.7%)    1 (0.1%, 50.4%)  alloc::slice::hack::into_vec
+     44 (0.1%, 85.8%)   11 (1.4%, 51.7%)  <core::iter::adapters::map::Map<I,F> as core::iter::traits::iterator::Iterator>::size_hint
+     44 (0.1%, 85.9%)    1 (0.1%, 51.9%)  <prometheus::proto::Counter as core::clone::Clone>::clone
+     44 (0.1%, 86.1%)    1 (0.1%, 52.0%)  <prometheus::proto::Gauge as core::clone::Clone>::clone
+     44 (0.1%, 86.2%)    1 (0.1%, 52.1%)  <prometheus::proto::Untyped as core::clone::Clone>::clone
+     44 (0.1%, 86.3%)    1 (0.1%, 52.2%)  alloc::fmt::format
+     44 (0.1%, 86.5%)    1 (0.1%, 52.4%)  core::char::methods::<impl char>::is_ascii_alphanumeric
+     43 (0.1%, 86.6%)    1 (0.1%, 52.5%)  <core::slice::iter::Iter<T> as core::iter::traits::iterator::Iterator>::any
+     43 (0.1%, 86.7%)    1 (0.1%, 52.6%)  alloc::collections::btree::node::InternalNode<K,V>::new
+     43 (0.1%, 86.9%)    1 (0.1%, 52.7%)  alloc::collections::btree::node::LeafNode<K,V>::new
+     42 (0.1%, 87.0%)    2 (0.2%, 53.0%)  <core::ops::control_flow::ControlFlow<B,C> as core::ops::try_trait::FromResidual<core::ops::control_flow::ControlFlow<B,core::convert::Infallible>>>::from_residual
+     42 (0.1%, 87.1%)    1 (0.1%, 53.1%)  <alloc::collections::btree::map::IntoIter<K,V,A> as core::ops::drop::Drop>::drop
+     42 (0.1%, 87.2%)    1 (0.1%, 53.2%)  alloc::collections::btree::navigate::LazyLeafRange<alloc::collections::btree::node::marker::Dying,K,V>::deallocating_end
+     42 (0.1%, 87.4%)    1 (0.1%, 53.3%)  alloc::collections::btree::navigate::LazyLeafRange<alloc::collections::btree::node::marker::Dying,K,V>::deallocating_next_unchecked
+     42 (0.1%, 87.5%)    1 (0.1%, 53.5%)  alloc::sync::Arc<T>::new
+     41 (0.1%, 87.6%)    1 (0.1%, 53.6%)  core::slice::iter::Iter<T>::make_slice
+     40 (0.1%, 87.7%)    1 (0.1%, 53.7%)  <alloc::sync::Arc<T,A> as core::clone::Clone>::clone
+     40 (0.1%, 87.8%)    1 (0.1%, 53.8%)  <alloc::sync::Arc<T,A> as core::ops::drop::Drop>::drop
+     40 (0.1%, 88.0%)    1 (0.1%, 54.0%)  <prometheus::proto::Counter as core::default::Default>::default
+     40 (0.1%, 88.1%)    1 (0.1%, 54.1%)  <prometheus::proto::Gauge as core::default::Default>::default
+     40 (0.1%, 88.2%)    1 (0.1%, 54.2%)  alloc::string::String::push_str
+     39 (0.1%, 88.3%)    1 (0.1%, 54.3%)  <alloc::alloc::Global as core::alloc::Allocator>::deallocate
+     39 (0.1%, 88.4%)    1 (0.1%, 54.5%)  alloc::alloc::exchange_malloc
+     39 (0.1%, 88.5%)    1 (0.1%, 54.6%)  core::slice::sort::shared::smallsort::insertion_sort_shift_left
+     38 (0.1%, 88.7%)    1 (0.1%, 54.7%)  core::char::methods::<impl char>::is_alphanumeric
+     37 (0.1%, 88.8%)    1 (0.1%, 54.8%)  <core::ops::range::Range<usize> as core::slice::index::SliceIndex<[T]>>::index
+     37 (0.1%, 88.9%)    1 (0.1%, 55.0%)  core::ptr::drop_in_place<scuffle_metrics::prometheus::config::ExporterBuilder>
+     36 (0.1%, 89.0%)    3 (0.4%, 55.3%)  alloc::vec::Vec<T>::new
+     36 (0.1%, 89.1%)    3 (0.4%, 55.7%)  core::fmt::rt::Argument::new_display
+     36 (0.1%, 89.2%)    1 (0.1%, 55.8%)  <core::ops::range::RangeFrom<usize> as core::slice::index::SliceIndex<[T]>>::index_mut
+     35 (0.1%, 89.3%)    7 (0.9%, 56.7%)  <I as core::iter::traits::collect::IntoIterator>::into_iter
+     35 (0.1%, 89.4%)    1 (0.1%, 56.8%)  <core::slice::iter::Iter<T> as core::iter::traits::exact_size::ExactSizeIterator>::len
+     35 (0.1%, 89.5%)    1 (0.1%, 56.9%)  <prometheus::proto::MetricType as core::fmt::Debug>::fmt
+     35 (0.1%, 89.6%)    1 (0.1%, 57.1%)  <scuffle_metrics::prometheus::PrometheusExporter as opentelemetry_sdk::metrics::reader::MetricReader>::register_pipeline
+     34 (0.1%, 89.7%)    2 (0.2%, 57.3%)  <std::collections::hash::map::HashMap<K,V,S> as core::default::Default>::default
+     34 (0.1%, 89.8%)    2 (0.2%, 57.5%)  core::option::Option<T>::is_some
+     34 (0.1%, 89.9%)    2 (0.2%, 57.8%)  std::sync::once_lock::OnceLock<T>::new
+     34 (0.1%, 90.0%)    1 (0.1%, 57.9%)  core::slice::sort::shared::pivot::median3
+     34 (0.1%, 90.1%)    1 (0.1%, 58.0%)  scuffle_metrics::prometheus::config::ExporterBuilder::with_registry
+     33 (0.1%, 90.2%)    3 (0.4%, 58.4%)  <core::iter::adapters::enumerate::Enumerate<I> as core::iter::traits::iterator::Iterator>::fold
+     33 (0.1%, 90.3%)    1 (0.1%, 58.5%)  core::option::Option<T>::as_deref
+     32 (0.1%, 90.4%)    1 (0.1%, 58.7%)  alloc::raw_vec::RawVec<T,A>::grow_one
+     32 (0.1%, 90.5%)    1 (0.1%, 58.8%)  core::iter::adapters::cloned::clone_try_fold::{{closure}}
+     31 (0.1%, 90.6%)    1 (0.1%, 58.9%)  core::num::<impl usize>::checked_add
+     31 (0.1%, 90.7%)    1 (0.1%, 59.0%)  std::collections::hash::map::HashMap<K,V,S>::entry
+     30 (0.1%, 90.8%)    1 (0.1%, 59.2%)  alloc::alloc::alloc
+     30 (0.1%, 90.9%)    1 (0.1%, 59.3%)  alloc::alloc::alloc_zeroed
+     30 (0.1%, 91.0%)    1 (0.1%, 59.4%)  core::slice::sort::unstable::sort
+     29 (0.1%, 91.0%)    5 (0.6%, 60.0%)  std::sync::once_lock::OnceLock<T>::get_or_init::{{closure}}
+     29 (0.1%, 91.1%)    1 (0.1%, 60.1%)  <T as core::slice::cmp::SliceContains>::slice_contains
+     29 (0.1%, 91.2%)    1 (0.1%, 60.3%)  <core::str::iter::Chars as core::iter::traits::iterator::Iterator>::next
+     29 (0.1%, 91.3%)    1 (0.1%, 60.4%)  <parking_lot::raw_mutex::RawMutex as lock_api::mutex::RawMutex>::lock
+     29 (0.1%, 91.4%)    1 (0.1%, 60.5%)  std::collections::hash::map::HashMap<K,V,S>::get
+     28 (0.1%, 91.5%)    4 (0.5%, 61.0%)  core::iter::traits::iterator::Iterator::for_each::call::{{closure}}
+     28 (0.1%, 91.6%)    1 (0.1%, 61.1%)  <scuffle_metrics::prometheus::CollectorInner as core::default::Default>::default
+     28 (0.1%, 91.6%)    1 (0.1%, 61.3%)  core::str::traits::<impl core::cmp::PartialEq for str>::eq
+     28 (0.1%, 91.7%)    1 (0.1%, 61.4%)  scuffle_metrics::prometheus::config::ExporterBuilder::build::{{closure}}
+     27 (0.1%, 91.8%)    1 (0.1%, 61.5%)  core::ptr::drop_in_place<(alloc::string::String,alloc::vec::Vec<alloc::string::String>)>
+     27 (0.1%, 91.9%)    1 (0.1%, 61.6%)  core::ptr::drop_in_place<(opentelemetry::common::InstrumentationScope,prometheus::proto::MetricFamily)>
+     27 (0.1%, 92.0%)    1 (0.1%, 61.8%)  core::ptr::drop_in_place<scuffle_metrics::prometheus::CollectorInner>
+     27 (0.1%, 92.0%)    1 (0.1%, 61.9%)  hashbrown::raw::sse2::Group::convert_special_to_empty_and_full_to_deleted
+     26 (0.1%, 92.1%)    4 (0.5%, 62.4%)  core::iter::traits::iterator::Iterator::for_each
+     26 (0.1%, 92.2%)    1 (0.1%, 62.5%)  core::char::convert::from_u32_unchecked::precondition_check
+     26 (0.1%, 92.3%)    1 (0.1%, 62.6%)  core::core_arch::x86::sse2::_mm_movemask_epi8
+     26 (0.1%, 92.4%)    1 (0.1%, 62.7%)  core::ptr::drop_in_place<alloc::boxed::Box<std::sync::mutex::Mutex<opentelemetry_sdk::metrics::manual_reader::ManualReaderInner>>>
+     26 (0.1%, 92.4%)    1 (0.1%, 62.9%)  core::ptr::drop_in_place<opentelemetry_sdk::metrics::data::ResourceMetrics>
+     26 (0.1%, 92.5%)    1 (0.1%, 63.0%)  core::slice::sort::shared::smallsort::small_sort_general
+     25 (0.1%, 92.6%)    1 (0.1%, 63.1%)  core::ptr::drop_in_place<alloc::vec::Vec<opentelemetry_sdk::metrics::data::ScopeMetrics>>
+     24 (0.1%, 92.7%)    3 (0.4%, 63.5%)  core::ops::function::impls::<impl core::ops::function::FnMut<A> for &mut F>::call_mut
+     24 (0.1%, 92.7%)    3 (0.4%, 63.9%)  scuffle_metrics::prometheus::add_gauge_metric::{{closure}}
+     24 (0.1%, 92.8%)    3 (0.4%, 64.2%)  scuffle_metrics::prometheus::add_sum_metric::{{closure}}
+     24 (0.1%, 92.9%)    2 (0.2%, 64.5%)  core::fmt::rt::Argument::new_debug
+     24 (0.1%, 92.9%)    1 (0.1%, 64.6%)  alloc::vec::Vec<T,A>::as_mut_slice
+     24 (0.1%, 93.0%)    1 (0.1%, 64.7%)  alloc::vec::Vec<T,A>::as_slice
+     24 (0.1%, 93.1%)    1 (0.1%, 64.9%)  core::cmp::PartialOrd::lt
+     24 (0.1%, 93.2%)    1 (0.1%, 65.0%)  core::slice::<impl [T]>::swap
+     24 (0.1%, 93.2%)    1 (0.1%, 65.1%)  core::str::<impl str>::chars
+     24 (0.1%, 93.3%)    1 (0.1%, 65.2%)  scuffle_metrics::prometheus::resource_selector::ResourceSelector::select
+     23 (0.1%, 93.4%)    1 (0.1%, 65.3%)  <parking_lot::raw_mutex::RawMutex as lock_api::mutex::RawMutex>::unlock
+     23 (0.1%, 93.4%)    1 (0.1%, 65.5%)  alloc::collections::btree::map::IntoIter<K,V,A>::dying_next
+     23 (0.1%, 93.5%)    1 (0.1%, 65.6%)  scuffle_metrics::prometheus::gauge_types::{{closure}}
+     23 (0.1%, 93.6%)    1 (0.1%, 65.7%)  scuffle_metrics::prometheus::histogram_types::{{closure}}
+     23 (0.1%, 93.6%)    1 (0.1%, 65.8%)  scuffle_metrics::prometheus::sum_types::{{closure}}
+     22 (0.1%, 93.7%)    2 (0.2%, 66.1%)  hashbrown::map::make_hasher::{{closure}}
+     22 (0.1%, 93.8%)    1 (0.1%, 66.2%)  lock_api::mutex::Mutex<R,T>::new
+     21 (0.1%, 93.8%)    3 (0.4%, 66.6%)  <&T as core::fmt::Debug>::fmt
+     21 (0.1%, 93.9%)    1 (0.1%, 66.7%)  <alloc::collections::btree::map::IntoIter<K,V,A> as core::iter::traits::iterator::Iterator>::next
+     20 (0.1%, 94.0%)    2 (0.2%, 67.0%)  <core::iter::adapters::map::Map<I,F> as core::iter::traits::iterator::Iterator>::fold
+     20 (0.1%, 94.0%)    1 (0.1%, 67.1%)  <alloc::vec::Vec<T,A> as core::ops::drop::Drop>::drop
+     20 (0.1%, 94.1%)    1 (0.1%, 67.2%)  <core::str::iter::Chars as core::iter::traits::iterator::Iterator>::size_hint
+     20 (0.1%, 94.1%)    1 (0.1%, 67.3%)  <prometheus::proto::MetricType as core::clone::Clone>::clone
+     20 (0.1%, 94.2%)    1 (0.1%, 67.5%)  <scuffle_metrics::prometheus::config::ExporterBuilder as core::fmt::Debug>::fmt
+     20 (0.1%, 94.3%)    1 (0.1%, 67.6%)  alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Owned,K,V,alloc::collections::btree::node::marker::Leaf>::from_new_leaf
+     20 (0.1%, 94.3%)    1 (0.1%, 67.7%)  core::option::Option<T>::unwrap_or_default
+     19 (0.1%, 94.4%)    2 (0.2%, 67.9%)  <core::ops::control_flow::ControlFlow<B,C> as core::ops::try_trait::Try>::from_output
+     19 (0.1%, 94.4%)    1 (0.1%, 68.1%)  <core::slice::sort::shared::smallsort::CopyOnDrop<T> as core::ops::drop::Drop>::drop
+     19 (0.1%, 94.5%)    1 (0.1%, 68.2%)  <parking_lot::raw_rwlock::RawRwLock as lock_api::rwlock::RawRwLock>::try_lock_shared
+     19 (0.1%, 94.5%)    1 (0.1%, 68.3%)  core::core_arch::x86::sse2::_mm_cmpeq_epi8
+     19 (0.1%, 94.6%)    1 (0.1%, 68.4%)  core::core_arch::x86::sse2::_mm_cmpgt_epi8
+     19 (0.1%, 94.7%)    1 (0.1%, 68.6%)  core::ptr::drop_in_place<alloc::boxed::Box<alloc::collections::btree::node::InternalNode<alloc::string::String,alloc::vec::Vec<alloc::string::String>>>>
+     19 (0.1%, 94.7%)    1 (0.1%, 68.7%)  core::ptr::drop_in_place<alloc::boxed::Box<alloc::collections::btree::node::LeafNode<alloc::string::String,alloc::vec::Vec<alloc::string::String>>>>
+     19 (0.1%, 94.8%)    1 (0.1%, 68.8%)  core::result::Result<T,E>::map_err
+     19 (0.1%, 94.8%)    1 (0.1%, 68.9%)  core::str::<impl str>::split_at
+     18 (0.1%, 94.9%)    3 (0.4%, 69.3%)  <scuffle_metrics::prometheus::Collector as prometheus::metrics::Collector>::collect::{{closure}}
+     18 (0.1%, 94.9%)    2 (0.2%, 69.6%)  <alloc::vec::Vec<T,A> as core::iter::traits::collect::Extend<T>>::extend
+     18 (0.1%, 95.0%)    2 (0.2%, 69.8%)  core::ops::function::FnMut::call_mut
+     18 (0.1%, 95.0%)    1 (0.1%, 69.9%)  <<alloc::collections::btree::map::IntoIter<K,V,A> as core::ops::drop::Drop>::drop::DropGuard<K,V,A> as core::ops::drop::Drop>::drop
+     18 (0.1%, 95.1%)    1 (0.1%, 70.0%)  <core::iter::adapters::filter::Filter<I,P> as core::iter::traits::iterator::Iterator>::size_hint
+     18 (0.1%, 95.1%)    1 (0.1%, 70.2%)  <core::option::Option<T> as core::clone::Clone>::clone
+     18 (0.1%, 95.2%)    1 (0.1%, 70.3%)  alloc::collections::btree::map::entry::OccupiedEntry<K,V,A>::into_mut
+     18 (0.1%, 95.3%)    1 (0.1%, 70.4%)  core::sync::atomic::AtomicU8::compare_exchange
+     18 (0.1%, 95.3%)    1 (0.1%, 70.5%)  core::sync::atomic::AtomicU8::compare_exchange_weak
+     18 (0.1%, 95.4%)    1 (0.1%, 70.7%)  core::sync::atomic::AtomicUsize::compare_exchange_weak
+     17 (0.1%, 95.4%)    1 (0.1%, 70.8%)  core::slice::<impl [T]>::swap_unchecked
+     17 (0.1%, 95.5%)    1 (0.1%, 70.9%)  scuffle_metrics::prometheus::utils::sanitize_prom_kv::{{closure}}
+     16 (0.0%, 95.5%)    2 (0.2%, 71.2%)  alloc::slice::<impl [T]>::to_vec
+     16 (0.0%, 95.6%)    2 (0.2%, 71.4%)  hashbrown::map::equivalent_key::{{closure}}
+     16 (0.0%, 95.6%)    1 (0.1%, 71.5%)  <T as core::slice::sort::shared::smallsort::UnstableSmallSortFreezeTypeImpl>::small_sort
+     16 (0.0%, 95.7%)    1 (0.1%, 71.7%)  <core::slice::sort::unstable::quicksort::GapGuardRaw<T> as core::ops::drop::Drop>::drop
+     16 (0.0%, 95.7%)    1 (0.1%, 71.8%)  core::char::methods::<impl char>::is_ascii_digit
+     16 (0.0%, 95.7%)    1 (0.1%, 71.9%)  core::num::<impl usize>::unchecked_add::precondition_check
+     16 (0.0%, 95.8%)    1 (0.1%, 72.0%)  core::option::Option<T>::unwrap_or_else
+     16 (0.0%, 95.8%)    1 (0.1%, 72.2%)  scuffle_metrics::collector::Collector<opentelemetry::metrics::instruments::up_down_counter::UpDownCounter<i64>>::decr_by
+     15 (0.0%, 95.9%)    1 (0.1%, 72.3%)  alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Owned,K,V,alloc::collections::btree::node::marker::LeafOrInternal>::push_internal_level::{{closure}}
+     15 (0.0%, 95.9%)    1 (0.1%, 72.4%)  alloc::sync::Arc<T,A>::drop_slow
+     15 (0.0%, 96.0%)    1 (0.1%, 72.5%)  core::num::<impl usize>::unchecked_sub::precondition_check
+     14 (0.0%, 96.0%)    2 (0.2%, 72.8%)  <alloc::string::String as core::iter::traits::collect::Extend<char>>::extend::{{closure}}
+     14 (0.0%, 96.1%)    2 (0.2%, 73.0%)  <alloc::vec::Vec<T,A> as alloc::vec::spec_extend::SpecExtend<T,I>>::spec_extend
+     14 (0.0%, 96.1%)    2 (0.2%, 73.3%)  protobuf::repeated::RepeatedField<T>::to_vec
+     14 (0.0%, 96.1%)    1 (0.1%, 73.4%)  <alloc::sync::Arc<T,A> as core::fmt::Debug>::fmt
+     14 (0.0%, 96.2%)    1 (0.1%, 73.5%)  <prometheus::proto::MetricType as core::cmp::PartialEq>::eq
+     14 (0.0%, 96.2%)    1 (0.1%, 73.6%)  <str as alloc::string::ToString>::to_string
+     14 (0.0%, 96.3%)    1 (0.1%, 73.8%)  alloc::collections::btree::navigate::<impl alloc::collections::btree::node::Handle<alloc::collections::btree::node::NodeRef<alloc::collections::btree::node::marker::Dying,K,V,alloc::collections::btree::node::marker::Leaf>,alloc::collections::btree::node::marker::Edge>>::deallocating_next_unchecked::{{closure}}
+     14 (0.0%, 96.3%)    1 (0.1%, 73.9%)  core::alloc::layout::Layout::from_size_align_unchecked::precondition_check
+     14 (0.0%, 96.4%)    1 (0.1%, 74.0%)  core::core_arch::x86::sse2::_mm_loadu_si128
+     13 (0.0%, 96.4%)    1 (0.1%, 74.1%)  <&mut I as core::iter::traits::iterator::Iterator>::next
+     13 (0.0%, 96.4%)    1 (0.1%, 74.3%)  <A as core::slice::cmp::SlicePartialOrd>::partial_compare
+     13 (0.0%, 96.5%)    1 (0.1%, 74.4%)  <core::ops::range::Range<usize> as core::slice::index::SliceIndex<[T]>>::get_unchecked::precondition_check
+     13 (0.0%, 96.5%)    1 (0.1%, 74.5%)  <core::ops::range::Range<usize> as core::slice::index::SliceIndex<[T]>>::get_unchecked_mut::precondition_check
+     13 (0.0%, 96.5%)    1 (0.1%, 74.6%)  alloc::vec::Vec<T>::with_capacity
+     13 (0.0%, 96.6%)    1 (0.1%, 74.8%)  core::slice::<impl [T]>::swap_unchecked::precondition_check
+     13 (0.0%, 96.6%)    1 (0.1%, 74.9%)  core::str::<impl str>::char_indices
+     13 (0.0%, 96.7%)    1 (0.1%, 75.0%)  core::str::traits::<impl core::slice::index::SliceIndex<str> for core::ops::range::Range<usize>>::get_unchecked::precondition_check
+     13 (0.0%, 96.7%)    1 (0.1%, 75.1%)  parking_lot::raw_rwlock::RawRwLock::deadlock_acquire
+     12 (0.0%, 96.7%)    1 (0.1%, 75.2%)  <<T as alloc::slice::hack::ConvertVec>::to_vec::DropGuard<T,A> as core::ops::drop::Drop>::drop
+     12 (0.0%, 96.8%)    1 (0.1%, 75.4%)  <alloc::alloc::Global as core::alloc::Allocator>::allocate
+     12 (0.0%, 96.8%)    1 (0.1%, 75.5%)  core::core_arch::simd::i8x16::splat
+     12 (0.0%, 96.8%)    1 (0.1%, 75.6%)  core::intrinsics::copy_nonoverlapping
+     12 (0.0%, 96.9%)    1 (0.1%, 75.7%)  core::ptr::non_null::NonNull<T>::new_unchecked::precondition_check
+     12 (0.0%, 96.9%)    1 (0.1%, 75.9%)  lock_api::rwlock::RwLock<R,T>::try_read
+     12 (0.0%, 97.0%)    1 (0.1%, 76.0%)  scuffle_metrics::collector::Collector<opentelemetry::metrics::instruments::up_down_counter::UpDownCounter<f64>>::decr_by
+     12 (0.0%, 97.0%)    1 (0.1%, 76.1%)  scuffle_metrics::prometheus::utils::sanitize_prom_kv
+     11 (0.0%, 97.0%)    1 (0.1%, 76.2%)  alloc::collections::btree::mem::take_mut::{{closure}}
+     11 (0.0%, 97.1%)    1 (0.1%, 76.4%)  core::core_arch::simd::i64x2::new
+     11 (0.0%, 97.1%)    1 (0.1%, 76.5%)  core::core_arch::x86::sse2::_mm_setzero_si128
+     11 (0.0%, 97.1%)    1 (0.1%, 76.6%)  core::intrinsics::typed_swap
+     11 (0.0%, 97.2%)    1 (0.1%, 76.7%)  core::ptr::drop_in_place<core::option::Option<(prometheus::proto::MetricType,alloc::borrow::Cow<str>)>>
+     11 (0.0%, 97.2%)    1 (0.1%, 76.9%)  core::ptr::drop_in_place<core::option::Option<prometheus::registry::Registry>>
+     11 (0.0%, 97.2%)    1 (0.1%, 77.0%)  opentelemetry::common::InstrumentationScope::attributes
+     11 (0.0%, 97.2%)    1 (0.1%, 77.1%)  scuffle_metrics::collector::Collector<opentelemetry::metrics::instruments::counter::Counter<f64>>::incr_by
+     11 (0.0%, 97.3%)    1 (0.1%, 77.2%)  scuffle_metrics::collector::Collector<opentelemetry::metrics::instruments::counter::Counter<u64>>::incr_by
+     11 (0.0%, 97.3%)    1 (0.1%, 77.4%)  scuffle_metrics::collector::Collector<opentelemetry::metrics::instruments::gauge::Gauge<f64>>::record
+     11 (0.0%, 97.3%)    1 (0.1%, 77.5%)  scuffle_metrics::collector::Collector<opentelemetry::metrics::instruments::gauge::Gauge<i64>>::record
+     11 (0.0%, 97.4%)    1 (0.1%, 77.6%)  scuffle_metrics::collector::Collector<opentelemetry::metrics::instruments::gauge::Gauge<u64>>::record
+     11 (0.0%, 97.4%)    1 (0.1%, 77.7%)  scuffle_metrics::collector::Collector<opentelemetry::metrics::instruments::histogram::Histogram<f64>>::observe
+     11 (0.0%, 97.4%)    1 (0.1%, 77.8%)  scuffle_metrics::collector::Collector<opentelemetry::metrics::instruments::histogram::Histogram<u64>>::observe
+     11 (0.0%, 97.5%)    1 (0.1%, 78.0%)  scuffle_metrics::collector::Collector<opentelemetry::metrics::instruments::up_down_counter::UpDownCounter<f64>>::incr_by
+     11 (0.0%, 97.5%)    1 (0.1%, 78.1%)  scuffle_metrics::collector::Collector<opentelemetry::metrics::instruments::up_down_counter::UpDownCounter<i64>>::incr_by
+     10 (0.0%, 97.5%)    2 (0.2%, 78.3%)  <hashbrown::raw::RawTable<T,A> as core::ops::drop::Drop>::drop
+     10 (0.0%, 97.6%)    1 (0.1%, 78.5%)  <&mut I as core::iter::traits::iterator::IteratorRefSpec>::spec_fold
+     10 (0.0%, 97.6%)    1 (0.1%, 78.6%)  core::iter::traits::iterator::Iterator::size_hint
+     10 (0.0%, 97.6%)    1 (0.1%, 78.7%)  core::slice::sort::unstable::quicksort::quicksort::{{closure}}
+     10 (0.0%, 97.7%)    1 (0.1%, 78.8%)  scuffle_metrics::prometheus::resource_selector::ResourceSelector::select::{{closure}}
+      9 (0.0%, 97.7%)    1 (0.1%, 79.0%)  <core::iter::adapters::filter::Filter<I,P> as core::iter::traits::iterator::Iterator>::next
+      9 (0.0%, 97.7%)    1 (0.1%, 79.1%)  <protobuf::cached_size::CachedSize as core::default::Default>::default
+      9 (0.0%, 97.7%)    1 (0.1%, 79.2%)  <usize as core::iter::range::Step>::backward_unchecked
+      9 (0.0%, 97.8%)    1 (0.1%, 79.3%)  <usize as core::iter::range::Step>::forward_unchecked
+      9 (0.0%, 97.8%)    1 (0.1%, 79.5%)  <usize as core::slice::index::SliceIndex<[T]>>::get_unchecked::precondition_check
+      9 (0.0%, 97.8%)    1 (0.1%, 79.6%)  <usize as core::slice::index::SliceIndex<[T]>>::get_unchecked_mut::precondition_check
+      9 (0.0%, 97.8%)    1 (0.1%, 79.7%)  alloc::collections::btree::map::BTreeMap<K,V>::new
+      9 (0.0%, 97.9%)    1 (0.1%, 79.8%)  core::ptr::const_ptr::<impl *const T>::sub_ptr::precondition_check
+      9 (0.0%, 97.9%)    1 (0.1%, 80.0%)  core::ptr::drop_in_place<scuffle_metrics::prometheus::resource_selector::ResourceSelector>
+      9 (0.0%, 97.9%)    1 (0.1%, 80.1%)  core::slice::<impl [T]>::split_at_mut_unchecked::precondition_check
+      9 (0.0%, 98.0%)    1 (0.1%, 80.2%)  opentelemetry::common::InstrumentationScope::name
+      9 (0.0%, 98.0%)    1 (0.1%, 80.3%)  opentelemetry::common::InstrumentationScope::version
+      8 (0.0%, 98.0%)    2 (0.2%, 80.6%)  core::iter::traits::iterator::Iterator::collect
+      8 (0.0%, 98.0%)    1 (0.1%, 80.7%)  <T as core::slice::sort::shared::smallsort::UnstableSmallSortFreezeTypeImpl>::small_sort_threshold
+      8 (0.0%, 98.1%)    1 (0.1%, 80.8%)  <T as core::slice::sort::shared::smallsort::UnstableSmallSortTypeImpl>::small_sort
+      8 (0.0%, 98.1%)    1 (0.1%, 80.9%)  <alloc::collections::btree::map::BTreeMap<K,V,A> as core::ops::drop::Drop>::drop
+      8 (0.0%, 98.1%)    1 (0.1%, 81.1%)  <alloc::string::String as core::fmt::Write>::write_str
+      8 (0.0%, 98.1%)    1 (0.1%, 81.2%)  <alloc::vec::Vec<T,A> as core::ops::deref::Deref>::deref
+      8 (0.0%, 98.1%)    1 (0.1%, 81.3%)  <alloc::vec::Vec<T,A> as core::ops::deref::DerefMut>::deref_mut
+      8 (0.0%, 98.2%)    1 (0.1%, 81.4%)  <core::sync::atomic::AtomicUsize as core::default::Default>::default
+      8 (0.0%, 98.2%)    1 (0.1%, 81.6%)  <core::sync::atomic::AtomicUsize as parking_lot::elision::AtomicElisionExt>::elision_compare_exchange_acquire
+      8 (0.0%, 98.2%)    1 (0.1%, 81.7%)  <prometheus::registry::Registry as core::fmt::Debug>::fmt
+      8 (0.0%, 98.2%)    1 (0.1%, 81.8%)  core::slice::<impl [T]>::contains
+      8 (0.0%, 98.3%)    1 (0.1%, 81.9%)  core::sync::atomic::AtomicUsize::load
+      7 (0.0%, 98.3%)    1 (0.1%, 82.1%)  <T as core::slice::cmp::SliceContains>::slice_contains::{{closure}}
+      7 (0.0%, 98.3%)    1 (0.1%, 82.2%)  <core::iter::adapters::cloned::Cloned<I> as core::iter::traits::iterator::Iterator>::try_fold
+      7 (0.0%, 98.3%)    1 (0.1%, 82.3%)  <scuffle_metrics::prometheus::PrometheusExporter as opentelemetry_sdk::metrics::reader::MetricReader>::collect
+      7 (0.0%, 98.4%)    1 (0.1%, 82.4%)  <scuffle_metrics::prometheus::PrometheusExporter as opentelemetry_sdk::metrics::reader::MetricReader>::temporality
+      7 (0.0%, 98.4%)    1 (0.1%, 82.5%)  core::cmp::PartialEq::ne
+      7 (0.0%, 98.4%)    1 (0.1%, 82.7%)  core::core_arch::x86::sse2::_mm_set1_epi8
+      7 (0.0%, 98.4%)    1 (0.1%, 82.8%)  core::iter::traits::iterator::Iterator::cloned
+      7 (0.0%, 98.4%)    1 (0.1%, 82.9%)  core::ops::try_trait::NeverShortCircuit<T>::wrap_mut_2::{{closure}}
+      7 (0.0%, 98.5%)    1 (0.1%, 83.0%)  core::slice::<impl [T]>::sort_unstable
+      7 (0.0%, 98.5%)    1 (0.1%, 83.2%)  hashbrown::rustc_entry::<impl hashbrown::map::HashMap<K,V,S,A>>::rustc_entry::{{closure}}
+      6 (0.0%, 98.5%)    1 (0.1%, 83.3%)  <alloc::string::String as core::cmp::Ord>::cmp
+      6 (0.0%, 98.5%)    1 (0.1%, 83.4%)  <alloc::string::String as core::cmp::PartialOrd>::partial_cmp
+      6 (0.0%, 98.5%)    1 (0.1%, 83.5%)  <alloc::string::String as core::fmt::Write>::write_char
+      6 (0.0%, 98.5%)    1 (0.1%, 83.7%)  <bool as core::fmt::Debug>::fmt
+      6 (0.0%, 98.6%)    1 (0.1%, 83.8%)  <core::any::TypeId as core::cmp::PartialEq>::eq
+      6 (0.0%, 98.6%)    1 (0.1%, 83.9%)  <core::result::Result<T,F> as core::ops::try_trait::FromResidual<core::result::Result<core::convert::Infallible,E>>>::from_residual
+      6 (0.0%, 98.6%)    1 (0.1%, 84.0%)  <lock_api::mutex::MutexGuard<R,T> as core::ops::deref::DerefMut>::deref_mut
+      6 (0.0%, 98.6%)    1 (0.1%, 84.2%)  <std::hash::random::RandomState as core::default::Default>::default
+      6 (0.0%, 98.6%)    1 (0.1%, 84.3%)  alloc::slice::<impl [T]>::into_vec
+      6 (0.0%, 98.7%)    1 (0.1%, 84.4%)  alloc::vec::Vec<T,A>::is_empty
+      6 (0.0%, 98.7%)    1 (0.1%, 84.5%)  core::iter::traits::iterator::Iterator::filter
+      6 (0.0%, 98.7%)    1 (0.1%, 84.7%)  core::str::<impl str>::is_empty
+      5 (0.0%, 98.7%)    1 (0.1%, 84.8%)  <&mut I as core::iter::traits::iterator::Iterator>::fold
+      5 (0.0%, 98.7%)    1 (0.1%, 84.9%)  <&mut I as core::iter::traits::iterator::Iterator>::size_hint
+      5 (0.0%, 98.7%)    1 (0.1%, 85.0%)  <i64 as scuffle_metrics::prometheus::Numeric>::as_f64
+      5 (0.0%, 98.7%)    1 (0.1%, 85.1%)  <lock_api::mutex::MutexGuard<R,T> as core::ops::drop::Drop>::drop
+      5 (0.0%, 98.8%)    1 (0.1%, 85.3%)  <scuffle_metrics::prometheus::PrometheusExporter as opentelemetry_sdk::metrics::reader::MetricReader>::force_flush
+      5 (0.0%, 98.8%)    1 (0.1%, 85.4%)  <scuffle_metrics::prometheus::PrometheusExporter as opentelemetry_sdk::metrics::reader::MetricReader>::shutdown
+      5 (0.0%, 98.8%)    1 (0.1%, 85.5%)  <u64 as scuffle_metrics::prometheus::Numeric>::as_f64
+      5 (0.0%, 98.8%)    1 (0.1%, 85.6%)  alloc::collections::btree::map::BTreeMap<K,V,A>::len
+      5 (0.0%, 98.8%)    1 (0.1%, 85.8%)  core::core_arch::x86::sse2::_mm_load_si128
+      5 (0.0%, 98.8%)    1 (0.1%, 85.9%)  core::core_arch::x86::sse2::_mm_or_si128
+      5 (0.0%, 98.9%)    1 (0.1%, 86.0%)  core::core_arch::x86::sse2::_mm_store_si128
+      5 (0.0%, 98.9%)    1 (0.1%, 86.1%)  core::ptr::drop_in_place<(prometheus::proto::MetricType,alloc::borrow::Cow<str>)>
+      5 (0.0%, 98.9%)    1 (0.1%, 86.3%)  core::ptr::drop_in_place<alloc::sync::ArcInner<opentelemetry_sdk::metrics::manual_reader::ManualReader>>
+      5 (0.0%, 98.9%)    1 (0.1%, 86.4%)  core::ptr::drop_in_place<lock_api::mutex::Mutex<parking_lot::raw_mutex::RawMutex,scuffle_metrics::prometheus::CollectorInner>>
+      5 (0.0%, 98.9%)    1 (0.1%, 86.5%)  lock_api::mutex::Mutex<R,T>::lock
+      4 (0.0%, 98.9%)    1 (0.1%, 86.6%)  <alloc::raw_vec::RawVec<T,A> as core::ops::drop::Drop>::drop
+      4 (0.0%, 98.9%)    1 (0.1%, 86.8%)  <alloc::string::String as alloc::string::ToString>::to_string
+      4 (0.0%, 98.9%)    1 (0.1%, 86.9%)  <core::iter::adapters::cloned::Cloned<I> as core::iter::traits::iterator::Iterator>::size_hint
+      4 (0.0%, 99.0%)    1 (0.1%, 87.0%)  <core::option::Option<T> as core::default::Default>::default
+      4 (0.0%, 99.0%)    1 (0.1%, 87.1%)  <f64 as scuffle_metrics::prometheus::Numeric>::as_f64
+      4 (0.0%, 99.0%)    1 (0.1%, 87.3%)  <opentelemetry_sdk::metrics::Temporality as core::default::Default>::default
+      4 (0.0%, 99.0%)    1 (0.1%, 87.4%)  <protobuf::unknown::UnknownFields as core::clone::Clone>::clone
+      4 (0.0%, 99.0%)    1 (0.1%, 87.5%)  <scuffle_metrics::prometheus::Collector as prometheus::metrics::Collector>::desc
+      4 (0.0%, 99.0%)    1 (0.1%, 87.6%)  <scuffle_metrics::prometheus::resource_selector::ResourceSelector as core::convert::From<std::collections::hash::set::HashSet<opentelemetry::common::Key>>>::from
+      4 (0.0%, 99.0%)    1 (0.1%, 87.7%)  core::intrinsics::likely
+      4 (0.0%, 99.0%)    1 (0.1%, 87.9%)  core::intrinsics::unlikely
+      4 (0.0%, 99.1%)    1 (0.1%, 88.0%)  core::ptr::drop_in_place<(alloc::vec::Vec<prometheus::proto::Bucket>,u64)>
+      4 (0.0%, 99.1%)    1 (0.1%, 88.1%)  core::ptr::drop_in_place<<T as alloc::slice::hack::ConvertVec>::to_vec::DropGuard<prometheus::proto::Metric,alloc::alloc::Global>>
+      4 (0.0%, 99.1%)    1 (0.1%, 88.2%)  core::ptr::drop_in_place<<alloc::collections::btree::map::IntoIter<K,V,A> as core::ops::drop::Drop>::drop::DropGuard<alloc::string::String,alloc::vec::Vec<alloc::string::String>,alloc::alloc::Global>>
+      4 (0.0%, 99.1%)    1 (0.1%, 88.4%)  core::ptr::drop_in_place<<alloc::vec::into_iter::IntoIter<T,A> as core::ops::drop::Drop>::drop::DropGuard<opentelemetry_sdk::metrics::data::Metric,alloc::alloc::Global>>
+      4 (0.0%, 99.1%)    1 (0.1%, 88.5%)  core::ptr::drop_in_place<<alloc::vec::into_iter::IntoIter<T,A> as core::ops::drop::Drop>::drop::DropGuard<opentelemetry_sdk::metrics::data::ScopeMetrics,alloc::alloc::Global>>
+      4 (0.0%, 99.1%)    1 (0.1%, 88.6%)  core::ptr::drop_in_place<<scuffle_metrics::prometheus::Collector as prometheus::metrics::Collector>::collect::{{closure}}>
+      4 (0.0%, 99.1%)    1 (0.1%, 88.7%)  core::ptr::drop_in_place<alloc::collections::btree::map::BTreeMap<alloc::string::String,alloc::vec::Vec<alloc::string::String>>>
+      4 (0.0%, 99.1%)    1 (0.1%, 88.9%)  core::ptr::drop_in_place<alloc::collections::btree::map::IntoIter<alloc::string::String,alloc::vec::Vec<alloc::string::String>>>
+      4 (0.0%, 99.2%)    1 (0.1%, 89.0%)  core::ptr::drop_in_place<alloc::collections::btree::map::entry::VacantEntry<alloc::string::String,alloc::vec::Vec<alloc::string::String>>>
+      4 (0.0%, 99.2%)    1 (0.1%, 89.1%)  core::ptr::drop_in_place<alloc::collections::btree::node::SplitResult<alloc::string::String,alloc::vec::Vec<alloc::string::String>,alloc::collections::btree::node::marker::Internal>>
+      4 (0.0%, 99.2%)    1 (0.1%, 89.2%)  core::ptr::drop_in_place<alloc::collections::btree::node::SplitResult<alloc::string::String,alloc::vec::Vec<alloc::string::String>,alloc::collections::btree::node::marker::Leaf>>
+      4 (0.0%, 99.2%)    1 (0.1%, 89.4%)  core::ptr::drop_in_place<alloc::raw_vec::RawVec<opentelemetry_sdk::metrics::data::ScopeMetrics>>
+      4 (0.0%, 99.2%)    1 (0.1%, 89.5%)  core::ptr::drop_in_place<alloc::sync::Arc<opentelemetry_sdk::metrics::manual_reader::ManualReader>>
+      4 (0.0%, 99.2%)    1 (0.1%, 89.6%)  core::ptr::drop_in_place<alloc::sync::Weak<opentelemetry_sdk::metrics::manual_reader::ManualReader,&alloc::alloc::Global>>
+      4 (0.0%, 99.2%)    1 (0.1%, 89.7%)  core::ptr::drop_in_place<alloc::vec::Vec<prometheus::proto::LabelPair>::extend_trusted<&mut core::iter::adapters::cloned::Cloned<core::slice::iter::Iter<prometheus::proto::LabelPair>>>::{{closure}}>
+      4 (0.0%, 99.2%)    1 (0.1%, 89.9%)  core::ptr::drop_in_place<alloc::vec::Vec<prometheus::proto::LabelPair>::extend_trusted<core::iter::adapters::cloned::Cloned<core::slice::iter::Iter<prometheus::proto::LabelPair>>>::{{closure}}>
+      4 (0.0%, 99.2%)    1 (0.1%, 90.0%)  core::ptr::drop_in_place<alloc::vec::into_iter::IntoIter<opentelemetry_sdk::metrics::data::Metric>>
+      4 (0.0%, 99.3%)    1 (0.1%, 90.1%)  core::ptr::drop_in_place<alloc::vec::into_iter::IntoIter<opentelemetry_sdk::metrics::data::ScopeMetrics>>
+      4 (0.0%, 99.3%)    1 (0.1%, 90.2%)  core::ptr::drop_in_place<core::cell::UnsafeCell<scuffle_metrics::prometheus::CollectorInner>>
+      4 (0.0%, 99.3%)    1 (0.1%, 90.3%)  core::ptr::drop_in_place<core::iter::adapters::cloned::clone_try_fold<prometheus::proto::LabelPair,(),core::ops::try_trait::NeverShortCircuit<()>,core::ops::try_trait::NeverShortCircuit<()>::wrap_mut_2<(),prometheus::proto::LabelPair,core::iter::traits::iterator::Iterator::for_each::call<prometheus::proto::LabelPair,alloc::vec::Vec<prometheus::proto::LabelPair>::extend_trusted<&mut core::iter::adapters::cloned::Cloned<core::slice::iter::Iter<prometheus::proto::LabelPair>>>::{{closure}}>::{{closure}}>::{{closure}}>::{{closure}}>
+      4 (0.0%, 99.3%)    1 (0.1%, 90.5%)  core::ptr::drop_in_place<core::iter::adapters::map::map_fold<&prometheus::proto::LabelPair,prometheus::proto::LabelPair,(),<prometheus::proto::LabelPair as core::clone::Clone>::clone,core::iter::traits::iterator::Iterator::for_each::call<prometheus::proto::LabelPair,alloc::vec::Vec<prometheus::proto::LabelPair>::extend_trusted<core::iter::adapters::cloned::Cloned<core::slice::iter::Iter<prometheus::proto::LabelPair>>>::{{closure}}>::{{closure}}>::{{closure}}>
+      4 (0.0%, 99.3%)    1 (0.1%, 90.6%)  core::ptr::drop_in_place<core::iter::traits::iterator::Iterator::for_each::call<prometheus::proto::LabelPair,alloc::vec::Vec<prometheus::proto::LabelPair>::extend_trusted<&mut core::iter::adapters::cloned::Cloned<core::slice::iter::Iter<prometheus::proto::LabelPair>>>::{{closure}}>::{{closure}}>
+      4 (0.0%, 99.3%)    1 (0.1%, 90.7%)  core::ptr::drop_in_place<core::iter::traits::iterator::Iterator::for_each::call<prometheus::proto::LabelPair,alloc::vec::Vec<prometheus::proto::LabelPair>::extend_trusted<core::iter::adapters::cloned::Cloned<core::slice::iter::Iter<prometheus::proto::LabelPair>>>::{{closure}}>::{{closure}}>
+      4 (0.0%, 99.3%)    1 (0.1%, 90.8%)  core::ptr::drop_in_place<core::ops::try_trait::NeverShortCircuit<()>::wrap_mut_2<(),prometheus::proto::LabelPair,core::iter::traits::iterator::Iterator::for_each::call<prometheus::proto::LabelPair,alloc::vec::Vec<prometheus::proto::LabelPair>::extend_trusted<&mut core::iter::adapters::cloned::Cloned<core::slice::iter::Iter<prometheus::proto::LabelPair>>>::{{closure}}>::{{closure}}>::{{closure}}>
+      4 (0.0%, 99.3%)    1 (0.1%, 91.0%)  core::ptr::drop_in_place<core::slice::sort::shared::smallsort::CopyOnDrop<alloc::string::String>>
+      4 (0.0%, 99.4%)    1 (0.1%, 91.1%)  core::ptr::drop_in_place<core::slice::sort::unstable::quicksort::GapGuardRaw<alloc::string::String>>
+      4 (0.0%, 99.4%)    1 (0.1%, 91.2%)  core::ptr::drop_in_place<hashbrown::map::HashMap<alloc::string::String,prometheus::proto::MetricFamily,std::hash::random::RandomState>>
+      4 (0.0%, 99.4%)    1 (0.1%, 91.3%)  core::ptr::drop_in_place<hashbrown::map::HashMap<opentelemetry::common::InstrumentationScope,prometheus::proto::MetricFamily,std::hash::random::RandomState>>
+      4 (0.0%, 99.4%)    1 (0.1%, 91.5%)  core::ptr::drop_in_place<hashbrown::raw::RawTable<(alloc::string::String,prometheus::proto::MetricFamily)>>
+      4 (0.0%, 99.4%)    1 (0.1%, 91.6%)  core::ptr::drop_in_place<hashbrown::raw::RawTable<(opentelemetry::common::InstrumentationScope,prometheus::proto::MetricFamily)>>
+      4 (0.0%, 99.4%)    1 (0.1%, 91.7%)  core::ptr::drop_in_place<hashbrown::rustc_entry::RustcVacantEntry<opentelemetry::common::InstrumentationScope,prometheus::proto::MetricFamily>>
+      4 (0.0%, 99.4%)    1 (0.1%, 91.8%)  core::ptr::drop_in_place<lock_api::mutex::MutexGuard<parking_lot::raw_mutex::RawMutex,scuffle_metrics::prometheus::CollectorInner>>
+      4 (0.0%, 99.4%)    1 (0.1%, 92.0%)  core::ptr::drop_in_place<opentelemetry_sdk::metrics::manual_reader::ManualReader>
+      4 (0.0%, 99.4%)    1 (0.1%, 92.1%)  core::ptr::drop_in_place<std::collections::hash::map::HashMap<alloc::string::String,prometheus::proto::MetricFamily>>
+      4 (0.0%, 99.5%)    1 (0.1%, 92.2%)  core::ptr::drop_in_place<std::collections::hash::map::HashMap<opentelemetry::common::InstrumentationScope,prometheus::proto::MetricFamily>>
+      4 (0.0%, 99.5%)    1 (0.1%, 92.3%)  core::ptr::drop_in_place<std::collections::hash::map::VacantEntry<opentelemetry::common::InstrumentationScope,prometheus::proto::MetricFamily>>
+      4 (0.0%, 99.5%)    1 (0.1%, 92.5%)  core::ptr::drop_in_place<std::sync::once_lock::OnceLock<[core::any::TypeId; 3]>>
+      4 (0.0%, 99.5%)    1 (0.1%, 92.6%)  core::ptr::drop_in_place<std::sync::once_lock::OnceLock<alloc::vec::Vec<prometheus::proto::LabelPair>>>
+      4 (0.0%, 99.5%)    1 (0.1%, 92.7%)  core::ptr::drop_in_place<std::sync::once_lock::OnceLock<prometheus::proto::MetricFamily>>
+      4 (0.0%, 99.5%)    1 (0.1%, 92.8%)  scuffle_metrics::collector::Collector<opentelemetry::metrics::instruments::up_down_counter::UpDownCounter<f64>>::decr
+      4 (0.0%, 99.5%)    1 (0.1%, 92.9%)  scuffle_metrics::collector::Collector<opentelemetry::metrics::instruments::up_down_counter::UpDownCounter<f64>>::incr
+      4 (0.0%, 99.5%)    1 (0.1%, 93.1%)  scuffle_metrics::collector::Collector<opentelemetry::metrics::instruments::up_down_counter::UpDownCounter<i64>>::decr
+      4 (0.0%, 99.6%)    1 (0.1%, 93.2%)  scuffle_metrics::collector::Collector<opentelemetry::metrics::instruments::up_down_counter::UpDownCounter<i64>>::incr
+      4 (0.0%, 99.6%)    1 (0.1%, 93.3%)  scuffle_metrics::prometheus::config::ExporterBuilder::without_counter_suffixes
+      4 (0.0%, 99.6%)    1 (0.1%, 93.4%)  scuffle_metrics::prometheus::config::ExporterBuilder::without_scope_info
+      4 (0.0%, 99.6%)    1 (0.1%, 93.6%)  scuffle_metrics::prometheus::config::ExporterBuilder::without_target_info
+      4 (0.0%, 99.6%)    1 (0.1%, 93.7%)  scuffle_metrics::prometheus::config::ExporterBuilder::without_units
+      4 (0.0%, 99.6%)    1 (0.1%, 93.8%)  std::collections::hash::map::HashMap<K,V,S>::insert
+      3 (0.0%, 99.6%)    1 (0.1%, 93.9%)  <alloc::alloc::Global as core::clone::Clone>::clone
+      3 (0.0%, 99.6%)    1 (0.1%, 94.1%)  core::cell::UnsafeCell<T>::get
+      3 (0.0%, 99.6%)    1 (0.1%, 94.2%)  core::ptr::drop_in_place<&alloc::string::String>
+      3 (0.0%, 99.7%)    1 (0.1%, 94.3%)  core::ptr::drop_in_place<&alloc::sync::Arc<lock_api::rwlock::RwLock<parking_lot::raw_rwlock::RawRwLock,prometheus::registry::RegistryCore>>>
+      3 (0.0%, 99.7%)    1 (0.1%, 94.4%)  core::ptr::drop_in_place<&prometheus::registry::Registry>
+      3 (0.0%, 99.7%)    1 (0.1%, 94.6%)  core::ptr::drop_in_place<&prometheus::registry::RegistryCore>
+      3 (0.0%, 99.7%)    1 (0.1%, 94.7%)  core::ptr::drop_in_place<bool>
+      3 (0.0%, 99.7%)    1 (0.1%, 94.8%)  core::ptr::drop_in_place<core::fmt::Arguments>
+      3 (0.0%, 99.7%)    1 (0.1%, 94.9%)  core::ptr::drop_in_place<core::iter::adapters::filter::Filter<opentelemetry_sdk::resource::Iter,scuffle_metrics::prometheus::resource_selector::ResourceSelector::select::{{closure}}>>
+      3 (0.0%, 99.7%)    1 (0.1%, 95.0%)  core::ptr::drop_in_place<core::iter::adapters::map::Map<core::slice::iter::Iter<opentelemetry::common::KeyValue>,scuffle_metrics::prometheus::add_gauge_metric<f64>::{{closure}}>>
+      3 (0.0%, 99.7%)    1 (0.1%, 95.2%)  core::ptr::drop_in_place<core::iter::adapters::map::Map<core::slice::iter::Iter<opentelemetry::common::KeyValue>,scuffle_metrics::prometheus::add_gauge_metric<i64>::{{closure}}>>
+      3 (0.0%, 99.7%)    1 (0.1%, 95.3%)  core::ptr::drop_in_place<core::iter::adapters::map::Map<core::slice::iter::Iter<opentelemetry::common::KeyValue>,scuffle_metrics::prometheus::add_gauge_metric<u64>::{{closure}}>>
+      3 (0.0%, 99.7%)    1 (0.1%, 95.4%)  core::ptr::drop_in_place<core::iter::adapters::map::Map<core::slice::iter::Iter<opentelemetry::common::KeyValue>,scuffle_metrics::prometheus::add_histogram_metric<f64>::{{closure}}>>
+      3 (0.0%, 99.7%)    1 (0.1%, 95.5%)  core::ptr::drop_in_place<core::iter::adapters::map::Map<core::slice::iter::Iter<opentelemetry::common::KeyValue>,scuffle_metrics::prometheus::add_histogram_metric<i64>::{{closure}}>>
+      3 (0.0%, 99.7%)    1 (0.1%, 95.7%)  core::ptr::drop_in_place<core::iter::adapters::map::Map<core::slice::iter::Iter<opentelemetry::common::KeyValue>,scuffle_metrics::prometheus::add_histogram_metric<u64>::{{closure}}>>
+      3 (0.0%, 99.8%)    1 (0.1%, 95.8%)  core::ptr::drop_in_place<core::iter::adapters::map::Map<core::slice::iter::Iter<opentelemetry::common::KeyValue>,scuffle_metrics::prometheus::add_sum_metric<f64>::{{closure}}>>
+      3 (0.0%, 99.8%)    1 (0.1%, 95.9%)  core::ptr::drop_in_place<core::iter::adapters::map::Map<core::slice::iter::Iter<opentelemetry::common::KeyValue>,scuffle_metrics::prometheus::add_sum_metric<i64>::{{closure}}>>
+      3 (0.0%, 99.8%)    1 (0.1%, 96.0%)  core::ptr::drop_in_place<core::iter::adapters::map::Map<core::slice::iter::Iter<opentelemetry::common::KeyValue>,scuffle_metrics::prometheus::add_sum_metric<u64>::{{closure}}>>
+      3 (0.0%, 99.8%)    1 (0.1%, 96.2%)  core::ptr::drop_in_place<hashbrown::raw::RawTable<(alloc::string::String,prometheus::proto::MetricFamily)>::find<hashbrown::map::equivalent_key<str,alloc::string::String,prometheus::proto::MetricFamily>::{{closure}}>::{{closure}}>
+      3 (0.0%, 99.8%)    1 (0.1%, 96.3%)  core::ptr::drop_in_place<hashbrown::raw::RawTable<(alloc::string::String,prometheus::proto::MetricFamily)>::find_or_find_insert_slot<hashbrown::map::equivalent_key<alloc::string::String,alloc::string::String,prometheus::proto::MetricFamily>::{{closure}},hashbrown::map::make_hasher<alloc::string::String,prometheus::proto::MetricFamily,std::hash::random::RandomState>::{{closure}}>::{{closure}}>
+      3 (0.0%, 99.8%)    1 (0.1%, 96.4%)  core::ptr::drop_in_place<hashbrown::raw::RawTable<(alloc::string::String,prometheus::proto::MetricFamily)>::reserve_rehash<hashbrown::map::make_hasher<alloc::string::String,prometheus::proto::MetricFamily,std::hash::random::RandomState>::{{closure}}>::{{closure}}>
+      3 (0.0%, 99.8%)    1 (0.1%, 96.5%)  core::ptr::drop_in_place<hashbrown::raw::RawTable<(opentelemetry::common::InstrumentationScope,prometheus::proto::MetricFamily)>::find<hashbrown::rustc_entry::<impl hashbrown::map::HashMap<opentelemetry::common::InstrumentationScope,prometheus::proto::MetricFamily,std::hash::random::RandomState>>::rustc_entry::{{closure}}>::{{closure}}>
+      3 (0.0%, 99.8%)    1 (0.1%, 96.7%)  core::ptr::drop_in_place<hashbrown::raw::RawTable<(opentelemetry::common::InstrumentationScope,prometheus::proto::MetricFamily)>::reserve_rehash<hashbrown::map::make_hasher<opentelemetry::common::InstrumentationScope,prometheus::proto::MetricFamily,std::hash::random::RandomState>::{{closure}}>::{{closure}}>
+      3 (0.0%, 99.8%)    1 (0.1%, 96.8%)  core::ptr::drop_in_place<opentelemetry_sdk::resource::Iter>
+      3 (0.0%, 99.8%)    1 (0.1%, 96.9%)  core::ptr::drop_in_place<std::sync::once::Once::call_once_force<std::sync::once_lock::OnceLock<[core::any::TypeId; 3]>::initialize<std::sync::once_lock::OnceLock<[core::any::TypeId; 3]>::get_or_init<scuffle_metrics::prometheus::gauge_types::{{closure}}>::{{closure}},!>::{{closure}}>::{{closure}}>
+      3 (0.0%, 99.8%)    1 (0.1%, 97.0%)  core::ptr::drop_in_place<std::sync::once::Once::call_once_force<std::sync::once_lock::OnceLock<[core::any::TypeId; 3]>::initialize<std::sync::once_lock::OnceLock<[core::any::TypeId; 3]>::get_or_init<scuffle_metrics::prometheus::histogram_types::{{closure}}>::{{closure}},!>::{{closure}}>::{{closure}}>
+      3 (0.0%, 99.9%)    1 (0.1%, 97.2%)  core::ptr::drop_in_place<std::sync::once::Once::call_once_force<std::sync::once_lock::OnceLock<[core::any::TypeId; 3]>::initialize<std::sync::once_lock::OnceLock<[core::any::TypeId; 3]>::get_or_init<scuffle_metrics::prometheus::sum_types::{{closure}}>::{{closure}},!>::{{closure}}>::{{closure}}>
+      3 (0.0%, 99.9%)    1 (0.1%, 97.3%)  core::ptr::drop_in_place<std::sync::once::Once::call_once_force<std::sync::once_lock::OnceLock<alloc::vec::Vec<prometheus::proto::LabelPair>>::initialize<std::sync::once_lock::OnceLock<alloc::vec::Vec<prometheus::proto::LabelPair>>::get_or_init<<scuffle_metrics::prometheus::Collector as prometheus::metrics::Collector>::collect::{{closure}}>::{{closure}},!>::{{closure}}>::{{closure}}>
+      3 (0.0%, 99.9%)    1 (0.1%, 97.4%)  core::ptr::drop_in_place<std::sync::once::Once::call_once_force<std::sync::once_lock::OnceLock<prometheus::proto::MetricFamily>::initialize<std::sync::once_lock::OnceLock<prometheus::proto::MetricFamily>::get_or_init<<scuffle_metrics::prometheus::Collector as prometheus::metrics::Collector>::collect::{{closure}}>::{{closure}},!>::{{closure}}>::{{closure}}>
+      3 (0.0%, 99.9%)    1 (0.1%, 97.5%)  lock_api::mutex::Mutex<R,T>::make_guard_unchecked
+      3 (0.0%, 99.9%)    1 (0.1%, 97.6%)  parking_lot_core::parking_lot::deadlock::acquire_resource
+      3 (0.0%, 99.9%)    1 (0.1%, 97.8%)  parking_lot_core::parking_lot::deadlock::release_resource
+      2 (0.0%, 99.9%)    1 (0.1%, 97.9%)  <T as core::convert::From<T>>::from
+      2 (0.0%, 99.9%)    1 (0.1%, 98.0%)  <T as core::convert::Into<U>>::into
+      2 (0.0%, 99.9%)    1 (0.1%, 98.1%)  <T as core::slice::sort::shared::smallsort::UnstableSmallSortTypeImpl>::small_sort_threshold
+      2 (0.0%, 99.9%)    1 (0.1%, 98.3%)  <opentelemetry_sdk::metrics::manual_reader::ManualReaderBuilder as core::default::Default>::default
+      2 (0.0%, 99.9%)    1 (0.1%, 98.4%)  <prometheus::registry::Registry as core::default::Default>::default
+      2 (0.0%, 99.9%)    1 (0.1%, 98.5%)  <protobuf::unknown::UnknownFields as core::default::Default>::default
+      2 (0.0%, 99.9%)    1 (0.1%, 98.6%)  <scuffle_metrics::prometheus::resource_selector::ResourceSelector as core::default::Default>::default
+      2 (0.0%, 99.9%)    1 (0.1%, 98.8%)  core::cell::UnsafeCell<T>::new
+      2 (0.0%,100.0%)    1 (0.1%, 98.9%)  core::hint::must_use
+      2 (0.0%,100.0%)    1 (0.1%, 99.0%)  core::hint::unreachable_unchecked::precondition_check
+      2 (0.0%,100.0%)    1 (0.1%, 99.1%)  core::num::nonzero::NonZero<T>::new_unchecked::precondition_check
+      2 (0.0%,100.0%)    1 (0.1%, 99.3%)  scuffle_metrics::prometheus::exporter
+      2 (0.0%,100.0%)    1 (0.1%, 99.4%)  scuffle_metrics::prometheus::gauge_types
+      2 (0.0%,100.0%)    1 (0.1%, 99.5%)  scuffle_metrics::prometheus::histogram_types
+      2 (0.0%,100.0%)    1 (0.1%, 99.6%)  scuffle_metrics::prometheus::sum_types
+      1 (0.0%,100.0%)    1 (0.1%, 99.8%)  <bool as core::default::Default>::default
+      1 (0.0%,100.0%)    1 (0.1%, 99.9%)  core::mem::size_of
+      1 (0.0%,100.0%)    1 (0.1%,100.0%)  parking_lot::elision::have_elision

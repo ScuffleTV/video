@@ -1,11 +1,10 @@
 [package]
 name = "scuffle-image-processor"
-version = "0.0.0"
+version = "0.0.1"
 edition = "2021"
 repository = "https://github.com/scufflecloud/scuffle"
 authors = ["Scuffle <opensource@scuffle.cloud>"]
 readme = "README.md"
-documentation = "https://docs.rs/scuffle-image-processor"
 license = "AGPL-3.0"
 description = "Image Processor service for Scuffle."
 keywords = ["image", "processor", "service"]
