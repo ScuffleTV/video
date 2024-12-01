@@ -276,6 +276,56 @@ pub enum ErrorKind {
 	BadRequest,
 }
 
+impl ErrorKind {
+	pub fn severity(&self) -> ErrorSeverity {
+		match self {
+			Self::Timeout => ErrorSeverity::Debug,
+			Self::BadRequest => ErrorSeverity::Debug,
+			Self::Configuration => ErrorSeverity::Error,
+			Self::Closed => ErrorSeverity::Debug,
+			Self::Unknown(_) => ErrorSeverity::Error,
+			#[cfg(feature = "http3")]
+			Self::H3(err) => match err.kind() {
+				h3::error::Kind::Application { code, .. } => match code {
+					h3::error::Code::H3_NO_ERROR => ErrorSeverity::Debug,
+					h3::error::Code::H3_REQUEST_CANCELLED => ErrorSeverity::Debug,
+					h3::error::Code::H3_REQUEST_INCOMPLETE => ErrorSeverity::Debug,
+					_ => ErrorSeverity::Error,
+				},
+				_ => ErrorSeverity::Error,
+			},
+			#[cfg(any(feature = "http1", feature = "http2"))]
+			Self::Hyper(err) => {
+				if err.is_closed() || err.is_canceled() || err.is_parse() || err.is_incomplete_message() || err.is_body_write_aborted() || err.is_timeout() {
+					ErrorSeverity::Debug
+				} else {
+					ErrorSeverity::Error
+				}
+			},
+			#[cfg(feature = "axum")]
+			Self::Axum(_) => ErrorSeverity::Error,
+			#[cfg(feature = "quic-quinn")]
+			Self::QuinnConnection(err) => match err {
+				quinn::ConnectionError::TimedOut => ErrorSeverity::Debug,
+				quinn::ConnectionError::ConnectionClosed(..) => ErrorSeverity::Debug,
+				quinn::ConnectionError::Reset => ErrorSeverity::Debug,
+				quinn::ConnectionError::VersionMismatch => ErrorSeverity::Error,
+				quinn::ConnectionError::CidsExhausted => ErrorSeverity::Error,
+				quinn::ConnectionError::TransportError(..) => ErrorSeverity::Error,
+				quinn::ConnectionError::ApplicationClosed(..) => ErrorSeverity::Debug,
+				quinn::ConnectionError::LocallyClosed => ErrorSeverity::Debug,
+			},
+			Self::Io(io) => match io.kind() {
+				std::io::ErrorKind::TimedOut => ErrorSeverity::Debug,
+				std::io::ErrorKind::ConnectionReset => ErrorSeverity::Debug,
+				std::io::ErrorKind::ConnectionAborted => ErrorSeverity::Debug,
+				_ => ErrorSeverity::Error,
+			},
+			Self::Http(_) => ErrorSeverity::Debug,
+		}
+	}
+}
+
 impl From<tokio::time::error::Elapsed> for ErrorKind {
 	fn from(_: tokio::time::error::Elapsed) -> Self {
 		Self::Timeout
@@ -284,7 +334,7 @@ impl From<tokio::time::error::Elapsed> for ErrorKind {
 
 impl From<Infallible> for ErrorKind {
 	fn from(_: Infallible) -> Self {
-		unreachable!()
+		unreachable!("infallible cannot be constructed")
 	}
 }
 
