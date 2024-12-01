@@ -21,9 +21,9 @@ impl ConfigParser for EmptyConfig {
 /// A macro to create a config parser from a CLI struct
 /// This macro will automatically parse the CLI struct into the given type
 /// using the `scuffle-settings` crate
-#[cfg(feature = "settings")]
+#[cfg(feature = "cli")]
 #[macro_export]
-macro_rules! cli_settings {
+macro_rules! settings_cli {
 	($ty:ty) => {
 		impl $crate::config::ConfigParser for $ty {
 			async fn parse() -> $crate::prelude::anyhow::Result<Self> {

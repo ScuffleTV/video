@@ -20,9 +20,9 @@ scuffle-context = { version = "0.0.0", path = "../context" }
 scuffle-bootstrap-derive = { version = "0.0.0", path = "./derive" }
 
 scuffle-signal = { version = "0.0.0", path = "../signal", optional = true }
-scuffle-settings = { version = "0.0.0", path = "../settings", optional = true, features = ["cli"] }
+scuffle-settings = { version = "0.0.0", path = "../settings", optional = true }
 
 [features]
-settings = ["scuffle-settings"]
+cli = ["scuffle-settings/cli"]
 signal = ["scuffle-signal"]
 default = []
