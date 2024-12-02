@@ -49,11 +49,11 @@ opentelemetry-otlp = { version = "0.27", features = ["metrics", "logs"] }
 opentelemetry_sdk = { version = "0.27", features = ["rt-tokio"] }
 
 scuffle-bootstrap = { version = "0.0.1", path = "../../crates/bootstrap" }
-scuffle-bootstrap-telemetry = { version = "0.0.1", path = "../../crates/bootstrap/telemetry", features = ["prometheus", "opentelemetry-metrics", "opentelemetry-logs", "opentelemetry-traces"] }
+scuffle-bootstrap-telemetry = { version = "0.0.2", path = "../../crates/bootstrap/telemetry", features = ["prometheus", "opentelemetry-metrics", "opentelemetry-logs", "opentelemetry-traces"] }
 scuffle-ffmpeg = { version = "0.0.1", path = "../../crates/ffmpeg", features = ["tracing"] }
-scuffle-http = { version = "0.0.1", path = "../../crates/http", features = ["axum"]}
+scuffle-http = { version = "0.0.2", path = "../../crates/http", features = ["axum"]}
 scuffle-context = { version = "0.0.1", path = "../../crates/context" }
 scuffle-signal = { version = "0.0.1", path = "../../crates/signal", features = ["bootstrap"] }
 scuffle-image-processor-proto = { version = "0.0.1", path = "./proto", features = ["server", "serde"]}
-scuffle-metrics = { version = "0.0.1", path = "../../crates/metrics" }
+scuffle-metrics = { version = "0.0.2", path = "../../crates/metrics" }
 scuffle-settings = { version = "0.0.1", path = "../../crates/settings", features = ["full"] }
