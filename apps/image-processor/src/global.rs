@@ -126,7 +126,6 @@ impl scuffle_bootstrap::global::Global for Global {
 
 			prometheus_registry = Some(registry);
 
-
 			let mut provider = SdkMeterProvider::builder()
 				.with_resource(resource.clone())
 				.with_reader(prometheus_exporter);

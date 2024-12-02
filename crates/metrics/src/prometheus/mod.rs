@@ -281,6 +281,8 @@ where
 						.zip(data_point.bucket_counts.iter().copied())
 						.collect::<Vec<_>>();
 
+					dbg!(&buckets);
+
 					encoder.encode_histogram::<()>(sum.as_f64(), data_point.count, &buckets, None)?;
 				}
 			}
@@ -367,8 +369,7 @@ impl<'a> KnownMetric<'a> {
 		&self,
 		encoder: prometheus_client::encoding::MetricEncoder,
 		labels: KeyValueEncoder<'a>,
-	) -> Result<(), std::fmt::Error>
-	{
+	) -> Result<(), std::fmt::Error> {
 		match self {
 			KnownMetric::U64(metric) => metric.encode(encoder, labels),
 			KnownMetric::I64(metric) => metric.encode(encoder, labels),
@@ -555,7 +556,12 @@ impl<'a> prometheus_client::encoding::EncodeLabelSet for KeyValueEncoder<'a> {
 
 		if let Some(attrs) = self.attrs {
 			for kv in attrs {
-				write_kv(&mut encoder, kv.key.as_str(), kv.value.as_str().as_ref(), self.prometheus_full_utf8)?;
+				write_kv(
+					&mut encoder,
+					kv.key.as_str(),
+					kv.value.as_str().as_ref(),
+					self.prometheus_full_utf8,
+				)?;
 			}
 		}
 

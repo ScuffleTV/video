@@ -39,7 +39,7 @@ async fn main() {
 
 	for i in 0..10 {
 		example::add(i, i, Kind::Http).incr();
-		example::histogram("kkona").observe(i as f64);
+		example::histogram(if i % 2 == 0 { "even" } else { "odd" }).observe(0.01);
 	}
 
 	let mut buffer = String::new();
