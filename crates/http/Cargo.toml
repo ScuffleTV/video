@@ -134,6 +134,5 @@ http3-default = [
 default = [
     "http1",
     "http2",
-    "http3",
     "tracing",
 ]
