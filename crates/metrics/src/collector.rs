@@ -121,18 +121,32 @@ pub type HistogramF64 = Histogram<f64>;
 /// Histograms are used to record a distribution of values.
 pub type HistogramU64 = Histogram<u64>;
 
-impl_collector!(
-	HistogramF64,
-	f64,
-	f64_histogram,
-	opentelemetry::metrics::HistogramBuilder<'a, HistogramF64>
-);
-impl_collector!(
-	HistogramU64,
-	u64,
-	u64_histogram,
-	opentelemetry::metrics::HistogramBuilder<'a, HistogramU64>
-);
+impl private::Sealed for HistogramF64 {
+	type Value = f64;
+}
+
+/// Default boundaries for a histogram in Golang.
+const DEFAULT_BOUNDARIES: [f64; 11] = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0];
+
+impl IsCollector for HistogramF64 {
+	type Builder<'a> = opentelemetry::metrics::HistogramBuilder<'a, HistogramF64>;
+
+	fn builder(meter: &opentelemetry::metrics::Meter, name: impl Into<Cow<'static, str>>) -> Self::Builder<'_> {
+		meter.f64_histogram(name).with_boundaries(DEFAULT_BOUNDARIES.into())
+	}
+}
+
+impl private::Sealed for HistogramU64 {
+	type Value = u64;
+}
+
+impl IsCollector for HistogramU64 {
+	type Builder<'a> = opentelemetry::metrics::HistogramBuilder<'a, HistogramU64>;
+
+	fn builder(meter: &opentelemetry::metrics::Meter, name: impl Into<Cow<'static, str>>) -> Self::Builder<'_> {
+		meter.u64_histogram(name).with_boundaries(DEFAULT_BOUNDARIES.into())
+	}
+}
 
 /// A updown counter metric. Alias for
 /// `opentelemetry::metrics::UpDownCounter<T>`.

@@ -5,7 +5,7 @@ use opentelemetry_sdk::Resource;
 
 #[scuffle_metrics::metrics]
 mod example {
-	use scuffle_metrics::{CounterU64, MetricEnum};
+	use scuffle_metrics::{CounterU64, HistogramF64, MetricEnum};
 
 	#[derive(MetricEnum)]
 	pub enum Kind {
@@ -16,6 +16,8 @@ mod example {
 	/// Requests for adding 2 numbers
 	#[metrics(unit = "requests")]
 	pub fn add(a: u64, b: u64, kind: Kind) -> CounterU64;
+
+	pub fn histogram(name: &'static str) -> HistogramF64;
 }
 
 #[tokio::main]
@@ -37,6 +39,7 @@ async fn main() {
 
 	for i in 0..10 {
 		example::add(i, i, Kind::Http).incr();
+		example::histogram("kkona").observe(i as f64);
 	}
 
 	let mut buffer = String::new();

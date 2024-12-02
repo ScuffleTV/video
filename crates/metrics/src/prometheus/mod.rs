@@ -22,7 +22,7 @@ impl PrometheusExporter {
 	}
 
 	pub fn collector(&self) -> Box<dyn prometheus_client::collector::Collector> {
-		Box::new(Collector::new(self.reader.clone(), self.prometheus_full_utf8))
+		Box::new(self.clone())
 	}
 }
 
@@ -82,21 +82,6 @@ impl PrometheusExporterBuilder {
 
 pub fn exporter() -> PrometheusExporterBuilder {
 	PrometheusExporter::builder()
-}
-
-#[derive(Debug)]
-struct Collector {
-	reader: Arc<ManualReader>,
-	prometheus_full_utf8: bool,
-}
-
-impl Collector {
-	fn new(reader: Arc<ManualReader>, prometheus_full_utf8: bool) -> Self {
-		Self {
-			reader,
-			prometheus_full_utf8,
-		}
-	}
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -406,7 +391,7 @@ impl<'a> KnownMetric<'a> {
 	}
 }
 
-impl prometheus_client::collector::Collector for Collector {
+impl prometheus_client::collector::Collector for PrometheusExporter {
 	fn encode(&self, mut encoder: prometheus_client::encoding::DescriptorEncoder) -> Result<(), std::fmt::Error> {
 		let mut metrics = ResourceMetrics {
 			resource: Resource::empty(),
