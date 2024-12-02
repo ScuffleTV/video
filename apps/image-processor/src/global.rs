@@ -12,7 +12,7 @@ use scuffle_bootstrap_telemetry::opentelemetry_sdk::logs::LoggerProvider;
 use scuffle_bootstrap_telemetry::opentelemetry_sdk::metrics::{PeriodicReader, SdkMeterProvider, Temporality};
 use scuffle_bootstrap_telemetry::opentelemetry_sdk::trace::{Sampler, TracerProvider};
 use scuffle_bootstrap_telemetry::opentelemetry_sdk::{runtime, Resource};
-use scuffle_bootstrap_telemetry::{opentelemetry, opentelemetry_appender_tracing, prometheus, tracing_opentelemetry};
+use scuffle_bootstrap_telemetry::{opentelemetry, opentelemetry_appender_tracing, prometheus_client, tracing_opentelemetry};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer};
@@ -29,7 +29,7 @@ pub struct Global {
 	database: mongodb::Database,
 	disks: HashMap<String, AnyDrive>,
 	event_queues: HashMap<String, AnyEventQueue>,
-	prometheus_registry: Option<prometheus::Registry>,
+	prometheus_registry: Option<prometheus_client::registry::Registry>,
 	opentelemetry: opentelemetry::OpenTelemetry,
 	failed: AtomicBool,
 }
@@ -103,7 +103,7 @@ impl scuffle_bootstrap::global::Global for Global {
 		}
 
 		if config.telemetry.metrics.enabled {
-			prometheus_registry = Some(prometheus::Registry::new());
+			let mut registry = prometheus_client::registry::Registry::default();
 			let resource = Resource::new({
 				let mut labels = vec![];
 				if !config.telemetry.metrics.labels.contains_key("service.name") {
@@ -121,10 +121,11 @@ impl scuffle_bootstrap::global::Global for Global {
 				labels
 			});
 
-			let prometheus_exporter = scuffle_metrics::prometheus::exporter()
-				.with_registry(prometheus_registry.clone().unwrap())
-				.build()
-				.context("prometheus metrics exporter")?;
+			let prometheus_exporter = scuffle_metrics::prometheus::exporter().build();
+			registry.register_collector(prometheus_exporter.collector());
+
+			prometheus_registry = Some(registry);
+
 
 			let mut provider = SdkMeterProvider::builder()
 				.with_resource(resource.clone())
@@ -367,7 +368,7 @@ impl scuffle_bootstrap_telemetry::TelemetryConfig for Global {
 		Some(&self.opentelemetry)
 	}
 
-	fn prometheus_metrics_registry(&self) -> Option<&prometheus::Registry> {
+	fn prometheus_metrics_registry(&self) -> Option<&prometheus_client::registry::Registry> {
 		self.prometheus_registry.as_ref()
 	}
 }

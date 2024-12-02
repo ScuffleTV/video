@@ -1,4 +1,5 @@
-use std::{convert::Infallible, error::Error as StdError};
+use std::convert::Infallible;
+use std::error::Error as StdError;
 
 #[derive(Debug)]
 pub struct Error {
@@ -217,35 +218,35 @@ pub(crate) fn find_source(mut error: &(dyn std::error::Error + 'static)) -> Opti
 		if let Some(err) = error.downcast_ref::<Error>() {
 			return Some(err.severity());
 		}
-	
+
 		if let Some(err) = error.downcast_ref::<http::Error>() {
 			return Some(err.severity());
 		}
-	
+
 		#[cfg(feature = "http3")]
 		if let Some(err) = error.downcast_ref::<h3::Error>() {
 			return Some(err.severity());
 		}
-	
+
 		#[cfg(any(feature = "http1", feature = "http2"))]
 		if let Some(err) = error.downcast_ref::<hyper::Error>() {
 			return Some(err.severity());
 		}
-	
+
 		#[cfg(feature = "quic-quinn")]
 		if let Some(err) = error.downcast_ref::<quinn::ConnectionError>() {
 			return Some(err.severity());
 		}
-	
+
 		if let Some(err) = error.downcast_ref::<std::io::Error>() {
 			return Some(err.severity());
 		}
-	
+
 		#[cfg(feature = "axum")]
 		if let Some(err) = error.downcast_ref::<axum_core::Error>() {
 			return Some(err.severity());
 		}
-	
+
 		if error.is::<tokio::time::error::Elapsed>() {
 			return Some(ErrorSeverity::Debug);
 		}
@@ -352,7 +353,7 @@ impl ErrorKindExt for h3::Error {
 				} else {
 					ErrorSeverity::Error
 				}
-			},
+			}
 		}
 	}
 }

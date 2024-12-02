@@ -1,585 +1,579 @@
-//! An OpenTelemetry exporter for [Prometheus] metrics.
-//!
-//! <div class="warning"> The development of prometheus exporter has halt until
-//! the Opentelemetry metrics API and SDK reaches 1.0. Current implementation is
-//! based on Opentelemetry API and SDK 0.23.</div>
-//!
-//! [Prometheus]: https://prometheus.io
-//!
-//! ```
-//! use opentelemetry::{metrics::MeterProvider, KeyValue};
-//! use opentelemetry_sdk::metrics::SdkMeterProvider;
-//! use prometheus::{Encoder, TextEncoder};
-//!
-//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//!
-//! // create a new prometheus registry
-//! let registry = prometheus::Registry::new();
-//!
-//! // configure OpenTelemetry to use this registry
-//! let exporter = opentelemetry_prometheus::exporter()
-//!     .with_registry(registry.clone())
-//!     .build()?;
-//!
-//! // set up a meter to create instruments
-//! let provider = SdkMeterProvider::builder().with_reader(exporter).build();
-//! let meter = provider.meter("my-app");
-//!
-//! // Use two instruments
-//! let counter = meter
-//!     .u64_counter("a.counter")
-//!     .with_description("Counts things")
-//!     .init();
-//! let histogram = meter
-//!     .u64_histogram("a.histogram")
-//!     .with_description("Records values")
-//!     .init();
-//!
-//! counter.add(100, &[KeyValue::new("key", "value")]);
-//! histogram.record(100, &[KeyValue::new("key", "value")]);
-//!
-//! // Encode data as text or protobuf
-//! let encoder = TextEncoder::new();
-//! let metric_families = registry.gather();
-//! let mut result = Vec::new();
-//! encoder.encode(&metric_families, &mut result)?;
-//!
-//! // result now contains encoded metrics:
-//! //
-//! // # HELP a_counter_total Counts things
-//! // # TYPE a_counter_total counter
-//! // a_counter_total{key="value",otel_scope_name="my-app"} 100
-//! // # HELP a_histogram Records values
-//! // # TYPE a_histogram histogram
-//! // a_histogram_bucket{key="value",otel_scope_name="my-app",le="0"} 0
-//! // a_histogram_bucket{key="value",otel_scope_name="my-app",le="5"} 0
-//! // a_histogram_bucket{key="value",otel_scope_name="my-app",le="10"} 0
-//! // a_histogram_bucket{key="value",otel_scope_name="my-app",le="25"} 0
-//! // a_histogram_bucket{key="value",otel_scope_name="my-app",le="50"} 0
-//! // a_histogram_bucket{key="value",otel_scope_name="my-app",le="75"} 0
-//! // a_histogram_bucket{key="value",otel_scope_name="my-app",le="100"} 1
-//! // a_histogram_bucket{key="value",otel_scope_name="my-app",le="250"} 1
-//! // a_histogram_bucket{key="value",otel_scope_name="my-app",le="500"} 1
-//! // a_histogram_bucket{key="value",otel_scope_name="my-app",le="750"} 1
-//! // a_histogram_bucket{key="value",otel_scope_name="my-app",le="1000"} 1
-//! // a_histogram_bucket{key="value",otel_scope_name="my-app",le="2500"} 1
-//! // a_histogram_bucket{key="value",otel_scope_name="my-app",le="5000"} 1
-//! // a_histogram_bucket{key="value",otel_scope_name="my-app",le="7500"} 1
-//! // a_histogram_bucket{key="value",otel_scope_name="my-app",le="10000"} 1
-//! // a_histogram_bucket{key="value",otel_scope_name="my-app",le="+Inf"} 1
-//! // a_histogram_sum{key="value",otel_scope_name="my-app"} 100
-//! // a_histogram_count{key="value",otel_scope_name="my-app"} 1
-//! // # HELP otel_scope_info Instrumentation Scope metadata
-//! // # TYPE otel_scope_info gauge
-//! // otel_scope_info{otel_scope_name="my-app"} 1
-//! // # HELP target_info Target metadata
-//! // # TYPE target_info gauge
-//! // target_info{service_name="unknown_service"} 1
-//! # Ok(())
-//! # }
-//! ```
-
-use std::any::TypeId;
 use std::borrow::Cow;
-use std::collections::{BTreeMap, HashMap};
-use std::fmt;
-use std::sync::{Arc, OnceLock, Weak};
+use std::sync::Arc;
 
-use opentelemetry::{otel_error, InstrumentationScope, Key, Value};
-use opentelemetry_sdk::metrics::data::{self, ResourceMetrics};
+use opentelemetry::{otel_error, otel_warn, InstrumentationScope, KeyValue};
+use opentelemetry_sdk::metrics::data::{Gauge, Histogram, ResourceMetrics, Sum};
 use opentelemetry_sdk::metrics::reader::MetricReader;
-use opentelemetry_sdk::metrics::{InstrumentKind, ManualReader, MetricResult, Pipeline, Temporality};
+use opentelemetry_sdk::metrics::{ManualReader, ManualReaderBuilder};
 use opentelemetry_sdk::Resource;
-use parking_lot::Mutex;
-use prometheus::core::Desc;
-use prometheus::proto::{LabelPair, MetricFamily, MetricType};
+use prometheus_client::encoding::{EncodeCounterValue, EncodeGaugeValue};
+use prometheus_client::metrics::MetricType;
+use prometheus_client::registry::Unit;
 
-const TARGET_INFO_NAME: &str = "target_info";
-const TARGET_INFO_DESCRIPTION: &str = "Target metadata";
-
-const SCOPE_INFO_METRIC_NAME: &str = "otel_scope_info";
-const SCOPE_INFO_DESCRIPTION: &str = "Instrumentation Scope metadata";
-
-const SCOPE_INFO_KEYS: [&str; 2] = ["otel_scope_name", "otel_scope_version"];
-
-// prometheus counters MUST have a _total suffix by default:
-// https://github.com/open-telemetry/opentelemetry-specification/blob/v1.20.0/specification/compatibility/prometheus_and_openmetrics.md
-const COUNTER_SUFFIX: &str = "_total";
-
-mod config;
-mod resource_selector;
-mod utils;
-
-pub use config::ExporterBuilder;
-pub use resource_selector::ResourceSelector;
-
-/// Creates a builder to configure a [PrometheusExporter]
-pub fn exporter() -> ExporterBuilder {
-	ExporterBuilder::default()
-}
-
-/// Prometheus metrics exporter
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PrometheusExporter {
 	reader: Arc<ManualReader>,
+	prometheus_full_utf8: bool,
+}
+
+impl PrometheusExporter {
+	pub fn builder() -> PrometheusExporterBuilder {
+		PrometheusExporterBuilder::default()
+	}
+
+	pub fn collector(&self) -> Box<dyn prometheus_client::collector::Collector> {
+		Box::new(Collector::new(self.reader.clone(), self.prometheus_full_utf8))
+	}
 }
 
 impl MetricReader for PrometheusExporter {
-	fn register_pipeline(&self, pipeline: Weak<Pipeline>) {
+	fn register_pipeline(&self, pipeline: std::sync::Weak<opentelemetry_sdk::metrics::Pipeline>) {
 		self.reader.register_pipeline(pipeline)
 	}
 
-	fn collect(&self, rm: &mut ResourceMetrics) -> MetricResult<()> {
+	fn collect(
+		&self,
+		rm: &mut opentelemetry_sdk::metrics::data::ResourceMetrics,
+	) -> opentelemetry_sdk::metrics::MetricResult<()> {
 		self.reader.collect(rm)
 	}
 
-	fn force_flush(&self) -> MetricResult<()> {
+	fn force_flush(&self) -> opentelemetry_sdk::metrics::MetricResult<()> {
 		self.reader.force_flush()
 	}
 
-	fn shutdown(&self) -> MetricResult<()> {
+	fn shutdown(&self) -> opentelemetry_sdk::metrics::MetricResult<()> {
 		self.reader.shutdown()
 	}
 
-	fn temporality(&self, kind: InstrumentKind) -> Temporality {
+	fn temporality(&self, kind: opentelemetry_sdk::metrics::InstrumentKind) -> opentelemetry_sdk::metrics::Temporality {
 		self.reader.temporality(kind)
 	}
 }
 
+#[derive(Default)]
+pub struct PrometheusExporterBuilder {
+	reader: ManualReaderBuilder,
+	prometheus_full_utf8: bool,
+}
+
+impl PrometheusExporterBuilder {
+	pub fn with_temporality(mut self, temporality: opentelemetry_sdk::metrics::Temporality) -> Self {
+		self.reader = self.reader.with_temporality(temporality);
+		self
+	}
+
+	/// Allow full UTF-8 labels in Prometheus.
+	///
+	/// This is disabled by default however if you are using a newer version of
+	/// Prometheus that supports full UTF-8 labels you may enable this feature.
+	pub fn with_prometheus_full_utf8(mut self, prometheus_full_utf8: bool) -> Self {
+		self.prometheus_full_utf8 = prometheus_full_utf8;
+		self
+	}
+
+	pub fn build(self) -> PrometheusExporter {
+		PrometheusExporter {
+			reader: Arc::new(self.reader.build()),
+			prometheus_full_utf8: self.prometheus_full_utf8,
+		}
+	}
+}
+
+pub fn exporter() -> PrometheusExporterBuilder {
+	PrometheusExporter::builder()
+}
+
+#[derive(Debug)]
 struct Collector {
 	reader: Arc<ManualReader>,
-	disable_target_info: bool,
-	without_units: bool,
-	without_counter_suffixes: bool,
-	disable_scope_info: bool,
-	create_target_info_once: OnceLock<MetricFamily>,
-	resource_labels_once: OnceLock<Vec<LabelPair>>,
-	namespace: Option<String>,
-	inner: Mutex<CollectorInner>,
-	resource_selector: ResourceSelector,
-}
-
-#[derive(Default)]
-struct CollectorInner {
-	scope_infos: HashMap<InstrumentationScope, MetricFamily>,
-	metric_families: HashMap<String, MetricFamily>,
-}
-
-fn histogram_types() -> &'static [TypeId; 3] {
-	static HISTOGRAM_TYPES: OnceLock<[TypeId; 3]> = OnceLock::new();
-	HISTOGRAM_TYPES.get_or_init(|| {
-		[
-			TypeId::of::<data::Histogram<i64>>(),
-			TypeId::of::<data::Histogram<u64>>(),
-			TypeId::of::<data::Histogram<f64>>(),
-		]
-	})
-}
-
-fn sum_types() -> &'static [TypeId; 3] {
-	static SUM_TYPES: OnceLock<[TypeId; 3]> = OnceLock::new();
-	SUM_TYPES.get_or_init(|| {
-		[
-			TypeId::of::<data::Sum<i64>>(),
-			TypeId::of::<data::Sum<u64>>(),
-			TypeId::of::<data::Sum<f64>>(),
-		]
-	})
-}
-
-fn gauge_types() -> &'static [TypeId; 3] {
-	static GAUGE_TYPES: OnceLock<[TypeId; 3]> = OnceLock::new();
-	GAUGE_TYPES.get_or_init(|| {
-		[
-			TypeId::of::<data::Gauge<i64>>(),
-			TypeId::of::<data::Gauge<u64>>(),
-			TypeId::of::<data::Gauge<f64>>(),
-		]
-	})
+	prometheus_full_utf8: bool,
 }
 
 impl Collector {
-	fn metric_type_and_name(&self, m: &data::Metric) -> Option<(MetricType, Cow<'static, str>)> {
-		let mut name = self.get_name(m);
-
-		let data = m.data.as_any();
-		let type_id = data.type_id();
-
-		if histogram_types().contains(&type_id) {
-			Some((MetricType::HISTOGRAM, name))
-		} else if gauge_types().contains(&type_id) {
-			Some((MetricType::GAUGE, name))
-		} else if sum_types().contains(&type_id) {
-			let is_monotonic = if let Some(v) = data.downcast_ref::<data::Sum<i64>>() {
-				v.is_monotonic
-			} else if let Some(v) = data.downcast_ref::<data::Sum<u64>>() {
-				v.is_monotonic
-			} else if let Some(v) = data.downcast_ref::<data::Sum<f64>>() {
-				v.is_monotonic
-			} else {
-				false
-			};
-
-			if is_monotonic {
-				if !self.without_counter_suffixes {
-					name = format!("{name}{COUNTER_SUFFIX}").into();
-				}
-				Some((MetricType::COUNTER, name))
-			} else {
-				Some((MetricType::GAUGE, name))
-			}
-		} else {
-			None
-		}
-	}
-
-	fn get_name(&self, m: &data::Metric) -> Cow<'static, str> {
-		let name = utils::sanitize_name(&m.name);
-		let unit_suffixes = if self.without_units {
-			None
-		} else {
-			utils::get_unit_suffixes(&m.unit)
-		};
-		match (&self.namespace, unit_suffixes) {
-			(Some(namespace), Some(suffix)) => Cow::Owned(format!("{namespace}{name}_{suffix}")),
-			(Some(namespace), None) => Cow::Owned(format!("{namespace}{name}")),
-			(None, Some(suffix)) => Cow::Owned(format!("{name}_{suffix}")),
-			(None, None) => name,
+	fn new(reader: Arc<ManualReader>, prometheus_full_utf8: bool) -> Self {
+		Self {
+			reader,
+			prometheus_full_utf8,
 		}
 	}
 }
 
-impl prometheus::core::Collector for Collector {
-	fn desc(&self) -> Vec<&Desc> {
-		Vec::new()
+#[derive(Debug, Clone, Copy)]
+enum RawNumber {
+	U64(u64),
+	I64(i64),
+	F64(f64),
+	#[cfg(feature = "extended-numbers")]
+	U32(u32),
+	#[cfg(feature = "extended-numbers")]
+	U16(u16),
+	#[cfg(feature = "extended-numbers")]
+	U8(u8),
+	#[cfg(feature = "extended-numbers")]
+	I32(i32),
+	#[cfg(feature = "extended-numbers")]
+	I16(i16),
+	#[cfg(feature = "extended-numbers")]
+	I8(i8),
+	#[cfg(feature = "extended-numbers")]
+	F32(f32),
+}
+
+impl RawNumber {
+	fn as_f64(&self) -> f64 {
+		match *self {
+			RawNumber::U64(value) => value as f64,
+			RawNumber::I64(value) => value as f64,
+			RawNumber::F64(value) => value,
+			#[cfg(feature = "extended-numbers")]
+			RawNumber::U32(value) => value as f64,
+			#[cfg(feature = "extended-numbers")]
+			RawNumber::U16(value) => value as f64,
+			#[cfg(feature = "extended-numbers")]
+			RawNumber::U8(value) => value as f64,
+			#[cfg(feature = "extended-numbers")]
+			RawNumber::I32(value) => value as f64,
+			#[cfg(feature = "extended-numbers")]
+			RawNumber::I16(value) => value as f64,
+			#[cfg(feature = "extended-numbers")]
+			RawNumber::I8(value) => value as f64,
+			#[cfg(feature = "extended-numbers")]
+			RawNumber::F32(value) => value as f64,
+		}
+	}
+}
+
+impl EncodeGaugeValue for RawNumber {
+	fn encode(&self, encoder: &mut prometheus_client::encoding::GaugeValueEncoder) -> Result<(), std::fmt::Error> {
+		match *self {
+			RawNumber::U64(value) => EncodeGaugeValue::encode(&(value as i64), encoder),
+			RawNumber::I64(value) => EncodeGaugeValue::encode(&value, encoder),
+			RawNumber::F64(value) => EncodeGaugeValue::encode(&value, encoder),
+			#[cfg(feature = "extended-numbers")]
+			RawNumber::U32(value) => EncodeGaugeValue::encode(&value, encoder),
+			#[cfg(feature = "extended-numbers")]
+			RawNumber::U16(value) => EncodeGaugeValue::encode(&(value as u32), encoder),
+			#[cfg(feature = "extended-numbers")]
+			RawNumber::U8(value) => EncodeGaugeValue::encode(&(value as u32), encoder),
+			#[cfg(feature = "extended-numbers")]
+			RawNumber::I32(value) => EncodeGaugeValue::encode(&(value as i64), encoder),
+			#[cfg(feature = "extended-numbers")]
+			RawNumber::I16(value) => EncodeGaugeValue::encode(&(value as i64), encoder),
+			#[cfg(feature = "extended-numbers")]
+			RawNumber::I8(value) => EncodeGaugeValue::encode(&(value as i64), encoder),
+			#[cfg(feature = "extended-numbers")]
+			RawNumber::F32(value) => EncodeGaugeValue::encode(&(value as f64), encoder),
+		}
+	}
+}
+
+impl EncodeCounterValue for RawNumber {
+	fn encode(&self, encoder: &mut prometheus_client::encoding::CounterValueEncoder) -> Result<(), std::fmt::Error> {
+		match *self {
+			RawNumber::U64(value) => EncodeCounterValue::encode(&value, encoder),
+			RawNumber::I64(value) => EncodeCounterValue::encode(&(value as f64), encoder),
+			RawNumber::F64(value) => EncodeCounterValue::encode(&value, encoder),
+			#[cfg(feature = "extended-numbers")]
+			RawNumber::U32(value) => EncodeCounterValue::encode(&(value as u64), encoder),
+			#[cfg(feature = "extended-numbers")]
+			RawNumber::U16(value) => EncodeCounterValue::encode(&(value as u64), encoder),
+			#[cfg(feature = "extended-numbers")]
+			RawNumber::U8(value) => EncodeCounterValue::encode(&(value as u64), encoder),
+			#[cfg(feature = "extended-numbers")]
+			RawNumber::I32(value) => EncodeCounterValue::encode(&(value as f64), encoder),
+			#[cfg(feature = "extended-numbers")]
+			RawNumber::I16(value) => EncodeCounterValue::encode(&(value as f64), encoder),
+			#[cfg(feature = "extended-numbers")]
+			RawNumber::I8(value) => EncodeCounterValue::encode(&(value as f64), encoder),
+			#[cfg(feature = "extended-numbers")]
+			RawNumber::F32(value) => EncodeCounterValue::encode(&(value as f64), encoder),
+		}
+	}
+}
+
+macro_rules! impl_raw_number {
+	($t:ty, $variant:ident) => {
+		impl From<$t> for RawNumber {
+			fn from(value: $t) -> Self {
+				RawNumber::$variant(value)
+			}
+		}
+	};
+}
+
+impl_raw_number!(u64, U64);
+impl_raw_number!(i64, I64);
+impl_raw_number!(f64, F64);
+
+#[cfg(feature = "extended-numbers")]
+const _: () = {
+	impl_raw_number!(u32, U32);
+	impl_raw_number!(u16, U16);
+	impl_raw_number!(u8, U8);
+	impl_raw_number!(i32, I32);
+	impl_raw_number!(i16, I16);
+	impl_raw_number!(i8, I8);
+	impl_raw_number!(f32, F32);
+};
+
+enum KnownMetricT<'a, T> {
+	Gauge(&'a Gauge<T>),
+	Sum(&'a Sum<T>),
+	Histogram(&'a Histogram<T>),
+}
+
+impl<'a, T: 'static> KnownMetricT<'a, T>
+where
+	RawNumber: From<T>,
+	T: Copy,
+{
+	fn from_any(any: &'a dyn std::any::Any) -> Option<Self> {
+		if let Some(gauge) = any.downcast_ref::<Gauge<T>>() {
+			Some(KnownMetricT::Gauge(gauge))
+		} else if let Some(sum) = any.downcast_ref::<Sum<T>>() {
+			Some(KnownMetricT::Sum(sum))
+		} else if let Some(histogram) = any.downcast_ref::<Histogram<T>>() {
+			Some(KnownMetricT::Histogram(histogram))
+		} else {
+			None
+		}
 	}
 
-	fn collect(&self) -> Vec<MetricFamily> {
-		let mut inner = self.inner.lock();
+	fn metric_type(&self) -> MetricType {
+		match self {
+			KnownMetricT::Gauge(_) => MetricType::Gauge,
+			KnownMetricT::Sum(sum) => {
+				if sum.is_monotonic {
+					MetricType::Counter
+				} else {
+					MetricType::Gauge
+				}
+			}
+			KnownMetricT::Histogram(_) => MetricType::Histogram,
+		}
+	}
 
+	fn encode(
+		&self,
+		mut encoder: prometheus_client::encoding::MetricEncoder,
+		labels: KeyValueEncoder<'a>,
+	) -> Result<(), std::fmt::Error> {
+		match self {
+			KnownMetricT::Gauge(gauge) => {
+				for data_point in &gauge.data_points {
+					let number = RawNumber::from(data_point.value);
+					encoder
+						.encode_family(&labels.with_attrs(Some(&data_point.attributes)))?
+						.encode_gauge(&number)?;
+				}
+			}
+			KnownMetricT::Sum(sum) => {
+				for data_point in &sum.data_points {
+					let number = RawNumber::from(data_point.value);
+					let attrs = labels.with_attrs(Some(&data_point.attributes));
+					let mut encoder = encoder.encode_family(&attrs)?;
+
+					if sum.is_monotonic {
+						// TODO(troy): Exemplar support
+						encoder.encode_counter::<(), _, f64>(&number, None)?;
+					} else {
+						encoder.encode_gauge(&number)?;
+					}
+				}
+			}
+			KnownMetricT::Histogram(histogram) => {
+				for data_point in &histogram.data_points {
+					let attrs = labels.with_attrs(Some(&data_point.attributes));
+					let mut encoder = encoder.encode_family(&attrs)?;
+
+					let sum = RawNumber::from(data_point.sum);
+
+					let buckets = data_point
+						.bounds
+						.iter()
+						.copied()
+						.zip(data_point.bucket_counts.iter().copied())
+						.collect::<Vec<_>>();
+
+					encoder.encode_histogram::<()>(sum.as_f64(), data_point.count, &buckets, None)?;
+				}
+			}
+		}
+
+		Ok(())
+	}
+}
+
+enum KnownMetric<'a> {
+	U64(KnownMetricT<'a, u64>),
+	I64(KnownMetricT<'a, i64>),
+	F64(KnownMetricT<'a, f64>),
+	#[cfg(feature = "extended-numbers")]
+	U32(KnownMetricT<'a, u32>),
+	#[cfg(feature = "extended-numbers")]
+	U16(KnownMetricT<'a, u16>),
+	#[cfg(feature = "extended-numbers")]
+	U8(KnownMetricT<'a, u8>),
+	#[cfg(feature = "extended-numbers")]
+	I32(KnownMetricT<'a, i32>),
+	#[cfg(feature = "extended-numbers")]
+	I16(KnownMetricT<'a, i16>),
+	#[cfg(feature = "extended-numbers")]
+	I8(KnownMetricT<'a, i8>),
+	#[cfg(feature = "extended-numbers")]
+	F32(KnownMetricT<'a, f32>),
+}
+
+impl<'a> KnownMetric<'a> {
+	fn from_any(any: &'a dyn std::any::Any) -> Option<Self> {
+		macro_rules! try_decode {
+			($t:ty, $variant:ident) => {
+				if let Some(metric) = KnownMetricT::<$t>::from_any(any) {
+					return Some(KnownMetric::$variant(metric));
+				}
+			};
+		}
+
+		try_decode!(u64, U64);
+		try_decode!(i64, I64);
+		try_decode!(f64, F64);
+		#[cfg(feature = "extended-numbers")]
+		try_decode!(u32, U32);
+		#[cfg(feature = "extended-numbers")]
+		try_decode!(i32, I32);
+		#[cfg(feature = "extended-numbers")]
+		try_decode!(u16, U16);
+		#[cfg(feature = "extended-numbers")]
+		try_decode!(i16, I16);
+		#[cfg(feature = "extended-numbers")]
+		try_decode!(u8, U8);
+		#[cfg(feature = "extended-numbers")]
+		try_decode!(i8, I8);
+		#[cfg(feature = "extended-numbers")]
+		try_decode!(f32, F32);
+
+		None
+	}
+
+	fn metric_type(&self) -> MetricType {
+		match self {
+			KnownMetric::U64(metric) => metric.metric_type(),
+			KnownMetric::I64(metric) => metric.metric_type(),
+			KnownMetric::F64(metric) => metric.metric_type(),
+			#[cfg(feature = "extended-numbers")]
+			KnownMetric::U32(metric) => metric.metric_type(),
+			#[cfg(feature = "extended-numbers")]
+			KnownMetric::I32(metric) => metric.metric_type(),
+			#[cfg(feature = "extended-numbers")]
+			KnownMetric::U16(metric) => metric.metric_type(),
+			#[cfg(feature = "extended-numbers")]
+			KnownMetric::I16(metric) => metric.metric_type(),
+			#[cfg(feature = "extended-numbers")]
+			KnownMetric::U8(metric) => metric.metric_type(),
+			#[cfg(feature = "extended-numbers")]
+			KnownMetric::I8(metric) => metric.metric_type(),
+			#[cfg(feature = "extended-numbers")]
+			KnownMetric::F32(metric) => metric.metric_type(),
+		}
+	}
+
+	fn encode(
+		&self,
+		encoder: prometheus_client::encoding::MetricEncoder,
+		labels: KeyValueEncoder<'a>,
+	) -> Result<(), std::fmt::Error>
+	{
+		match self {
+			KnownMetric::U64(metric) => metric.encode(encoder, labels),
+			KnownMetric::I64(metric) => metric.encode(encoder, labels),
+			KnownMetric::F64(metric) => metric.encode(encoder, labels),
+			#[cfg(feature = "extended-numbers")]
+			KnownMetric::U32(metric) => metric.encode(encoder, labels),
+			#[cfg(feature = "extended-numbers")]
+			KnownMetric::I32(metric) => metric.encode(encoder, labels),
+			#[cfg(feature = "extended-numbers")]
+			KnownMetric::U16(metric) => metric.encode(encoder, labels),
+			#[cfg(feature = "extended-numbers")]
+			KnownMetric::I16(metric) => metric.encode(encoder, labels),
+			#[cfg(feature = "extended-numbers")]
+			KnownMetric::U8(metric) => metric.encode(encoder, labels),
+			#[cfg(feature = "extended-numbers")]
+			KnownMetric::I8(metric) => metric.encode(encoder, labels),
+			#[cfg(feature = "extended-numbers")]
+			KnownMetric::F32(metric) => metric.encode(encoder, labels),
+		}
+	}
+}
+
+impl prometheus_client::collector::Collector for Collector {
+	fn encode(&self, mut encoder: prometheus_client::encoding::DescriptorEncoder) -> Result<(), std::fmt::Error> {
 		let mut metrics = ResourceMetrics {
 			resource: Resource::empty(),
 			scope_metrics: vec![],
 		};
+
 		if let Err(err) = self.reader.collect(&mut metrics) {
 			otel_error!(name: "prometheus_collector_collect_error", error = err.to_string());
-			return vec![];
-		}
-		let mut res = Vec::with_capacity(metrics.scope_metrics.len() + 1);
-
-		let target_info = self.create_target_info_once.get_or_init(|| {
-			// Resource should be immutable, we don't need to compute again
-			create_info_metric(TARGET_INFO_NAME, TARGET_INFO_DESCRIPTION, &metrics.resource)
-		});
-
-		if !self.disable_target_info && !metrics.resource.is_empty() {
-			res.push(target_info.clone())
+			return Err(std::fmt::Error);
 		}
 
-		let resource_labels = self
-			.resource_labels_once
-			.get_or_init(|| self.resource_selector.select(&metrics.resource));
+		let labels = KeyValueEncoder::new(self.prometheus_full_utf8);
 
-		for scope_metrics in metrics.scope_metrics {
-			let scope_labels = if !self.disable_scope_info {
-				if scope_metrics.scope.attributes().next().is_some() {
-					let scope_info = inner
-						.scope_infos
-						.entry(scope_metrics.scope.clone())
-						.or_insert_with_key(create_scope_info_metric);
-					res.push(scope_info.clone());
-				}
+		encoder
+			.encode_descriptor("target", "Information about the target", None, MetricType::Info)?
+			.encode_info(&labels.with_resource(Some(&metrics.resource)))?;
 
-				let mut labels = Vec::with_capacity(1 + scope_metrics.scope.version().is_some() as usize);
-				let mut name = LabelPair::new();
-				name.set_name(SCOPE_INFO_KEYS[0].into());
-				name.set_value(scope_metrics.scope.name().to_string());
-				labels.push(name);
-				if let Some(version) = scope_metrics.scope.version() {
-					let mut l_version = LabelPair::new();
-					l_version.set_name(SCOPE_INFO_KEYS[1].into());
-					l_version.set_value(version.to_string());
-					labels.push(l_version);
-				}
-
-				if !resource_labels.is_empty() {
-					labels.extend(resource_labels.iter().cloned());
-				}
-				labels
-			} else {
-				Vec::new()
-			};
-
-			for metrics in scope_metrics.metrics {
-				let (metric_type, name) = match self.metric_type_and_name(&metrics) {
-					Some((metric_type, name)) => (metric_type, name),
-					_ => continue,
+		for scope_metrics in &metrics.scope_metrics {
+			for metric in &scope_metrics.metrics {
+				let Some(known_metric) = KnownMetric::from_any(metric.data.as_any()) else {
+					otel_warn!(name: "prometheus_collector_unknown_metric_type", metric_name = &metric.name);
+					continue;
 				};
 
-				let mfs = &mut inner.metric_families;
-				let (drop, help) = validate_metrics(&name, &metrics.description, metric_type, mfs);
-				if drop {
-					continue;
-				}
+				let unit = if metric.unit.is_empty() {
+					None
+				} else {
+					Some(Unit::Other(metric.unit.to_string()))
+				};
 
-				let description = help.unwrap_or_else(|| metrics.description.into());
-				let data = metrics.data.as_any();
-
-				if let Some(hist) = data.downcast_ref::<data::Histogram<i64>>() {
-					add_histogram_metric(&mut res, hist, description, &scope_labels, name);
-				} else if let Some(hist) = data.downcast_ref::<data::Histogram<u64>>() {
-					add_histogram_metric(&mut res, hist, description, &scope_labels, name);
-				} else if let Some(hist) = data.downcast_ref::<data::Histogram<f64>>() {
-					add_histogram_metric(&mut res, hist, description, &scope_labels, name);
-				} else if let Some(sum) = data.downcast_ref::<data::Sum<u64>>() {
-					add_sum_metric(&mut res, sum, description, &scope_labels, name);
-				} else if let Some(sum) = data.downcast_ref::<data::Sum<i64>>() {
-					add_sum_metric(&mut res, sum, description, &scope_labels, name);
-				} else if let Some(sum) = data.downcast_ref::<data::Sum<f64>>() {
-					add_sum_metric(&mut res, sum, description, &scope_labels, name);
-				} else if let Some(g) = data.downcast_ref::<data::Gauge<u64>>() {
-					add_gauge_metric(&mut res, g, description, &scope_labels, name);
-				} else if let Some(g) = data.downcast_ref::<data::Gauge<i64>>() {
-					add_gauge_metric(&mut res, g, description, &scope_labels, name);
-				} else if let Some(g) = data.downcast_ref::<data::Gauge<f64>>() {
-					add_gauge_metric(&mut res, g, description, &scope_labels, name);
-				}
+				known_metric.encode(
+					encoder.encode_descriptor(
+						&metric.name,
+						&metric.description,
+						unit.as_ref(),
+						known_metric.metric_type(),
+					)?,
+					labels.with_scope(Some(&scope_metrics.scope)),
+				)?;
 			}
 		}
 
-		res
+		Ok(())
 	}
 }
 
-/// Maps attributes into Prometheus-style label pairs.
-///
-/// It sanitizes invalid characters and handles duplicate keys (due to
-/// sanitization) by sorting and concatenating the values following the spec.
-fn get_attrs(kvs: &mut dyn Iterator<Item = (&Key, &Value)>, extra: &[LabelPair]) -> Vec<LabelPair> {
-	let mut keys_map = BTreeMap::<String, Vec<String>>::new();
-	for (key, value) in kvs {
-		let key = utils::sanitize_prom_kv(key.as_str());
-		keys_map
-			.entry(key)
-			.and_modify(|v| v.push(value.to_string()))
-			.or_insert_with(|| vec![value.to_string()]);
-	}
-
-	let mut res = Vec::with_capacity(keys_map.len() + extra.len());
-
-	for (key, mut values) in keys_map.into_iter() {
-		values.sort_unstable();
-
-		let mut lp = LabelPair::new();
-		lp.set_name(key);
-		lp.set_value(values.join(";"));
-		res.push(lp);
-	}
-
-	if !extra.is_empty() {
-		res.extend(&mut extra.iter().cloned());
-	}
-
-	res
+fn scope_to_iter(scope: &InstrumentationScope) -> impl Iterator<Item = (&str, Cow<'_, str>)> {
+	[
+		("otel.scope.name", Some(Cow::Borrowed(scope.name()))),
+		("otel.scope.version", scope.version().map(Cow::Borrowed)),
+		("otel.scope.schema_url", scope.schema_url().map(Cow::Borrowed)),
+	]
+	.into_iter()
+	.chain(scope.attributes().map(|kv| (kv.key.as_str(), Some(kv.value.as_str()))))
+	.filter_map(|(key, value)| value.map(|v| (key, v)))
 }
 
-fn validate_metrics(
-	name: &str,
-	description: &str,
-	metric_type: MetricType,
-	mfs: &mut HashMap<String, MetricFamily>,
-) -> (bool, Option<String>) {
-	if let Some(existing) = mfs.get(name) {
-		if existing.get_field_type() != metric_type {
-			otel_error!(name: "prometheus_collector_collect_error", error = format!("Instrument type conflict, using existing type definition. Instrument {name}, Existing: {:?}, dropped: {:?}", existing.get_field_type(), metric_type));
-			return (true, None);
+#[derive(Debug, Clone, Copy)]
+struct KeyValueEncoder<'a> {
+	resource: Option<&'a Resource>,
+	scope: Option<&'a InstrumentationScope>,
+	attrs: Option<&'a [KeyValue]>,
+	prometheus_full_utf8: bool,
+}
+
+impl<'a> KeyValueEncoder<'a> {
+	fn new(prometheus_full_utf8: bool) -> Self {
+		Self {
+			resource: None,
+			scope: None,
+			attrs: None,
+			prometheus_full_utf8,
 		}
-		if existing.get_help() != description {
-			otel_error!(name: "prometheus_collector_collect_error", error = format!("Instrument description conflict, using existing. Instrument {name}, Existing: {:?}, dropped: {:?}", existing.get_help(), description));
-			return (false, Some(existing.get_help().to_string()));
-		}
-		(false, None)
-	} else {
-		let mut mf = MetricFamily::default();
-		mf.set_name(name.into());
-		mf.set_help(description.to_string());
-		mf.set_field_type(metric_type);
-		mfs.insert(name.to_string(), mf);
+	}
 
-		(false, None)
+	pub fn with_resource(self, resource: Option<&'a Resource>) -> Self {
+		Self { resource, ..self }
+	}
+
+	pub fn with_scope(self, scope: Option<&'a InstrumentationScope>) -> Self {
+		Self { scope, ..self }
+	}
+
+	pub fn with_attrs(self, attrs: Option<&'a [KeyValue]>) -> Self {
+		Self { attrs, ..self }
 	}
 }
 
-fn add_histogram_metric<T: Numeric>(
-	res: &mut Vec<MetricFamily>,
-	histogram: &data::Histogram<T>,
-	description: String,
-	extra: &[LabelPair],
-	name: Cow<'static, str>,
-) {
-	// Consider supporting exemplars when `prometheus` crate has the feature
-	// See: https://github.com/tikv/rust-prometheus/issues/393
+fn escape_key(s: &str) -> Cow<'_, str> {
+	// prefix chars to add in case name starts with number
+	let mut prefix = "";
 
-	for dp in &histogram.data_points {
-		let kvs = get_attrs(&mut dp.attributes.iter().map(|kv| (&kv.key, &kv.value)), extra);
-		let bounds_len = dp.bounds.len();
-		let (bucket, _) =
-			dp.bounds
-				.iter()
-				.enumerate()
-				.fold((Vec::with_capacity(bounds_len), 0), |(mut acc, mut count), (i, bound)| {
-					count += dp.bucket_counts[i];
-
-					let mut b = prometheus::proto::Bucket::default();
-					b.set_upper_bound(*bound);
-					b.set_cumulative_count(count);
-					acc.push(b);
-					(acc, count)
-				});
-
-		let mut h = prometheus::proto::Histogram::default();
-		h.set_sample_sum(dp.sum.as_f64());
-		h.set_sample_count(dp.count);
-		h.set_bucket(protobuf::RepeatedField::from_vec(bucket));
-		let mut pm = prometheus::proto::Metric::default();
-		pm.set_label(protobuf::RepeatedField::from_vec(kvs));
-		pm.set_histogram(h);
-
-		let mut mf = prometheus::proto::MetricFamily::default();
-		mf.set_name(name.to_string());
-		mf.set_help(description.clone());
-		mf.set_field_type(prometheus::proto::MetricType::HISTOGRAM);
-		mf.set_metric(protobuf::RepeatedField::from_vec(vec![pm]));
-		res.push(mf);
-	}
-}
-
-fn add_sum_metric<T: Numeric>(
-	res: &mut Vec<MetricFamily>,
-	sum: &data::Sum<T>,
-	description: String,
-	extra: &[LabelPair],
-	name: Cow<'static, str>,
-) {
-	let metric_type = if sum.is_monotonic {
-		MetricType::COUNTER
-	} else {
-		MetricType::GAUGE
-	};
-
-	for dp in &sum.data_points {
-		let kvs = get_attrs(&mut dp.attributes.iter().map(|kv| (&kv.key, &kv.value)), extra);
-
-		let mut pm = prometheus::proto::Metric::default();
-		pm.set_label(protobuf::RepeatedField::from_vec(kvs));
-
-		if sum.is_monotonic {
-			let mut c = prometheus::proto::Counter::default();
-			c.set_value(dp.value.as_f64());
-			pm.set_counter(c);
+	// Find first invalid char
+	if let Some((replace_idx, _)) = s.char_indices().find(|(i, c)| {
+		if *i == 0 && c.is_ascii_digit() {
+			// first char is number, add prefix and replace reset of chars
+			prefix = "_";
+			true
 		} else {
-			let mut g = prometheus::proto::Gauge::default();
-			g.set_value(dp.value.as_f64());
-			pm.set_gauge(g);
+			// keep checking
+			!c.is_alphanumeric() && *c != '_' && *c != ':'
+		}
+	}) {
+		// up to `replace_idx` have been validated, convert the rest
+		let (valid, rest) = s.split_at(replace_idx);
+		Cow::Owned(
+			prefix
+				.chars()
+				.chain(valid.chars())
+				.chain(rest.chars().map(|c| {
+					if c.is_ascii_alphanumeric() || c == '_' || c == ':' {
+						c
+					} else {
+						'_'
+					}
+				}))
+				.collect(),
+		)
+	} else {
+		Cow::Borrowed(s) // no invalid chars found, return existing
+	}
+}
+
+impl<'a> prometheus_client::encoding::EncodeLabelSet for KeyValueEncoder<'a> {
+	fn encode(&self, mut encoder: prometheus_client::encoding::LabelSetEncoder) -> Result<(), std::fmt::Error> {
+		use std::fmt::Write;
+
+		fn write_kv(
+			encoder: &mut prometheus_client::encoding::LabelSetEncoder,
+			key: &str,
+			value: &str,
+			prometheus_full_utf8: bool,
+		) -> Result<(), std::fmt::Error> {
+			let mut label = encoder.encode_label();
+			let mut key_encoder = label.encode_label_key()?;
+			if prometheus_full_utf8 {
+				// TODO(troy): I am not sure if this is correct.
+				// See: https://github.com/prometheus/client_rust/issues/251
+				write!(&mut key_encoder, "{}", key)?;
+			} else {
+				write!(&mut key_encoder, "{}", escape_key(key))?;
+			}
+
+			let mut value_encoder = key_encoder.encode_label_value()?;
+			write!(&mut value_encoder, "{}", value)?;
+
+			value_encoder.finish()
 		}
 
-		let mut mf = prometheus::proto::MetricFamily::default();
-		mf.set_name(name.to_string());
-		mf.set_help(description.clone());
-		mf.set_field_type(metric_type);
-		mf.set_metric(protobuf::RepeatedField::from_vec(vec![pm]));
-		res.push(mf);
-	}
-}
+		if let Some(resource) = self.resource {
+			for (key, value) in resource.iter() {
+				write_kv(&mut encoder, key.as_str(), value.as_str().as_ref(), self.prometheus_full_utf8)?;
+			}
+		}
 
-fn add_gauge_metric<T: Numeric>(
-	res: &mut Vec<MetricFamily>,
-	gauge: &data::Gauge<T>,
-	description: String,
-	extra: &[LabelPair],
-	name: Cow<'static, str>,
-) {
-	for dp in &gauge.data_points {
-		let kvs = get_attrs(&mut dp.attributes.iter().map(|kv| (&kv.key, &kv.value)), extra);
+		if let Some(scope) = self.scope {
+			for (key, value) in scope_to_iter(scope) {
+				write_kv(&mut encoder, key, value.as_ref(), self.prometheus_full_utf8)?;
+			}
+		}
 
-		let mut g = prometheus::proto::Gauge::default();
-		g.set_value(dp.value.as_f64());
-		let mut pm = prometheus::proto::Metric::default();
-		pm.set_label(protobuf::RepeatedField::from_vec(kvs));
-		pm.set_gauge(g);
+		if let Some(attrs) = self.attrs {
+			for kv in attrs {
+				write_kv(&mut encoder, kv.key.as_str(), kv.value.as_str().as_ref(), self.prometheus_full_utf8)?;
+			}
+		}
 
-		let mut mf = prometheus::proto::MetricFamily::default();
-		mf.set_name(name.to_string());
-		mf.set_help(description.to_string());
-		mf.set_field_type(MetricType::GAUGE);
-		mf.set_metric(protobuf::RepeatedField::from_vec(vec![pm]));
-		res.push(mf);
-	}
-}
-
-fn create_info_metric(target_info_name: &str, target_info_description: &str, resource: &Resource) -> MetricFamily {
-	let mut g = prometheus::proto::Gauge::default();
-	g.set_value(1.0);
-
-	let mut m = prometheus::proto::Metric::default();
-	m.set_label(protobuf::RepeatedField::from_vec(get_attrs(&mut resource.iter(), &[])));
-	m.set_gauge(g);
-
-	let mut mf = MetricFamily::default();
-	mf.set_name(target_info_name.into());
-	mf.set_help(target_info_description.into());
-	mf.set_field_type(MetricType::GAUGE);
-	mf.set_metric(protobuf::RepeatedField::from_vec(vec![m]));
-	mf
-}
-
-fn create_scope_info_metric(scope: &InstrumentationScope) -> MetricFamily {
-	let mut g = prometheus::proto::Gauge::default();
-	g.set_value(1.0);
-
-	let mut labels = Vec::with_capacity(1 + scope.version().is_some() as usize);
-	let mut name = LabelPair::new();
-	name.set_name(SCOPE_INFO_KEYS[0].into());
-	name.set_value(scope.name().to_string());
-	labels.push(name);
-	if let Some(version) = scope.version() {
-		let mut v_label = LabelPair::new();
-		v_label.set_name(SCOPE_INFO_KEYS[1].into());
-		v_label.set_value(version.to_string());
-		labels.push(v_label);
-	}
-
-	let mut m = prometheus::proto::Metric::default();
-	m.set_label(protobuf::RepeatedField::from_vec(labels));
-	m.set_gauge(g);
-
-	let mut mf = MetricFamily::default();
-	mf.set_name(SCOPE_INFO_METRIC_NAME.into());
-	mf.set_help(SCOPE_INFO_DESCRIPTION.into());
-	mf.set_field_type(MetricType::GAUGE);
-	mf.set_metric(protobuf::RepeatedField::from_vec(vec![m]));
-	mf
-}
-
-trait Numeric: fmt::Debug {
-	// lossy at large values for u64 and i64 but prometheus only handles floats
-	fn as_f64(&self) -> f64;
-}
-
-impl Numeric for u64 {
-	fn as_f64(&self) -> f64 {
-		*self as f64
-	}
-}
-
-impl Numeric for i64 {
-	fn as_f64(&self) -> f64 {
-		*self as f64
-	}
-}
-
-impl Numeric for f64 {
-	fn as_f64(&self) -> f64 {
-		*self
+		Ok(())
 	}
 }

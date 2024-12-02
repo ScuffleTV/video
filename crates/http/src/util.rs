@@ -71,7 +71,9 @@ impl TimeoutTracker {
 			)
 			.await
 			{
-				futures::future::Either::Left(_) if self.requests_inflight.load(std::sync::atomic::Ordering::Relaxed) == 0 => {
+				futures::future::Either::Left(_)
+					if self.requests_inflight.load(std::sync::atomic::Ordering::Relaxed) == 0 =>
+				{
 					break;
 				}
 				_ => {}

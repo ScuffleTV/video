@@ -1,8 +1,7 @@
 use anyhow::Context;
 use bytes::Bytes;
 #[cfg(feature = "prometheus")]
-pub use prometheus;
-use prometheus::Encoder;
+pub use prometheus_client;
 use scuffle_bootstrap::global::Global;
 use scuffle_bootstrap::service::Service;
 use scuffle_context::ContextFutExt;
@@ -36,7 +35,7 @@ pub trait TelemetryConfig: Global {
 
 	/// Return a Prometheus metrics registry to scrape metrics from.
 	#[cfg(feature = "prometheus")]
-	fn prometheus_metrics_registry(&self) -> Option<&prometheus::Registry> {
+	fn prometheus_metrics_registry(&self) -> Option<&prometheus_client::registry::Registry> {
 		None
 	}
 
@@ -133,18 +132,17 @@ async fn metrics<G: TelemetryConfig>(
 	_: http::Request<IncomingBody>,
 ) -> Result<http::Response<http_body_util::Full<Bytes>>, scuffle_http::Error> {
 	if let Some(metrics) = global.prometheus_metrics_registry() {
-		let encoder = prometheus::TextEncoder::new();
-		let mut buffer = Vec::new();
-		if let Err(err) = encoder.encode(&metrics.gather(), &mut buffer) {
-			tracing::error!("metrics encode failed: {err}");
+		let mut buf = String::new();
+		if prometheus_client::encoding::text::encode(&mut buf, metrics).is_err() {
+			tracing::error!("metrics encode failed");
 			return Ok(http::Response::builder()
 				.status(http::StatusCode::INTERNAL_SERVER_ERROR)
-				.body(http_body_util::Full::new(format!("{err:#}").into()))?);
+				.body(http_body_util::Full::new(format!("metrics encode failed").into()))?);
 		}
 
 		Ok(http::Response::builder()
 			.status(http::StatusCode::OK)
-			.body(http_body_util::Full::new(Bytes::from(buffer)))?)
+			.body(http_body_util::Full::new(Bytes::from(buf)))?)
 	} else {
 		Ok(http::Response::builder()
 			.status(http::StatusCode::NOT_FOUND)

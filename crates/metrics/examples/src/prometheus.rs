@@ -2,7 +2,6 @@ use example::Kind;
 use opentelemetry::KeyValue;
 use opentelemetry_sdk::metrics::SdkMeterProvider;
 use opentelemetry_sdk::Resource;
-use prometheus::TextEncoder;
 
 #[scuffle_metrics::metrics]
 mod example {
@@ -21,12 +20,11 @@ mod example {
 
 #[tokio::main]
 async fn main() {
-	let registry = prometheus::Registry::new();
+	let mut registry = prometheus_client::registry::Registry::default();
 
-	let exporter = scuffle_metrics::prometheus::exporter()
-		.with_registry(registry.clone())
-		.build()
-		.unwrap();
+	let exporter = scuffle_metrics::prometheus::exporter().build();
+
+	registry.register_collector(exporter.collector());
 
 	let provider = SdkMeterProvider::builder()
 		.with_resource(Resource::new(vec![KeyValue::new("service.name", env!("CARGO_BIN_NAME"))]))
@@ -41,5 +39,9 @@ async fn main() {
 		example::add(i, i, Kind::Http).incr();
 	}
 
-	println!("{}", TextEncoder::new().encode_to_string(&registry.gather()).unwrap());
+	let mut buffer = String::new();
+
+	prometheus_client::encoding::text::encode(&mut buffer, &registry).unwrap();
+
+	println!("{}", buffer);
 }
