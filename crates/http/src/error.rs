@@ -361,7 +361,11 @@ impl ErrorKindExt for h3::Error {
 #[cfg(any(feature = "http1", feature = "http2"))]
 impl ErrorKindExt for hyper::Error {
 	fn severity(&self) -> ErrorSeverity {
-		self.source().and_then(find_source).unwrap_or(ErrorSeverity::Error)
+		if self.is_incomplete_message() {
+			ErrorSeverity::Debug
+		} else {
+			self.source().and_then(find_source).unwrap_or(ErrorSeverity::Error)
+		}
 	}
 }
 

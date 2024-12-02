@@ -2,6 +2,7 @@
 
 members = [
     "crates/batching",
+    "crates/batching/examples",
     "crates/bootstrap",
     "crates/bootstrap/derive",
     "crates/bootstrap/examples",

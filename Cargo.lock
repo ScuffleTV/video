@@ -4325,6 +4325,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "scuffle-batching-examples"
+version = "0.1.0"
+dependencies = [
+ "scuffle-batching",
+ "tokio",
+]
+
+[[package]]
 name = "scuffle-bootstrap"
 version = "0.0.1"
 dependencies = [

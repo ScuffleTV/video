@@ -21,7 +21,6 @@ async fn main() {
 	tcp_server
 		.start(
 			function_service(|req| async move {
-				tracing::info!("new request: {:?}", req);
 				let body = http_body_util::Full::new(Bytes::from(format!("hi tcp: {:?}", req)));
 				Ok::<_, Infallible>(Response::builder().body(body).unwrap())
 			}),

@@ -164,7 +164,7 @@ where
 			waiting.keys.insert(item);
 
 			if batch_mut.items.len() >= self.batch_size {
-				batch.take().unwrap().spawn(self.executor.clone()).await;
+				tokio::spawn(batch.take().unwrap().spawn(self.executor.clone()));
 				self.notify.notify_one();
 			}
 		}

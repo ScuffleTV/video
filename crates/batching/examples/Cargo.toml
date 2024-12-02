@@ -1,0 +1,12 @@
+[package]
+name = "scuffle-batching-examples"
+version = "0.1.0"
+edition = "2021"
+
+[[example]]
+name = "scuffle-batching-dataloader"
+path = "src/dataloader.rs"
+
+[dependencies]
+scuffle-batching = { path = ".." }
+tokio = { version = "1", features = ["full"] }
