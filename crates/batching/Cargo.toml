@@ -13,3 +13,6 @@ keywords = ["batching", "dataloading", "external", "services", "async"]
 [dependencies]
 tokio = { version = "1", default-features = false, features = ["time", "sync", "rt"] }
 tokio-util = "0.7"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }

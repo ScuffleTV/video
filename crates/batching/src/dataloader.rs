@@ -51,6 +51,12 @@ impl DataLoaderBuilder {
 		self
 	}
 
+	/// Set the concurrency
+	pub fn concurrency(mut self, concurrency: usize) -> Self {
+		self.concurrency = concurrency;
+		self
+	}
+
 	/// Build the dataloader
 	pub fn build<E>(self, executor: E) -> DataLoader<E>
 	where
@@ -80,7 +86,7 @@ where
 {
 	/// Create a new dataloader
 	pub fn new(executor: E, batch_size: usize, concurrency: usize, delay: std::time::Duration) -> Self {
-		let semaphore = Arc::new(tokio::sync::Semaphore::new(concurrency.min(1)));
+		let semaphore = Arc::new(tokio::sync::Semaphore::new(concurrency.max(1)));
 		let current_batch = Arc::new(tokio::sync::Mutex::new(None));
 		let executor = Arc::new(executor);
 
@@ -91,7 +97,7 @@ where
 			_auto_spawn: join_handle,
 			semaphore,
 			current_batch,
-			batch_size: batch_size.min(1),
+			batch_size: batch_size.max(1),
 			batch_id: AtomicU64::new(0),
 		}
 	}
@@ -251,6 +257,38 @@ where
 			Err(_) => unreachable!(
 				"batch result already set, this is a bug please report it https://github.com/scufflecloud/scuffle/issues"
 			),
+		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[tokio::test]
+	async fn test_dataloader() {
+		struct Executor;
+
+		impl DataLoaderFetcher for Executor {
+			type Key = u64;
+			type Value = u64;
+
+			async fn load(&self, keys: HashSet<Self::Key>) -> Option<HashMap<Self::Key, Self::Value>> {
+				println!("loading {:?}", keys.len());
+				Some(keys.into_iter().map(|k| (k, k)).collect())
+			}
+		}
+
+		let dataloader = DataLoaderBuilder::default()
+			.batch_size(1000)
+			.concurrency(10)
+			.delay(std::time::Duration::from_millis(1))
+			.build(Executor);
+
+		let results = dataloader.load_many(0..100).await.unwrap();
+		assert_eq!(results.len(), 100);
+		for i in 0..100 {
+			assert_eq!(results[&i], i);
 		}
 	}
 }

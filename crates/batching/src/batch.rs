@@ -91,6 +91,18 @@ impl BatcherBuilder {
 		self
 	}
 
+	/// Set the concurrency to 1
+	pub fn concurrency(mut self, concurrency: usize) -> Self {
+		self.concurrency = concurrency;
+		self
+	}
+
+	/// Set the concurrency
+	pub fn with_concurrency(&mut self, concurrency: usize) -> &mut Self {
+		self.concurrency = concurrency;
+		self
+	}
+
 	/// Set the batch size
 	pub fn with_batch_size(&mut self, batch_size: usize) -> &mut Self {
 		self.batch_size = batch_size;
@@ -141,7 +153,7 @@ where
 {
 	/// Create a new batcher
 	pub fn new(executor: E, batch_size: usize, concurrency: usize, delay: std::time::Duration) -> Self {
-		let semaphore = Arc::new(tokio::sync::Semaphore::new(concurrency.min(1)));
+		let semaphore = Arc::new(tokio::sync::Semaphore::new(concurrency.max(1)));
 		let current_batch = Arc::new(tokio::sync::Mutex::new(None));
 		let executor = Arc::new(executor);
 
@@ -152,7 +164,7 @@ where
 			_auto_spawn: join_handle,
 			semaphore,
 			current_batch,
-			batch_size: batch_size.min(1),
+			batch_size: batch_size.max(1),
 			batch_id: AtomicU64::new(0),
 		}
 	}
