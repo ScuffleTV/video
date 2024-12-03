@@ -281,8 +281,6 @@ where
 						.zip(data_point.bucket_counts.iter().copied())
 						.collect::<Vec<_>>();
 
-					dbg!(&buckets);
-
 					encoder.encode_histogram::<()>(sum.as_f64(), data_point.count, &buckets, None)?;
 				}
 			}
