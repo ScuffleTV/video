@@ -120,7 +120,6 @@ where
 {
 	_auto_spawn: tokio::task::JoinHandle<()>,
 	executor: Arc<E>,
-	notify: Arc<tokio::sync::Notify>,
 	semaphore: Arc<tokio::sync::Semaphore>,
 	current_batch: Arc<tokio::sync::Mutex<Option<Batch<E>>>>,
 	batch_size: usize,
@@ -133,7 +132,7 @@ where
 {
 	id: u64,
 	items: Vec<(E::Request, BatchResponse<E::Response>)>,
-	_ticket: tokio::sync::OwnedSemaphorePermit,
+	semaphore: Arc<tokio::sync::Semaphore>,
 }
 
 impl<E> Batcher<E>
@@ -143,16 +142,14 @@ where
 	/// Create a new batcher
 	pub fn new(executor: E, batch_size: usize, concurrency: usize, delay: std::time::Duration) -> Self {
 		let semaphore = Arc::new(tokio::sync::Semaphore::new(concurrency.min(1)));
-		let notify = Arc::new(tokio::sync::Notify::new());
 		let current_batch = Arc::new(tokio::sync::Mutex::new(None));
 		let executor = Arc::new(executor);
 
-		let join_handle = tokio::spawn(batch_loop(executor.clone(), current_batch.clone(), notify.clone(), delay));
+		let join_handle = tokio::spawn(batch_loop(executor.clone(), current_batch.clone(), delay));
 
 		Self {
 			executor,
 			_auto_spawn: join_handle,
-			notify,
 			semaphore,
 			current_batch,
 			batch_size: batch_size.min(1),
@@ -175,34 +172,29 @@ where
 	where
 		I: IntoIterator<Item = E::Request>,
 	{
-		// Currently we need to collect this into a vec because of lifetime issues when
-		// holding a iterator over an await point. TODO(troy): explore if this can be
-		// avoided
-		let items = items.into_iter().collect::<Vec<_>>();
-
-		let mut batch = self.current_batch.lock().await;
-
 		let mut responses = Vec::new();
+		
+		{
+			let mut batch = self.current_batch.lock().await;
 
-		for item in items {
-			if batch.is_none() {
-				batch.replace(
-					Batch::new(
-						self.batch_id.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
-						self.semaphore.clone(),
-					)
-					.await,
-				);
-			}
-
-			let batch_mut = batch.as_mut().unwrap();
-			let (tx, rx) = oneshot::channel();
-			batch_mut.items.push((item, BatchResponse::new(tx)));
-			responses.push(rx);
-
-			if batch_mut.items.len() >= self.batch_size {
-				batch.take().unwrap().spawn(self.executor.clone()).await;
-				self.notify.notify_one();
+			for item in items {
+				if batch.is_none() {
+					batch.replace(
+						Batch::new(
+							self.batch_id.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+							self.semaphore.clone(),
+						),
+					);
+				}
+	
+				let batch_mut = batch.as_mut().unwrap();
+				let (tx, rx) = oneshot::channel();
+				batch_mut.items.push((item, BatchResponse::new(tx)));
+				responses.push(rx);
+	
+				if batch_mut.items.len() >= self.batch_size {
+					tokio::spawn(batch.take().unwrap().spawn(self.executor.clone()));
+				}
 			}
 		}
 
@@ -218,14 +210,13 @@ where
 async fn batch_loop<E>(
 	executor: Arc<E>,
 	current_batch: Arc<tokio::sync::Mutex<Option<Batch<E>>>>,
-	notify: Arc<tokio::sync::Notify>,
 	delay: std::time::Duration,
 ) where
 	E: BatchExecutor + Send + Sync + 'static,
 {
 	let mut pending_id = None;
 	loop {
-		tokio::time::timeout(delay, notify.notified()).await.ok();
+		tokio::time::sleep(delay).await;
 
 		let mut batch = current_batch.lock().await;
 		let Some(batch_id) = batch.as_ref().map(|b| b.id) else {
@@ -246,15 +237,16 @@ impl<E> Batch<E>
 where
 	E: BatchExecutor + Send + Sync + 'static,
 {
-	async fn new(id: u64, semaphore: Arc<tokio::sync::Semaphore>) -> Self {
+	fn new(id: u64, semaphore: Arc<tokio::sync::Semaphore>) -> Self {
 		Self {
 			id,
 			items: Vec::new(),
-			_ticket: semaphore.acquire_owned().await.unwrap(),
+			semaphore,
 		}
 	}
 
 	async fn spawn(self, executor: Arc<E>) {
+		let _ticket = self.semaphore.acquire_owned().await;
 		executor.execute(self.items).await;
 	}
 }

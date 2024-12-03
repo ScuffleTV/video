@@ -68,7 +68,6 @@ where
 {
 	_auto_spawn: tokio::task::JoinHandle<()>,
 	executor: Arc<E>,
-	notify: Arc<tokio::sync::Notify>,
 	semaphore: Arc<tokio::sync::Semaphore>,
 	current_batch: Arc<tokio::sync::Mutex<Option<Batch<E>>>>,
 	batch_size: usize,
@@ -82,16 +81,14 @@ where
 	/// Create a new dataloader
 	pub fn new(executor: E, batch_size: usize, concurrency: usize, delay: std::time::Duration) -> Self {
 		let semaphore = Arc::new(tokio::sync::Semaphore::new(concurrency.min(1)));
-		let notify = Arc::new(tokio::sync::Notify::new());
 		let current_batch = Arc::new(tokio::sync::Mutex::new(None));
 		let executor = Arc::new(executor);
 
-		let join_handle = tokio::spawn(batch_loop(executor.clone(), current_batch.clone(), notify.clone(), delay));
+		let join_handle = tokio::spawn(batch_loop(executor.clone(), current_batch.clone(), delay));
 
 		Self {
 			executor,
 			_auto_spawn: join_handle,
-			notify,
 			semaphore,
 			current_batch,
 			batch_size: batch_size.min(1),
@@ -123,10 +120,6 @@ where
 	where
 		I: IntoIterator<Item = E::Key> + Send,
 	{
-		// Currently we need to collect this into a hashset because of lifetime issues
-		// when holding a iterator over an await point. TODO(troy): explore if this
-		// can be avoided
-		let items = items.into_iter().collect::<HashSet<_>>();
 		struct BatchWaiting<K, V> {
 			id: u64,
 			keys: HashSet<K>,
@@ -144,8 +137,7 @@ where
 						Batch::new(
 							self.batch_id.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
 							self.semaphore.clone(),
-						)
-						.await,
+						),
 					);
 				}
 	
@@ -165,7 +157,6 @@ where
 	
 				if batch_mut.items.len() >= self.batch_size {
 					tokio::spawn(batch.take().unwrap().spawn(self.executor.clone()));
-					self.notify.notify_one();
 				}
 			}
 		}
@@ -186,14 +177,13 @@ where
 async fn batch_loop<E>(
 	executor: Arc<E>,
 	current_batch: Arc<tokio::sync::Mutex<Option<Batch<E>>>>,
-	notify: Arc<tokio::sync::Notify>,
 	delay: std::time::Duration,
 ) where
 	E: DataLoaderFetcher + Send + Sync + 'static,
 {
 	let mut pending_id = None;
 	loop {
-		tokio::time::timeout(delay, notify.notified()).await.ok();
+		tokio::time::sleep(delay).await;
 
 		let mut batch = current_batch.lock().await;
 		let Some(batch_id) = batch.as_ref().map(|b| b.id) else {
@@ -236,24 +226,25 @@ where
 	id: u64,
 	items: HashSet<E::Key>,
 	result: Arc<BatchResult<E::Key, E::Value>>,
-	_ticket: tokio::sync::OwnedSemaphorePermit,
+	semaphore: Arc<tokio::sync::Semaphore>,
 }
 
 impl<E> Batch<E>
 where
 	E: DataLoaderFetcher + Send + Sync + 'static,
 {
-	async fn new(id: u64, semaphore: Arc<tokio::sync::Semaphore>) -> Self {
+	fn new(id: u64, semaphore: Arc<tokio::sync::Semaphore>) -> Self {
 		Self {
 			id,
 			items: HashSet::new(),
 			result: Arc::new(BatchResult::new()),
-			_ticket: semaphore.acquire_owned().await.unwrap(),
+			semaphore,
 		}
 	}
 
 	async fn spawn(self, executor: Arc<E>) {
 		let _drop_guard = self.result.token.clone().drop_guard();
+		let _ticket = self.semaphore.acquire_owned().await.unwrap();
 		let result = executor.load(self.items).await;
 		match self.result.values.set(result) {
 			Ok(()) => {}
