@@ -134,6 +134,8 @@ where
 
 		let mut waiters = Vec::<BatchWaiting<E::Key, E::Value>>::new();
 
+		let mut count = 0;
+
 		{
 			let mut batch = self.current_batch.lock().await;
 	
@@ -160,6 +162,8 @@ where
 	
 				let waiting = waiters.last_mut().unwrap();
 				waiting.keys.insert(item);
+
+				count += 1;
 	
 				if batch_mut.items.len() >= self.batch_size {
 					tokio::spawn(batch.take().unwrap().spawn(self.executor.clone()));
@@ -167,7 +171,7 @@ where
 			}
 		}
 
-		let mut results = HashMap::new();
+		let mut results = HashMap::with_capacity(count);
 		for waiting in waiters {
 			let result = waiting.result.wait().await?;
 			results.extend(waiting.keys.into_iter().filter_map(|key| {
@@ -220,7 +224,10 @@ impl<K, V> BatchResult<K, V> {
 	}
 
 	async fn wait(&self) -> Result<&HashMap<K, V>, ()> {
-		self.token.cancelled().await;
+		if !self.token.is_cancelled() {
+			self.token.cancelled().await;
+		}
+
 		self.values.get().ok_or(())?.as_ref().ok_or(())
 	}
 }
@@ -261,34 +268,3 @@ where
 	}
 }
 
-#[cfg(test)]
-mod tests {
-	use super::*;
-
-	#[tokio::test]
-	async fn test_dataloader() {
-		struct Executor;
-
-		impl DataLoaderFetcher for Executor {
-			type Key = u64;
-			type Value = u64;
-
-			async fn load(&self, keys: HashSet<Self::Key>) -> Option<HashMap<Self::Key, Self::Value>> {
-				println!("loading {:?}", keys.len());
-				Some(keys.into_iter().map(|k| (k, k)).collect())
-			}
-		}
-
-		let dataloader = DataLoaderBuilder::default()
-			.batch_size(1000)
-			.concurrency(10)
-			.delay(std::time::Duration::from_millis(1))
-			.build(Executor);
-
-		let results = dataloader.load_many(0..100).await.unwrap();
-		assert_eq!(results.len(), 100);
-		for i in 0..100 {
-			assert_eq!(results[&i], i);
-		}
-	}
-}

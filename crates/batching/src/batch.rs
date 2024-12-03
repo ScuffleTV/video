@@ -210,7 +210,7 @@ where
 			}
 		}
 
-		let mut results = Vec::new();
+		let mut results = Vec::with_capacity(responses.len());
 		for response in responses {
 			results.push(response.await.ok());
 		}

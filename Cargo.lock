@@ -4318,7 +4318,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-batching"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "tokio",
  "tokio-util",
@@ -4557,7 +4557,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-metrics"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "opentelemetry",
  "opentelemetry_sdk",
