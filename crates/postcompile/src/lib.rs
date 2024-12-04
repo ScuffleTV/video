@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 use std::{
     borrow::Cow,
     ffi::{OsStr, OsString},
@@ -11,27 +13,40 @@ use deps::Errored;
 mod deps;
 mod features;
 
-pub enum Error {
-    Build(String),
-    Run(String),
-}
-
+/// The return status of the compilation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExitStatus {
+    /// If the compiler returned a 0 exit code.
     Success,
-    Failure,
+    /// If the compiler returned a non-0 exit code.
+    Failure(i32),
 }
 
+impl std::fmt::Display for ExitStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ExitStatus::Success => write!(f, "0"),
+            ExitStatus::Failure(code) => write!(f, "{}", code),
+        }
+    }
+}
+
+/// The output of the compilation.
 #[derive(Debug)]
 pub struct CompileOutput {
+    /// The status of the compilation.
     pub status: ExitStatus,
+    /// The stdout of the compilation.
+    /// This will contain the expanded code.
     pub stdout: String,
+    /// The stderr of the compilation.
+    /// This will contain any errors or warnings from the compiler.
     pub stderr: String,
 }
 
 impl std::fmt::Display for CompileOutput {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "exit status: {:?}\n", self.status)?;
+        write!(f, "exit status: {}\n", self.status)?;
         if !self.stderr.is_empty() {
             write!(f, "--- stderr \n{}\n", self.stderr)?;
         }
@@ -42,6 +57,7 @@ impl std::fmt::Display for CompileOutput {
     }
 }
 
+/// Compiles the given tokens and returns the output.
 pub fn compile_custom(tokens: &[u8], config: &Config) -> Result<CompileOutput, Errored> {
     let mut program = Command::new(std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into()));
     program.env("RUSTC_BOOTSTRAP", "1");
@@ -83,18 +99,24 @@ pub fn compile_custom(tokens: &[u8], config: &Config) -> Result<CompileOutput, E
         status: if output.status.success() {
             ExitStatus::Success
         } else {
-            ExitStatus::Failure
+            ExitStatus::Failure(output.status.code().unwrap_or(-1))
         },
         stdout: String::from_utf8(output.stdout).unwrap(),
         stderr: String::from_utf8(output.stderr).unwrap(),
     })
 }
 
+/// The configuration for the compilation.
 #[derive(Clone, Debug)]
 pub struct Config {
+    /// The path to the cargo manifest file of the library being tested.
+    /// This is so that we can include the `dependencies` & `dev-dependencies` making them available in the code provided.
     pub manifest: Cow<'static, Path>,
+    /// The path to the target directory, used to cache builds & find dependencies.
     pub target_dir: Cow<'static, Path>,
+    /// A temporary directory to write the expanded code to.
     pub tmp_dir: Cow<'static, Path>,
+    /// The name of the function to compile.
     pub function_name: Cow<'static, str>,
 }
 
@@ -145,6 +167,24 @@ macro_rules! _config {
     }};
 }
 
+/// Compiles the given tokens and returns the output.
+///
+/// This macro will panic if we fail to invoke the compiler.
+///
+/// ```rs
+/// // Dummy macro to assert the snapshot.
+/// macro_rules! assert_snapshot {
+///     ($expr:expr) => {};
+/// }
+///
+/// let output = postcompile::compile! {
+///     const TEST: u32 = 1;
+/// };
+///
+/// assert_eq!(output.status, postcompile::ExitStatus::Success);
+/// assert!(output.stderr.is_empty());
+/// assert_snapshot!(output.stdout); // We dont have an assert_snapshot! macro in this crate, but you get the idea.
+/// ```
 #[macro_export]
 macro_rules! compile {
     ($($tokens:tt)*) => {
@@ -152,6 +192,17 @@ macro_rules! compile {
     };
 }
 
+/// Compiles the given string of tokens and returns the output.
+///
+/// This macro will panic if we fail to invoke the compiler.
+///
+/// Same as the [`compile!`] macro, but for strings. This allows you to do:
+///
+/// ```rs
+/// let output = postcompile::compile_str!(include_str!("some_file.rs"));
+///
+/// // ... do something with the output
+/// ```
 #[macro_export]
 macro_rules! compile_str {
     ($expr:expr) => {
@@ -159,6 +210,18 @@ macro_rules! compile_str {
     };
 }
 
+/// Compiles the given string of tokens and returns the output.
+///
+/// This macro will return an error if we fail to invoke the compiler. Unlike the [`compile!`] macro, this will not panic.
+///
+/// ```rs
+/// let output = postcompile::try_compile! {
+///     const TEST: u32 = 1;
+/// };
+///
+/// assert!(output.is_ok());
+/// assert_eq!(output.unwrap().status, postcompile::ExitStatus::Success);
+/// ```
 #[macro_export]
 macro_rules! try_compile {
     ($($tokens:tt)*) => {
@@ -166,6 +229,11 @@ macro_rules! try_compile {
     };
 }
 
+/// Compiles the given string of tokens and returns the output.
+///
+/// This macro will return an error if we fail to invoke the compiler.
+///
+/// Same as the [`try_compile!`] macro, but for strings similar usage to [`compile_str!`].
 #[macro_export]
 macro_rules! try_compile_str {
     ($expr:expr) => {

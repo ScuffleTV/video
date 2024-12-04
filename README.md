@@ -45,6 +45,7 @@ This repository houses a collection of crates, purpose-built libraries designed 
 - 📈 **[scuffle-pprof](./crates/pprof)**:  Helper crate for adding pprof support to your application.
 - ⚙️ **[scuffle-settings](./crates/settings)**:  Tools for managing configuration from environment variables or config files.
 - 📶 **[scuffle-signal](./crates/signal)**:  Ergonomic async signal handling.
+- 📦 **[postcompile](./crates/postcompile)**:  A macro for compiling Rust code at runtime. Useful for snapshot testing.
 
 ## 📦 Apps
 
