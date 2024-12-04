@@ -51,7 +51,6 @@ fn build_dependencies_inner(config: &Config) -> Result<Dependencies, Errored> {
     build.arg("--manifest-path");
     build.arg(config.manifest.as_ref());
     build.arg("--locked");
-    build.arg("--offline");
     if let Some(rustflags) = std::env::var_os("RUSTFLAGS") {
         build.env("RUSTFLAGS", rustflags);
     }
@@ -198,7 +197,6 @@ fn build_dependencies_inner(config: &Config) -> Result<Dependencies, Errored> {
     let mut metadata = cargo_metadata::MetadataCommand::new().cargo_command();
     metadata.arg("--manifest-path").arg(config.manifest.as_ref());
     metadata.arg("--locked");
-    metadata.arg("--offline");
     if let Some(features) = features::find() {
         metadata.arg(format!("--features={}", features.join(",")));
     }

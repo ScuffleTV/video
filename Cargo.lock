@@ -3534,7 +3534,7 @@ checksum = "280dc24453071f1b63954171985a0b0d30058d287960968b9b2aca264c8d4ee6"
 
 [[package]]
 name = "postcompile"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "cargo-platform",
  "cargo_metadata",
