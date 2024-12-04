@@ -3538,9 +3538,11 @@ version = "0.0.3"
 dependencies = [
  "cargo-platform",
  "cargo_metadata",
+ "prettyplease",
  "serde",
  "serde_derive",
  "serde_json",
+ "syn 2.0.90",
  "target-triple",
 ]
 
