@@ -1,0 +1,23 @@
+[package]
+name = "postcompile"
+version = "0.0.1"
+edition = "2021"
+build = "build.rs"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/postcompile"
+license = "MIT OR Apache-2.0"
+description = "Helper crate for post-compiling Rust code."
+keywords = ["postcompile", "snapshot", "test", "proc-macro"]
+
+[dependencies]
+serde_json = "1.0"
+cargo_metadata = "0.19.1"
+cargo-platform = "0.1"
+target-triple = "0.1"
+serde_derive = "1.0"
+serde = "1.0"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(trybuild_no_target)', 'cfg(postcompile_no_target)'] }

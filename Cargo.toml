@@ -15,6 +15,7 @@ members = [
     "crates/metrics",
     "crates/metrics/derive",
     "crates/metrics/examples",
+    "crates/postcompile",
     "crates/pprof",
     "crates/pprof/examples",
     "crates/settings",
