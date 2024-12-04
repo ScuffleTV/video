@@ -28,11 +28,17 @@ fn some_cool_test() {
         const TEST: Test = Test { a: 1, b: 3 };
     });
 }
+
+#[test]
+fn some_cool_test_extern() {
+    insta::assert_snapshot!(postcompile::compile_str!(include_str!("some_file.rs")));
+}
 ```
 
-## Coverage
+## Features
 
-This crate works with [`cargo-llvm-cov`](https://crates.io/crates/cargo-llvm-cov) out of the box, which allows you to instrument the proc-macro expansion.
+- Cached builds: This crate reuses the cargo build cache of the original crate so that only the contents of the macro are compiled & not any additional dependencies.
+- Coverage: This crate works with [`cargo-llvm-cov`](https://crates.io/crates/cargo-llvm-cov) out of the box, which allows you to instrument the proc-macro expansion.
 
 ## Alternatives
 
@@ -52,9 +58,11 @@ This crate is currently under development and is not yet stable, unit tests are 
 
 Unit tests are not yet fully implemented. Use at your own risk.
 
-## Known Issues
+## Limitations
 
-Due to the way this crate works it is currently not possible to compile code while the compiler is running. (i.e. inside a proc-macro invocation)
+Please note that this crate does not work inside a running compiler process (inside a proc-macro) without hacky workarounds and complete build-cache invalidation.
+
+This is because `cargo` holds a lock on the build directory and that if we were to compile inside a proc-macro we would recursively invoke the compiler.
 
 ## License
 
