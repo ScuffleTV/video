@@ -28,11 +28,20 @@ fn some_cool_test() {
 }
 ```
 
+## Coverage
+
+This crate does work with [`cargo-llvm-cov`](https://crates.io/crates/cargo-llvm-cov), which will allow for proc-macros that are expanded by this crate to be instrumented.
+
 ## Status
 
 This crate is currently under development and is not yet stable, unit tests are not yet fully implemented.
 
 Unit tests are not yet fully implemented. Use at your own risk.
+
+## Known Issues
+
+Due to the way this crate works it is currently not possible to compile code while the compiler is running. (i.e. inside a proc-macro invocation)
+
 
 ## License
 
