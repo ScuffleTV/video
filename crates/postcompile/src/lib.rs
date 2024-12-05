@@ -133,9 +133,10 @@ pub fn compile_custom(tokens: &str, config: &Config) -> Result<CompileOutput, Er
     let stderr = if output.status.success() {
         let mut program = rustc(config, &tmp_file);
         dependencies.apply(&mut program);
-        program.arg("-o=-");
         program.arg("--emit=llvm-ir");
         program.arg(&format!("--crate-type={crate_type}"));
+        program.arg("-o");
+        program.arg("-");
         String::from_utf8(program.output().unwrap().stderr).unwrap()
     } else {
         String::from_utf8(output.stderr).unwrap()
