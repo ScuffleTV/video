@@ -1,0 +1,137 @@
+name: cargo
+
+on:
+  push:
+    branches:
+      - main
+  pull_request: {}
+
+jobs:
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: clang curl pkg-config xz-utils libxv-dev ninja-build meson nasm protobuf-compiler
+      
+      - uses: dtolnay/rust-toolchain@stable
+        id: setup-rust
+        with:
+          toolchain: nightly
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v0-rust-${{ steps.setup-rust.outputs.cachekey }}"
+          key: clippy
+
+      - uses: cargo-bins/cargo-binstall@main
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just
+
+      - name: Make sure code is linted
+        run: just ci clippy
+
+  fmt:
+    name: Fmt
+    runs-on: ubuntu-24.04
+    permissions:
+      checks: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      
+      - uses: dtolnay/rust-toolchain@stable
+        id: setup-rust
+        with:
+          toolchain: nightly
+          components: rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v0-rust-${{ steps.setup-rust.outputs.cachekey }}"
+          key: fmt
+
+      - uses: cargo-bins/cargo-binstall@main
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just
+
+      - name: Make sure code is formatted
+        run: just ci fmt
+  
+  hakari:
+    name: Hakari
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: dtolnay/rust-toolchain@stable
+        id: setup-rust
+        with:
+          toolchain: nightly
+
+      - uses: cargo-bins/cargo-binstall@main
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-hakari,just
+
+      - name: Make sure Hakari is up-to-date
+        run: just ci hakari
+
+  test:
+    name: Test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: clang curl pkg-config xz-utils libxv-dev ninja-build meson nasm protobuf-compiler
+      
+      - uses: dtolnay/rust-toolchain@stable
+        id: setup-rust
+        with:
+          toolchain: nightly
+          components: llvm-tools-preview
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v0-rust-${{ steps.setup-rust.outputs.cachekey }}"
+          key: test
+
+      - uses: cargo-bins/cargo-binstall@main
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest,cargo-llvm-cov,just
+
+      - run: just ci test
+
+      - uses: codecov/codecov-action@v5
+        with:
+          fail_ci_if_error: true
+          files: ./lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          files: ./target/nextest/ci/junit.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
