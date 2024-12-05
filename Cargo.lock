@@ -3539,6 +3539,7 @@ dependencies = [
  "cargo-platform",
  "cargo_metadata",
  "prettyplease",
+ "scuffle-workspace-hack",
  "serde",
  "serde_derive",
  "serde_json",
@@ -4366,6 +4367,7 @@ dependencies = [
 name = "scuffle-batching"
 version = "0.0.2"
 dependencies = [
+ "scuffle-workspace-hack",
  "tokio",
  "tokio-util",
 ]
@@ -4375,6 +4377,7 @@ name = "scuffle-batching-examples"
 version = "0.1.0"
 dependencies = [
  "scuffle-batching",
+ "scuffle-workspace-hack",
  "tokio",
 ]
 
@@ -4387,6 +4390,7 @@ dependencies = [
  "pin-project-lite",
  "scuffle-bootstrap-derive",
  "scuffle-context",
+ "scuffle-workspace-hack",
  "tokio",
 ]
 
@@ -4397,6 +4401,7 @@ dependencies = [
  "darling",
  "proc-macro2",
  "quote",
+ "scuffle-workspace-hack",
  "syn 2.0.90",
 ]
 
@@ -4409,6 +4414,7 @@ dependencies = [
  "scuffle-context",
  "scuffle-settings",
  "scuffle-signal",
+ "scuffle-workspace-hack",
  "serde",
  "serde_derive",
  "smart-default",
@@ -4434,6 +4440,7 @@ dependencies = [
  "scuffle-context",
  "scuffle-http",
  "scuffle-pprof",
+ "scuffle-workspace-hack",
  "thiserror 2.0.3",
  "tokio",
  "tracing",
@@ -4446,6 +4453,7 @@ version = "0.0.1"
 dependencies = [
  "futures-lite",
  "pin-project-lite",
+ "scuffle-workspace-hack",
  "tokio",
  "tokio-util",
 ]
@@ -4459,6 +4467,7 @@ dependencies = [
  "crossbeam-channel",
  "ffmpeg-sys-next",
  "libc",
+ "scuffle-workspace-hack",
  "tokio",
  "tracing",
 ]
@@ -4472,6 +4481,7 @@ dependencies = [
  "h3",
  "http 1.1.0",
  "pin-project-lite",
+ "scuffle-workspace-hack",
  "tokio",
 ]
 
@@ -4500,6 +4510,7 @@ dependencies = [
  "rustls-pemfile 2.2.0",
  "scuffle-context",
  "scuffle-h3-webtransport",
+ "scuffle-workspace-hack",
  "smallvec 1.13.2",
  "spin",
  "thiserror 2.0.3",
@@ -4521,6 +4532,7 @@ dependencies = [
  "http-body 1.0.1",
  "http-body-util",
  "scuffle-http",
+ "scuffle-workspace-hack",
  "tokio",
  "tracing",
  "tracing-subscriber 0.3.19",
@@ -4566,6 +4578,7 @@ dependencies = [
  "scuffle-metrics",
  "scuffle-settings",
  "scuffle-signal",
+ "scuffle-workspace-hack",
  "serde",
  "serde_json",
  "smart-default",
@@ -4584,6 +4597,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "scuffle-image-processor-proto",
+ "scuffle-workspace-hack",
  "tokio",
  "tonic",
 ]
@@ -4596,6 +4610,7 @@ dependencies = [
  "pbjson-build",
  "prost 0.13.3",
  "prost-build 0.13.3",
+ "scuffle-workspace-hack",
  "serde",
  "tonic",
  "tonic-build",
@@ -4610,6 +4625,7 @@ dependencies = [
  "parking_lot",
  "prometheus-client",
  "scuffle-metrics-derive",
+ "scuffle-workspace-hack",
  "tracing",
 ]
 
@@ -4620,6 +4636,7 @@ dependencies = [
  "darling",
  "proc-macro2",
  "quote",
+ "scuffle-workspace-hack",
  "syn 2.0.90",
 ]
 
@@ -4632,6 +4649,7 @@ dependencies = [
  "opentelemetry_sdk",
  "prometheus-client",
  "scuffle-metrics",
+ "scuffle-workspace-hack",
  "tokio",
 ]
 
@@ -4641,6 +4659,7 @@ version = "0.0.1"
 dependencies = [
  "flate2",
  "pprof",
+ "scuffle-workspace-hack",
  "thiserror 2.0.3",
 ]
 
@@ -4651,6 +4670,7 @@ dependencies = [
  "flate2",
  "rand",
  "scuffle-pprof",
+ "scuffle-workspace-hack",
 ]
 
 [[package]]
@@ -4662,6 +4682,7 @@ dependencies = [
  "config",
  "minijinja",
  "scuffle-bootstrap",
+ "scuffle-workspace-hack",
  "serde",
  "serde_derive",
  "thiserror 2.0.3",
@@ -4674,6 +4695,7 @@ name = "scuffle-settings-examples"
 version = "0.0.0"
 dependencies = [
  "scuffle-settings",
+ "scuffle-workspace-hack",
  "serde",
  "serde_derive",
  "smart-default",
@@ -4688,7 +4710,77 @@ dependencies = [
  "libc",
  "scuffle-bootstrap",
  "scuffle-context",
+ "scuffle-workspace-hack",
  "tokio",
+]
+
+[[package]]
+name = "scuffle-workspace-hack"
+version = "0.1.0"
+dependencies = [
+ "ahash",
+ "aho-corasick",
+ "axum",
+ "axum-core",
+ "bitflags 2.6.0",
+ "bytes",
+ "cc",
+ "chrono",
+ "config",
+ "crossbeam-utils",
+ "either",
+ "fastrand",
+ "ffmpeg-sys-next",
+ "futures-channel",
+ "futures-core",
+ "futures-executor",
+ "futures-io",
+ "futures-sink",
+ "futures-task",
+ "futures-util",
+ "getrandom",
+ "hashbrown 0.15.2",
+ "hyper 1.5.1",
+ "hyper-util",
+ "itertools 0.12.1",
+ "itertools 0.13.0",
+ "libc",
+ "log",
+ "memchr",
+ "miniz_oxide",
+ "nom",
+ "num-traits",
+ "opentelemetry",
+ "opentelemetry_sdk",
+ "proc-macro2",
+ "prost 0.13.3",
+ "quote",
+ "rand",
+ "regex",
+ "regex-automata 0.4.9",
+ "regex-syntax 0.8.5",
+ "rustls 0.23.19",
+ "rustls-webpki 0.102.8",
+ "semver",
+ "serde",
+ "serde_json",
+ "simd-adler32",
+ "smallvec 1.13.2",
+ "socket2",
+ "subtle",
+ "syn 2.0.90",
+ "sync_wrapper 1.0.2",
+ "tokio",
+ "tokio-rustls 0.26.0",
+ "tokio-stream",
+ "tokio-util",
+ "tower 0.5.1",
+ "tracing",
+ "tracing-core",
+ "tracing-log 0.2.0",
+ "tracing-subscriber 0.3.19",
+ "uuid",
+ "zerocopy",
 ]
 
 [[package]]

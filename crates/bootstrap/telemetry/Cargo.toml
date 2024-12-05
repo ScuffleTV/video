@@ -31,6 +31,7 @@ scuffle-bootstrap = { version = "0.0.1", path = ".." }
 scuffle-context = { version = "0.0.1", path = "../../context" }
 scuffle-http = { version = "0.0.2", path = "../../http" }
 scuffle-pprof = { version = "0.0.1", path = "../../pprof", optional = true }
+scuffle-workspace-hack.workspace = true
 
 [features]
 default = ["prometheus", "pprof", "opentelemetry-metrics", "opentelemetry-traces", "opentelemetry-logs"]

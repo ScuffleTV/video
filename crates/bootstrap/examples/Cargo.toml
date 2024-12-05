@@ -31,3 +31,4 @@ scuffle-bootstrap = { version = "0.0.1", path = ".."}
 scuffle-settings = { version = "0.0.1", path = "../../settings", features = ["bootstrap"] }
 scuffle-signal = { version = "0.0.1", path = "../../signal", features = ["bootstrap"] }
 scuffle-context = { version = "0.0.1", path = "../../context" }
+scuffle-workspace-hack.workspace = true

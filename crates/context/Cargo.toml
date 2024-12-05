@@ -15,3 +15,4 @@ futures-lite = "2"
 pin-project-lite = "0.2"
 tokio-util = "0.7"
 tokio = "1"
+scuffle-workspace-hack.workspace = true

@@ -15,6 +15,7 @@ tokio = { version = "1.41.1", default-features = false, features = ["signal"] }
 scuffle-bootstrap = { version = "0.0.1", path = "../bootstrap", optional = true }
 scuffle-context = { version = "0.0.1", path = "../context", optional = true }
 anyhow = { version = "1.0", optional = true }
+scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
 tokio = { version = "1.41.1", features = ["macros", "rt", "time"] }

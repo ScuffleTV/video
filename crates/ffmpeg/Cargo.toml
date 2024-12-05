@@ -18,6 +18,7 @@ tokio = { optional = true, version = "1.41.1" }
 crossbeam-channel = { optional = true, version = "0.5.13" }
 tracing = { optional = true, version = "0.1.40" }
 arc-swap = { version = "1.7.1" }
+scuffle-workspace-hack.workspace = true
 
 [features]
 default = []

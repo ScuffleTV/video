@@ -16,6 +16,7 @@ futures-util = { version = "0.3", default-features = false }
 http = "1"
 pin-project-lite = { version = "0.2", default-features = false }
 tokio = { version = "1.28", default-features = false }
+scuffle-workspace-hack.workspace = true
 
 [dependencies.h3]
 version = "0"

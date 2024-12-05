@@ -18,3 +18,4 @@ syn = { version = "2", features = ["full"] }
 quote = "1"
 darling = "0.20"
 proc-macro2 = "1"
+scuffle-workspace-hack.workspace = true

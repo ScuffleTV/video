@@ -1,32 +1,38 @@
-name: "Test Suite"
+name: cargo test
+
 on:
   push:
     branches:
       - main
-  pull_request:
+  pull_request: {}
 
 jobs:
   test:
     name: Test
     runs-on: ubuntu-24.04
+    env:
+      RUSTFLAGS: -D warnings
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
       - name: Install dependencies
         run: |
           sudo apt update
           sudo apt install -y --no-install-recommends clang curl pkg-config xz-utils libxv-dev ninja-build meson nasm protobuf-compiler
-
-      - uses: actions/checkout@v4
-
-      - uses: dtolnay/rust-toolchain@stable
+      
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         id: setup-rust
         with:
+          cache: false
           toolchain: nightly
           components: llvm-tools-preview
 
       - uses: Swatinem/rust-cache@v2
         with:
           prefix-key: "v0-rust-${{ steps.setup-rust.outputs.cachekey }}"
-          key: "testing"
+          key: test
 
       - uses: cargo-bins/cargo-binstall@main
 

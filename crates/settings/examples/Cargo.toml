@@ -16,3 +16,4 @@ scuffle-settings = { path = "../", features = ["cli"] }
 serde = "1"
 serde_derive = "1"
 smart-default = "0.7.1"
+scuffle-workspace-hack.workspace = true

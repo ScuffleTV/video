@@ -51,6 +51,7 @@ hyper = { version = "1.5.1", optional = true, features = ["server"] } # http1, h
 hyper-util = { version = "0.1.10", optional = true, features = ["server", "tokio"] } # http1, http2
 
 scuffle-context = { version = "0.0.1", path = "../context" }
+scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros"] }

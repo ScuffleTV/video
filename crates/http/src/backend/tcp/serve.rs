@@ -181,6 +181,8 @@ async fn serve_stream_inner(
 
 			serve_handle(stream, addr, handle, config, &ctx).await
 		}
+		#[cfg(not(feature = "tls-rustls"))]
+		Some(_) => unreachable!(),
 		None => serve_handle(stream, addr, handle, config, &ctx).await,
 	}
 }

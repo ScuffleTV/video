@@ -24,10 +24,17 @@ members = [
     "apps/image-processor",
     "apps/image-processor/proto",
     "apps/image-processor/examples",
+    "crates/workspace-hack",
 ]
 
 resolver = "2"
 
+[workspace.dependencies]
+scuffle-workspace-hack = { path = "crates/workspace-hack" }
+
 [profile.release-debug]
 inherits = "release"
 debug = true
+
+[patch.crates-io.scuffle-workspace-hack]
+path = "crates/workspace-hack"

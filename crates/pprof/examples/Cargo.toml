@@ -17,3 +17,4 @@ path = "src/cpu.rs"
 scuffle-pprof = { path = ".." }
 flate2 = "1.0"
 rand = "0.8"
+scuffle-workspace-hack.workspace = true

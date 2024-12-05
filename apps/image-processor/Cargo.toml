@@ -57,3 +57,4 @@ scuffle-signal = { version = "0.0.1", path = "../../crates/signal", features = [
 scuffle-image-processor-proto = { version = "0.0.1", path = "./proto", features = ["server", "serde"]}
 scuffle-metrics = { version = "0.0.3", path = "../../crates/metrics" }
 scuffle-settings = { version = "0.0.1", path = "../../crates/settings", features = ["full"] }
+scuffle-workspace-hack.workspace = true

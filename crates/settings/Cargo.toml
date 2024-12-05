@@ -18,6 +18,7 @@ serde = "1"
 thiserror = "2"
 anyhow = { version = "1.0", optional = true }
 scuffle-bootstrap = { version = "0.0.1", path = "../bootstrap", optional = true }
+scuffle-workspace-hack.workspace = true
 
 [features]
 cli = ["clap"]

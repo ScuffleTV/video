@@ -13,3 +13,4 @@ scuffle-image-processor-proto = { path = "../proto", features = ["client"] }
 tokio = { version = "1", features = ["full"] }
 tonic = { version = "0.12", features = ["transport"] }
 anyhow = "1.0"
+scuffle-workspace-hack.workspace = true

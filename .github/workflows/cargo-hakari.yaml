@@ -1,0 +1,41 @@
+name: cargo hakari
+
+on:
+  push:
+    branches:
+      - main
+  pull_request: {}
+
+jobs:
+  hakari:
+    name: Hakari
+    runs-on: ubuntu-24.04
+    env:
+      RUSTFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        id: setup-rust
+        with:
+          cache: false
+          toolchain: nightly
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v0-rust-${{ steps.setup-rust.outputs.cachekey }}"
+          key: hakari
+
+      - uses: cargo-bins/cargo-binstall@main
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-hakari
+
+      - name: Check workspace-hack Cargo.toml is up-to-date
+        run: cargo hakari generate --diff
+
+      - name: Check all crates depend on workspace-hack
+        run: cargo hakari manage-deps --dry-run

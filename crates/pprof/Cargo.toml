@@ -14,3 +14,4 @@ keywords = ["pprof", "cpu", "profiling", "flamegraphs"]
 flate2 = "1.0"
 pprof = { version = "0.14", features = ["prost-codec"] }
 thiserror = "2"
+scuffle-workspace-hack.workspace = true
