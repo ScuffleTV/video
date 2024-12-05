@@ -71,8 +71,6 @@ fn rustc(config: &Config, tmp_file: &Path) -> Command {
         );
     }
 
-    program.arg("--out-dir");
-    program.arg(config.tmp_dir.as_ref());
     program.arg("--crate-name");
     program.arg(config.function_name.split("::").last().unwrap_or("unnamed"));
     program.arg(tmp_file);
