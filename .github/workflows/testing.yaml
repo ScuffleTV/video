@@ -27,7 +27,7 @@ jobs:
 
       - uses: taiki-e/install-action@v2
         with:
-          tool: cargo-nextest,cargo-llvm-cov,cargo-mutants,just,cargo-insta
+          tool: cargo-nextest,cargo-llvm-cov,just,cargo-insta
 
       - run: just test-ci
 
