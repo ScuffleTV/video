@@ -137,7 +137,7 @@ async fn metrics<G: TelemetryConfig>(
 			tracing::error!("metrics encode failed");
 			return Ok(http::Response::builder()
 				.status(http::StatusCode::INTERNAL_SERVER_ERROR)
-				.body(http_body_util::Full::new(format!("metrics encode failed").into()))?);
+				.body(http_body_util::Full::new("metrics encode failed".to_string().into()))?);
 		}
 
 		Ok(http::Response::builder()

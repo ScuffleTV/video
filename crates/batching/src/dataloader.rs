@@ -138,20 +138,18 @@ where
 
 		{
 			let mut batch = self.current_batch.lock().await;
-	
+
 			for item in items {
 				if batch.is_none() {
-					batch.replace(
-						Batch::new(
-							self.batch_id.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
-							self.semaphore.clone(),
-						),
-					);
+					batch.replace(Batch::new(
+						self.batch_id.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+						self.semaphore.clone(),
+					));
 				}
-	
+
 				let batch_mut = batch.as_mut().unwrap();
 				batch_mut.items.insert(item.clone());
-	
+
 				if waiters.is_empty() || waiters.last().unwrap().id != batch_mut.id {
 					waiters.push(BatchWaiting {
 						id: batch_mut.id,
@@ -159,12 +157,12 @@ where
 						result: batch_mut.result.clone(),
 					});
 				}
-	
+
 				let waiting = waiters.last_mut().unwrap();
 				waiting.keys.insert(item);
 
 				count += 1;
-	
+
 				if batch_mut.items.len() >= self.batch_size {
 					tokio::spawn(batch.take().unwrap().spawn(self.executor.clone()));
 				}
@@ -267,4 +265,3 @@ where
 		}
 	}
 }
-

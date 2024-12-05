@@ -246,11 +246,7 @@ impl Default for AudioEncoderSettings {
 }
 
 impl AudioEncoderSettings {
-	pub fn builder(
-		sample_rate: i32,
-		channel_count: i32,
-		sample_fmt: AVSampleFormat,
-	) -> AudioEncoderBuilder {
+	pub fn builder(sample_rate: i32, channel_count: i32, sample_fmt: AVSampleFormat) -> AudioEncoderBuilder {
 		AudioEncoderBuilder::default()
 			.sample_rate(sample_rate)
 			.channel_count(channel_count)
@@ -336,10 +332,7 @@ impl AudioEncoderBuilder {
 
 impl AudioEncoderSettings {
 	fn apply(self, encoder: &mut AVCodecContext) -> Result<(), FfmpegError> {
-		if self.sample_rate <= 0
-			|| self.ch_layout.is_none()
-			|| self.sample_fmt == AVSampleFormat::AV_SAMPLE_FMT_NONE
-		{
+		if self.sample_rate <= 0 || self.ch_layout.is_none() || self.sample_fmt == AVSampleFormat::AV_SAMPLE_FMT_NONE {
 			return Err(FfmpegError::Arguments(
 				"sample_rate, channel_layout and sample_fmt must be set",
 			));

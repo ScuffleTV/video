@@ -7,9 +7,27 @@ on:
   pull_request: {}
 
 jobs:
+  pre-job:
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+      contents: read
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@v5
+        with:
+          concurrent_skipping: "never"
+          skip_after_successful_duplicate: "true"
+          paths_ignore: '["**/README.md", "**/docs/**"]'
+          do_not_skip: '["pull_request", "workflow_dispatch", "schedule"]'
+
   clippy:
     name: Clippy
     runs-on: ubuntu-24.04
+    needs: pre-job
+    if: ${{ needs.pre-job.outputs.should_skip != 'true' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -18,7 +36,7 @@ jobs:
       - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
           packages: clang curl pkg-config xz-utils libxv-dev ninja-build meson nasm protobuf-compiler
-      
+
       - uses: dtolnay/rust-toolchain@stable
         id: setup-rust
         with:
@@ -42,13 +60,15 @@ jobs:
   fmt:
     name: Fmt
     runs-on: ubuntu-24.04
+    needs: pre-job
+    if: ${{ needs.pre-job.outputs.should_skip != 'true' }}
     permissions:
       checks: write
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      
+
       - uses: dtolnay/rust-toolchain@stable
         id: setup-rust
         with:
@@ -68,10 +88,12 @@ jobs:
 
       - name: Make sure code is formatted
         run: just ci fmt
-  
+
   hakari:
     name: Hakari
     runs-on: ubuntu-24.04
+    needs: pre-job
+    if: ${{ needs.pre-job.outputs.should_skip != 'true' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -94,6 +116,8 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-24.04
+    needs: pre-job
+    if: ${{ needs.pre-job.outputs.should_skip != 'true' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -102,7 +126,7 @@ jobs:
       - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
           packages: clang curl pkg-config xz-utils libxv-dev ninja-build meson nasm protobuf-compiler
-      
+
       - uses: dtolnay/rust-toolchain@stable
         id: setup-rust
         with:

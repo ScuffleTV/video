@@ -185,25 +185,23 @@ where
 		I: IntoIterator<Item = E::Request>,
 	{
 		let mut responses = Vec::new();
-		
+
 		{
 			let mut batch = self.current_batch.lock().await;
 
 			for item in items {
 				if batch.is_none() {
-					batch.replace(
-						Batch::new(
-							self.batch_id.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
-							self.semaphore.clone(),
-						),
-					);
+					batch.replace(Batch::new(
+						self.batch_id.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+						self.semaphore.clone(),
+					));
 				}
-	
+
 				let batch_mut = batch.as_mut().unwrap();
 				let (tx, rx) = oneshot::channel();
 				batch_mut.items.push((item, BatchResponse::new(tx)));
 				responses.push(rx);
-	
+
 				if batch_mut.items.len() >= self.batch_size {
 					tokio::spawn(batch.take().unwrap().spawn(self.executor.clone()));
 				}

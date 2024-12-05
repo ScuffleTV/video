@@ -388,11 +388,11 @@ impl ErrorKindExt for quinn::ConnectionError {
 #[cfg(feature = "quic-quinn")]
 impl ErrorKindExt for quinn::TransportErrorCode {
 	fn severity(&self) -> ErrorSeverity {
-		match self {
-			&Self::NO_ERROR => ErrorSeverity::Debug,
-			&Self::FLOW_CONTROL_ERROR => ErrorSeverity::Debug,
-			&Self::STREAM_LIMIT_ERROR => ErrorSeverity::Debug,
-			&Self::STREAM_STATE_ERROR => ErrorSeverity::Debug,
+		match *self {
+			Self::NO_ERROR => ErrorSeverity::Debug,
+			Self::FLOW_CONTROL_ERROR => ErrorSeverity::Debug,
+			Self::STREAM_LIMIT_ERROR => ErrorSeverity::Debug,
+			Self::STREAM_STATE_ERROR => ErrorSeverity::Debug,
 			_ => ErrorSeverity::Error,
 		}
 	}

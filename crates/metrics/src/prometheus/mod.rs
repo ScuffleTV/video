@@ -218,10 +218,9 @@ where
 			Some(KnownMetricT::Gauge(gauge))
 		} else if let Some(sum) = any.downcast_ref::<Sum<T>>() {
 			Some(KnownMetricT::Sum(sum))
-		} else if let Some(histogram) = any.downcast_ref::<Histogram<T>>() {
-			Some(KnownMetricT::Histogram(histogram))
 		} else {
-			None
+			any.downcast_ref::<Histogram<T>>()
+				.map(|histogram| KnownMetricT::Histogram(histogram))
 		}
 	}
 
@@ -411,7 +410,7 @@ impl prometheus_client::collector::Collector for PrometheusExporter {
 		for scope_metrics in &metrics.scope_metrics {
 			for metric in &scope_metrics.metrics {
 				let Some(known_metric) = KnownMetric::from_any(metric.data.as_any()) else {
-					otel_warn!(name: "prometheus_collector_unknown_metric_type", metric_name = &metric.name);
+					otel_warn!(name: "prometheus_collector_unknown_metric_type", metric_name = metric.name.as_ref());
 					continue;
 				};
 
@@ -514,7 +513,7 @@ fn escape_key(s: &str) -> Cow<'_, str> {
 	}
 }
 
-impl<'a> prometheus_client::encoding::EncodeLabelSet for KeyValueEncoder<'a> {
+impl prometheus_client::encoding::EncodeLabelSet for KeyValueEncoder<'_> {
 	fn encode(&self, mut encoder: prometheus_client::encoding::LabelSetEncoder) -> Result<(), std::fmt::Error> {
 		use std::fmt::Write;
 

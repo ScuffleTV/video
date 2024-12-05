@@ -5,7 +5,7 @@ test:
     cargo llvm-cov nextest --branch --lcov --profile ci --output-path ./lcov.info --features scuffle-ffmpeg/build
 
 fmt:
-    cargo fmt --check --all
+    cargo fmt --check --all -- --color=always
 
 clippy:
     cargo clippy --all-targets --all-features -- -D warnings
