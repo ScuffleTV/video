@@ -9,8 +9,16 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    container: jrottenberg/ffmpeg:7.1-ubuntu2404-edge
+    env:
+      FFMPEG_DIR: /home/runner/work/rust-ffmpeg/rust-ffmpeg/ffmpeg-7.1-linux-clang-default
     steps:
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y --no-install-recommends clang curl pkg-config xz-utils libxv-dev ninja-build meson nasm
+          curl -L https://sourceforge.net/projects/avbuild/files/linux/ffmpeg-7.1-linux-clang-default.tar.xz/download -o ffmpeg.tar.xz
+          tar -xf ffmpeg.tar.xz
+
       - uses: actions/checkout@v4
 
       - uses: dtolnay/rust-toolchain@stable
