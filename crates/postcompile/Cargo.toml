@@ -19,7 +19,7 @@ target-triple = "0.1"
 serde_derive = "1.0"
 serde = "1.0"
 prettyplease = { version = "0.2", optional = true }
-syn = "2.0"
+syn = { version = "2", features = ["full"] }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(trybuild_no_target)', 'cfg(postcompile_no_target)'] }
