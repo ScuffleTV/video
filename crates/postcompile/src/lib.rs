@@ -84,10 +84,24 @@ fn rustc(config: &Config, tmp_file: &Path) -> Command {
     program
 }
 
+fn write_tmp_file(tokens: &str, tmp_file: &Path) {
+    #[cfg(feature = "prettyplease")]
+    {
+        if let Ok(syn_file) = syn::parse_file(&tokens) {
+            let pretty_file = prettyplease::unparse(&syn_file);
+            std::fs::write(tmp_file, pretty_file).unwrap();
+            return;
+        }
+    }
+
+    std::fs::write(tmp_file, tokens).unwrap();
+}
+
 /// Compiles the given tokens and returns the output.
-pub fn compile_custom(tokens: &[u8], config: &Config) -> Result<CompileOutput, Errored> {
+pub fn compile_custom(tokens: &str, config: &Config) -> Result<CompileOutput, Errored> {
     let tmp_file = Path::new(config.tmp_dir.as_ref()).join(format!("{}.rs", config.function_name));
-    std::fs::write(&tmp_file, tokens).unwrap();
+
+    write_tmp_file(tokens, &tmp_file);
 
     let dependencies = Dependencies::new(config)?;
 
@@ -271,6 +285,6 @@ macro_rules! try_compile {
 #[macro_export]
 macro_rules! try_compile_str {
     ($expr:expr) => {
-        $crate::compile_custom($expr.as_bytes(), &$crate::_config!())
+        $crate::compile_custom($expr, &$crate::_config!())
     };
 }
