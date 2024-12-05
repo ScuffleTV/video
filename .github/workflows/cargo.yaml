@@ -75,11 +75,6 @@ jobs:
           toolchain: nightly
           components: rustfmt
 
-      - uses: Swatinem/rust-cache@v2
-        with:
-          prefix-key: "v0-rust-${{ steps.setup-rust.outputs.cachekey }}"
-          key: fmt
-
       - uses: cargo-bins/cargo-binstall@main
 
       - uses: taiki-e/install-action@v2
