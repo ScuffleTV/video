@@ -1,0 +1,21 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 10%
+
+github_checks:
+  annotations: false
+
+codecov:
+  require_ci_to_pass: false
+  notify:
+    wait_for_ci: false
+
+comment:
+  layout: "diff, flags, files"
+  behavior: default
+  require_changes: false
+  require_head: no
+  require_base: no
