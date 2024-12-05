@@ -10,15 +10,23 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     env:
+<<<<<<< HEAD
       FFMPEG_DIR: /home/runner/work/ffmpeg
+=======
+      FFMPEG_DIR: /home/runner/work/rust-ffmpeg/rust-ffmpeg/ffmpeg-7.1-linux-clang-default
+>>>>>>> 1ac57eeea90af74bbf0b7e011f2fbcc708b0e98f
     steps:
       - name: Install dependencies
         run: |
           sudo apt update
           sudo apt install -y --no-install-recommends clang curl pkg-config xz-utils libxv-dev ninja-build meson nasm
           curl -L https://sourceforge.net/projects/avbuild/files/linux/ffmpeg-7.1-linux-clang-default.tar.xz/download -o ffmpeg.tar.xz
+<<<<<<< HEAD
           mkdir -p /home/runner/work/ffmpeg
           tar -xf ffmpeg.tar.xz -C /home/runner/work/ffmpeg
+=======
+          tar -xf ffmpeg.tar.xz
+>>>>>>> 1ac57eeea90af74bbf0b7e011f2fbcc708b0e98f
 
       - uses: actions/checkout@v4
 
