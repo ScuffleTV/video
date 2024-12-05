@@ -12,3 +12,6 @@ test *args:
 
 test-ci:
     CI=1 cargo +nightly llvm-cov nextest --branch --lcov --profile ci --output-path ./lcov.info --features scuffle-ffmpeg/build
+
+codecov-validate:
+    cat codecov.yml | curl --data-binary @- https://codecov.io/validate

@@ -14,8 +14,59 @@ codecov:
     wait_for_ci: false
 
 comment:
-  layout: "diff, flags, files"
+  layout: "header, diff, files, components"
   behavior: default
   require_changes: false
   require_head: no
   require_base: no
+
+component_management:
+  individual_components:
+    - component_id: scuffle-batching
+      name: scuffle-batching
+      paths:
+        - crates/batching/**
+    - component_id: scuffle-bootstrap
+      name: scuffle-bootstrap
+      paths:
+        - crates/bootstrap/**
+    - component_id: scuffle-context
+      name: scuffle-context
+      paths:
+        - crates/context/**
+    - component_id: scuffle-ffmpeg
+      name: scuffle-ffmpeg
+      paths:
+        - crates/ffmpeg/**
+    - component_id: scuffle-h3-webtransport
+      name: scuffle-h3-webtransport
+      paths:
+        - crates/h3-webtransport/**
+    - component_id: scuffle-http
+      name: scuffle-http
+      paths:
+        - crates/http/**
+    - component_id: scuffle-metrics
+      name: scuffle-metrics
+      paths:
+        - crates/metrics/**
+    - component_id: scuffle-pprof
+      name: scuffle-pprof
+      paths:
+        - crates/pprof/**
+    - component_id: scuffle-settings
+      name: scuffle-settings
+      paths:
+        - crates/settings/**
+    - component_id: scuffle-signal
+      name: scuffle-signal
+      paths:
+        - crates/signal/**
+    - component_id: postcompile
+      name: postcompile
+      paths:
+        - crates/postcompile/**
+    - component_id: scuffle-image-processor
+      name: scuffle-image-processor
+      paths:
+        - crates/image-processor/**

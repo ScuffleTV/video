@@ -14,8 +14,12 @@
 </p>
 
 <p align="center">
-    <a href="https://codecov.io/gh/ScuffleCloud/scuffle"><img src="https://codecov.io/gh/ScuffleCloud/scuffle/branch/main/graph/badge.svg?token=LJCYSZR4IV" alt="codecov"></a>
-    <a href="https://deps.rs/repo/github/ScuffleCloud/scuffle"><img src="https://deps.rs/repo/github/ScuffleCloud/scuffle/status.svg" alt="dependency status"></a>
+    <a href="https://codecov.io/gh/ScuffleCloud/scuffle">
+        <img src="https://codecov.io/gh/ScuffleCloud/scuffle/graph/badge.svg?token=LJCYSZR4IV"/>
+    </a>
+    <a href="https://deps.rs/repo/github/ScuffleCloud/scuffle">
+        <img src="https://deps.rs/repo/github/ScuffleCloud/scuffle/status.svg" alt="dependency status"/>
+    </a>
 </p>
 
 > [!WARNING]  
