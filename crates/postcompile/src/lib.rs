@@ -130,14 +130,26 @@ pub fn compile_custom(tokens: &str, config: &Config) -> Result<CompileOutput, Er
         }
     };
 
-    let stderr = if output.status.success() {
+    let mut status = if output.status.success() {
+        ExitStatus::Success
+    } else {
+        ExitStatus::Failure(output.status.code().unwrap_or(-1))
+    };
+
+    let stderr = if status == ExitStatus::Success {
         let mut program = rustc(config, &tmp_file);
         dependencies.apply(&mut program);
         program.arg("--emit=llvm-ir");
         program.arg(&format!("--crate-type={crate_type}"));
         program.arg("-o");
         program.arg("-");
-        String::from_utf8(program.output().unwrap().stderr).unwrap()
+        let comp_output = program.output().unwrap();
+        status = if comp_output.status.success() {
+            ExitStatus::Success
+        } else {
+            ExitStatus::Failure(comp_output.status.code().unwrap_or(-1))
+        };
+        String::from_utf8(comp_output.stderr).unwrap()
     } else {
         String::from_utf8(output.stderr).unwrap()
     };
@@ -146,11 +158,7 @@ pub fn compile_custom(tokens: &str, config: &Config) -> Result<CompileOutput, Er
     let stdout = stdout.replace(tmp_file.as_os_str().to_string_lossy().as_ref(), "<postcompile>");
 
     Ok(CompileOutput {
-        status: if output.status.success() {
-            ExitStatus::Success
-        } else {
-            ExitStatus::Failure(output.status.code().unwrap_or(-1))
-        },
+        status,
         stdout,
         stderr,
     })
