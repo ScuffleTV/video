@@ -8,7 +8,7 @@ use std::{
     process::Command,
 };
 
-use deps::Errored;
+use deps::{Dependencies, Errored};
 
 mod deps;
 mod features;
@@ -57,12 +57,9 @@ impl std::fmt::Display for CompileOutput {
     }
 }
 
-/// Compiles the given tokens and returns the output.
-pub fn compile_custom(tokens: &[u8], config: &Config) -> Result<CompileOutput, Errored> {
+fn rustc(config: &Config, tmp_file: &Path) -> Command {
     let mut program = Command::new(std::env::var_os("RUSTC").unwrap_or_else(|| "rustc".into()));
     program.env("RUSTC_BOOTSTRAP", "1");
-    program.arg("-Zunpretty=expanded");
-
     let rust_flags = std::env::var_os("RUSTFLAGS");
 
     if let Some(rust_flags) = &rust_flags {
@@ -78,26 +75,59 @@ pub fn compile_custom(tokens: &[u8], config: &Config) -> Result<CompileOutput, E
     program.arg(config.tmp_dir.as_ref());
     program.arg("--crate-name");
     program.arg(config.function_name.split("::").last().unwrap_or("unnamed"));
-
-    let tmp_file = Path::new(config.tmp_dir.as_ref()).join(format!("{}.rs", config.function_name));
-
-    std::fs::write(&tmp_file, tokens).unwrap();
-
-    program.arg(&tmp_file);
+    program.arg(tmp_file);
     program.envs(std::env::vars());
-
-    deps::build_dependencies(config, &mut program)?;
 
     program.stderr(std::process::Stdio::piped());
     program.stdout(std::process::Stdio::piped());
 
-    let child = program.spawn().unwrap();
+    program
+}
 
-    let output = child.wait_with_output().unwrap();
+/// Compiles the given tokens and returns the output.
+pub fn compile_custom(tokens: &[u8], config: &Config) -> Result<CompileOutput, Errored> {
+    let tmp_file = Path::new(config.tmp_dir.as_ref()).join(format!("{}.rs", config.function_name));
+    std::fs::write(&tmp_file, tokens).unwrap();
+
+    let dependencies = Dependencies::new(config)?;
+
+    let mut program = rustc(config, &tmp_file);
+
+    dependencies.apply(&mut program);
+    // The first invoke is used to get the macro expanded code.
+    program.arg("-Zunpretty=expanded");
+
+    let output = program.output().unwrap();
 
     let stdout = String::from_utf8(output.stdout).unwrap();
+    let syn_file = syn::parse_file(&stdout);
     #[cfg(feature = "prettyplease")]
-    let stdout = syn::parse_file(&stdout).map(|file| prettyplease::unparse(&file)).unwrap_or(stdout);
+    let stdout = syn_file.as_ref().map(|file| prettyplease::unparse(&file)).unwrap_or(stdout);
+
+    let mut crate_type = "lib";
+
+    if let Ok(file) = syn_file {
+        if file.items.iter().any(|item| {
+            let syn::Item::Fn(func) = item else {
+                return false;
+            };
+
+            func.sig.ident == "main"
+        }) {
+            crate_type = "bin";
+        }
+    };
+
+    let stderr = if output.status.success() {
+        let mut program = rustc(config, &tmp_file);
+        dependencies.apply(&mut program);
+        program.arg("-o=-");
+        program.arg("--emit=llvm-ir");
+        program.arg(&format!("--crate-type={crate_type}"));
+        String::from_utf8(program.output().unwrap().stderr).unwrap()
+    } else {
+        String::from_utf8(output.stderr).unwrap()
+    };
 
     Ok(CompileOutput {
         status: if output.status.success() {
@@ -106,7 +136,7 @@ pub fn compile_custom(tokens: &[u8], config: &Config) -> Result<CompileOutput, E
             ExitStatus::Failure(output.status.code().unwrap_or(-1))
         },
         stdout,
-        stderr: String::from_utf8(output.stderr).unwrap(),
+        stderr,
     })
 }
 
