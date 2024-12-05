@@ -9,6 +9,7 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    container: jrottenberg/ffmpeg:7.1-ubuntu2404-edge
     steps:
       - uses: actions/checkout@v4
 
