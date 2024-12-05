@@ -9,16 +9,11 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    env:
-      FFMPEG_DIR: /home/runner/work/ffmpeg
     steps:
       - name: Install dependencies
         run: |
           sudo apt update
           sudo apt install -y --no-install-recommends clang curl pkg-config xz-utils libxv-dev ninja-build meson nasm
-          curl -L https://sourceforge.net/projects/avbuild/files/linux/ffmpeg-7.1-linux-clang-default.tar.xz/download -o ffmpeg.tar.xz
-          mkdir -p /home/runner/work/ffmpeg
-          tar -xf ffmpeg.tar.xz -C /home/runner/work/ffmpeg
 
       - uses: actions/checkout@v4
 
