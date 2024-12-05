@@ -142,6 +142,9 @@ pub fn compile_custom(tokens: &str, config: &Config) -> Result<CompileOutput, Er
         String::from_utf8(output.stderr).unwrap()
     };
 
+    let stderr = stderr.replace(tmp_file.as_os_str().to_string_lossy().as_ref(), "<postcompile>");
+    let stdout = stdout.replace(tmp_file.as_os_str().to_string_lossy().as_ref(), "<postcompile>");
+
     Ok(CompileOutput {
         status: if output.status.success() {
             ExitStatus::Success
