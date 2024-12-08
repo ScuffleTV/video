@@ -1,6 +1,6 @@
 [package]
 name = "scuffle-signal"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 repository = "https://github.com/scufflecloud/scuffle"
 authors = ["Scuffle <opensource@scuffle.cloud>"]
@@ -12,8 +12,8 @@ keywords = ["signal", "async"]
 
 [dependencies]
 tokio = { version = "1", default-features = false, features = ["signal"] }
-scuffle-bootstrap = { version = "0.0.1", path = "../bootstrap", optional = true }
-scuffle-context = { version = "0.0.1", path = "../context", optional = true }
+scuffle-bootstrap = { workspace = true, optional = true }
+scuffle-context = { workspace = true, optional = true }
 anyhow = { version = "1", optional = true }
 scuffle-workspace-hack.workspace = true
 

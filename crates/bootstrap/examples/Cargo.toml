@@ -27,8 +27,8 @@ tracing = "0.1"
 tracing-subscriber = "0.3"
 anyhow = "1"
 
-scuffle-bootstrap = { version = "0.0.1", path = ".."}
-scuffle-settings = { version = "0.0.1", path = "../../settings", features = ["bootstrap"] }
-scuffle-signal = { version = "0.0.1", path = "../../signal", features = ["bootstrap"] }
-scuffle-context = { version = "0.0.1", path = "../../context" }
+scuffle-bootstrap.workspace = true
+scuffle-settings = { workspace = true, features = ["bootstrap"] }
+scuffle-signal = { workspace = true, features = ["bootstrap"] }
+scuffle-context.workspace = true
 scuffle-workspace-hack.workspace = true

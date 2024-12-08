@@ -31,7 +31,23 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-scuffle-workspace-hack = { path = "crates/workspace-hack" }
+scuffle-workspace-hack = { path = "crates/workspace-hack", version = "0.1.0" }
+scuffle-bootstrap = { path = "crates/bootstrap", version = "0.0.2" }
+scuffle-bootstrap-derive = { path = "crates/bootstrap/derive", version = "0.0.2" }
+scuffle-bootstrap-telemetry = { path = "crates/bootstrap/telemetry", version = "0.0.3" }
+scuffle-image-processor-proto = { path = "apps/image-processor/proto", version = "0.0.2" }
+scuffle-image-processor = { path = "apps/image-processor", version = "0.0.2" }
+scuffle-context = { path = "crates/context", version = "0.0.2" }
+scuffle-settings = { path = "crates/settings", version = "0.0.2" }
+scuffle-signal = { path = "crates/signal", version = "0.0.2" }
+scuffle-http = { path = "crates/http", version = "0.0.4" }
+scuffle-metrics = { path = "crates/metrics", version = "0.0.4" }
+scuffle-pprof = { path = "crates/pprof", version = "0.0.2" }
+scuffle-batching = { path = "crates/batching", version = "0.0.3" }
+scuffle-postcompile = { path = "crates/postcompile", version = "0.0.5" }
+scuffle-ffmpeg = { path = "crates/ffmpeg", version = "0.0.2" }
+scuffle-h3-webtransport = { path = "crates/h3-webtransport", version = "0.0.2" }
+scuffle-metrics-derive = { path = "crates/metrics/derive", version = "0.0.2" }
 
 [profile.release-debug]
 inherits = "release"
@@ -39,4 +55,3 @@ debug = true
 
 [patch.crates-io.scuffle-workspace-hack]
 path = "crates/workspace-hack"
-version = "=0.1.0"

@@ -14,7 +14,7 @@ name = "scuffle-pprof-cpu"
 path = "src/cpu.rs"
 
 [dependencies]
-scuffle-pprof = { path = ".." }
+scuffle-pprof.workspace = true
 flate2 = "1.0"
 rand = "0.8"
 scuffle-workspace-hack.workspace = true

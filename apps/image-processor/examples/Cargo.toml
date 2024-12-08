@@ -9,7 +9,7 @@ name = "scuffle-image-processor-enroll"
 path = "src/enroll.rs"
 
 [dependencies]
-scuffle-image-processor-proto = { path = "../proto", features = ["client"] }
+scuffle-image-processor-proto = { workspace = true, features = ["client"] }
 tokio = { version = "1", features = ["full"] }
 tonic = { version = "0.12", features = ["transport"] }
 anyhow = "1.0"

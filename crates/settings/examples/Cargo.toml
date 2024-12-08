@@ -12,7 +12,7 @@ name = "scuffle-settings-cli"
 path = "src/cli.rs"
 
 [dependencies]
-scuffle-settings = { path = "../", features = ["cli"] }
+scuffle-settings = { workspace = true, features = ["cli"] }
 serde = "1"
 serde_derive = "1"
 smart-default = "0.7"

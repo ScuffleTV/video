@@ -3670,7 +3670,7 @@ checksum = "280dc24453071f1b63954171985a0b0d30058d287960968b9b2aca264c8d4ee6"
 
 [[package]]
 name = "postcompile"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "cargo-platform",
  "cargo_metadata",
@@ -4500,7 +4500,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-batching"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "criterion",
  "futures",
@@ -4520,7 +4520,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-bootstrap"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "futures",
@@ -4533,7 +4533,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-bootstrap-derive"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -4561,7 +4561,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-bootstrap-telemetry"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "anyhow",
  "bytes",
@@ -4586,7 +4586,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-context"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "futures-lite",
  "pin-project-lite",
@@ -4597,7 +4597,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-ffmpeg"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "arc-swap",
  "bytes",
@@ -4611,7 +4611,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-h3-webtransport"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "bytes",
  "futures-util",
@@ -4624,7 +4624,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-http"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "async-trait",
  "axum-core",
@@ -4673,7 +4673,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-image-processor"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "async-nats",
@@ -4737,7 +4737,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-image-processor-proto"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "pbjson",
  "pbjson-build",
@@ -4764,7 +4764,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-metrics-derive"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -4788,7 +4788,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-pprof"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "flate2",
  "pprof",
@@ -4808,7 +4808,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-settings"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "clap",
@@ -4833,7 +4833,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-signal"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "anyhow",
  "futures",

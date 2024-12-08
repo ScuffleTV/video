@@ -12,6 +12,6 @@ name = "scuffle-batching-dataloader"
 path = "src/dataloader.rs"
 
 [dependencies]
-scuffle-batching = { path = ".." }
+scuffle-batching.workspace = true
 tokio = { version = "1", features = ["full"] }
 scuffle-workspace-hack.workspace = true

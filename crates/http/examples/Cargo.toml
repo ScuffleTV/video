@@ -8,7 +8,7 @@ name = "scuffle-http-tcp"
 path = "src/tcp.rs"
 
 [dependencies]
-scuffle-http = { path = "..", features = ["http1", "http2", "tracing"] }
+scuffle-http = { workspace = true, features = ["http1", "http2", "tracing"] }
 tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
