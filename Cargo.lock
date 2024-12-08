@@ -4856,6 +4856,8 @@ dependencies = [
  "bytes",
  "cc",
  "chrono",
+ "clap",
+ "clap_builder",
  "config",
  "crossbeam-utils",
  "either",

@@ -31,38 +31,38 @@ async fn run_scuffle_batcher_many(
 	size: usize,
 	loader: impl scuffle_batching::BatchExecutor<Request = usize, Response = usize> + Send + Sync + 'static,
 ) {
-	let batcher = Arc::new(scuffle_batching::Batcher::new(loader, size / 2, 100, std::time::Duration::from_millis(5)));
+	let batcher = Arc::new(scuffle_batching::Batcher::new(
+		loader,
+		size / 2,
+		100,
+		std::time::Duration::from_millis(5),
+	));
 
-    let spawn = || {
-        let batcher = batcher.clone();
-        tokio::spawn(async move {
-            batcher.execute_many(0..size/4).await
-        })
-    };
+	let spawn = || {
+		let batcher = batcher.clone();
+		tokio::spawn(async move { batcher.execute_many(0..size / 4).await })
+	};
 
-	futures::future::join_all([
-		spawn(),
-		spawn(),
-		spawn(),
-		spawn(),
-	])
-	.await;
+	futures::future::join_all([spawn(), spawn(), spawn(), spawn()]).await;
 }
 
 async fn run_scuffle_batcher_single(
 	size: usize,
 	loader: impl scuffle_batching::BatchExecutor<Request = usize, Response = usize> + Send + Sync + 'static,
 ) {
-	let batcher = Arc::new(scuffle_batching::Batcher::new(loader, size / 2, 100, std::time::Duration::from_millis(5)));
+	let batcher = Arc::new(scuffle_batching::Batcher::new(
+		loader,
+		size / 2,
+		100,
+		std::time::Duration::from_millis(5),
+	));
 
-    let spawn = |i| {
-        let batcher = batcher.clone();
-        tokio::spawn(async move {
-            batcher.execute(i).await
-        })
-    };
+	let spawn = |i| {
+		let batcher = batcher.clone();
+		tokio::spawn(async move { batcher.execute(i).await })
+	};
 
-	futures::future::join_all((0..size/4).cycle().take(size).map(spawn)).await;
+	futures::future::join_all((0..size / 4).cycle().take(size).map(spawn)).await;
 }
 
 fn delay(c: &mut Criterion) {
@@ -73,33 +73,33 @@ fn delay(c: &mut Criterion) {
 	let runtime = || tokio::runtime::Builder::new_current_thread().enable_time().build().unwrap();
 
 	group.bench_with_input(BenchmarkId::new("many", size), &size, |b, &s| {
-		b.to_async(runtime())
-			.iter(|| async move {
-				run_scuffle_batcher_many(
-					s,
-					DataloaderImpl::new(|keys: Vec<(usize, BatchResponse<usize>)>| async move {
-						black_box(tokio::time::sleep(std::time::Duration::from_millis(1))).await;
-						for (key, resp) in keys {
-							resp.send(black_box(key));
-						}
-					}),
-				).await;
-			});
+		b.to_async(runtime()).iter(|| async move {
+			run_scuffle_batcher_many(
+				s,
+				DataloaderImpl::new(|keys: Vec<(usize, BatchResponse<usize>)>| async move {
+					black_box(tokio::time::sleep(std::time::Duration::from_millis(1))).await;
+					for (key, resp) in keys {
+						resp.send(black_box(key));
+					}
+				}),
+			)
+			.await;
+		});
 	});
 
-    group.bench_with_input(BenchmarkId::new("single", size), &size, |b, &s| {
-		b.to_async(runtime())
-			.iter(|| async move {
-				run_scuffle_batcher_single(
-					s,
-					DataloaderImpl::new(|keys: Vec<(usize, BatchResponse<usize>)>| async move {
-						black_box(tokio::time::sleep(std::time::Duration::from_millis(1))).await;
-						for (key, resp) in keys {
-							resp.send(black_box(key));
-						}
-					}),
-				).await;
-			});
+	group.bench_with_input(BenchmarkId::new("single", size), &size, |b, &s| {
+		b.to_async(runtime()).iter(|| async move {
+			run_scuffle_batcher_single(
+				s,
+				DataloaderImpl::new(|keys: Vec<(usize, BatchResponse<usize>)>| async move {
+					black_box(tokio::time::sleep(std::time::Duration::from_millis(1))).await;
+					for (key, resp) in keys {
+						resp.send(black_box(key));
+					}
+				}),
+			)
+			.await;
+		});
 	});
 
 	group.finish();

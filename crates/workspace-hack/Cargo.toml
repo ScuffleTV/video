@@ -21,6 +21,8 @@ axum-core = { version = "0.4", default-features = false, features = ["tracing"] 
 bitflags = { version = "2", default-features = false, features = ["serde"] }
 bytes = { version = "1", features = ["serde"] }
 chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4" }
+clap_builder = { version = "4", default-features = false, features = ["color", "help", "std", "suggestions", "usage"] }
 config = { version = "0.14", default-features = false, features = ["ini", "json", "json5", "ron", "toml", "yaml"] }
 crossbeam-utils = { version = "0.8" }
 either = { version = "1", default-features = false, features = ["use_std"] }
@@ -85,6 +87,8 @@ bitflags = { version = "2", default-features = false, features = ["serde"] }
 bytes = { version = "1", features = ["serde"] }
 cc = { version = "1", default-features = false, features = ["parallel"] }
 chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4" }
+clap_builder = { version = "4", default-features = false, features = ["color", "help", "std", "suggestions", "usage"] }
 config = { version = "0.14", default-features = false, features = ["ini", "json", "json5", "ron", "toml", "yaml"] }
 crossbeam-utils = { version = "0.8" }
 either = { version = "1", default-features = false, features = ["use_std"] }

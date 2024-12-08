@@ -31,36 +31,36 @@ async fn run_scuffle_dataloader_many(
 	size: usize,
 	loader: impl scuffle_batching::DataLoaderFetcher<Key = usize, Value = usize> + Send + Sync + 'static,
 ) {
-	let dataloader = Arc::new(scuffle_batching::DataLoader::new(loader, size / 2, 100, std::time::Duration::from_millis(5)));
+	let dataloader = Arc::new(scuffle_batching::DataLoader::new(
+		loader,
+		size / 2,
+		100,
+		std::time::Duration::from_millis(5),
+	));
 
-    let spawn = || {
-        let dataloader = dataloader.clone();
-        tokio::spawn(async move {
-            dataloader.load_many(0..size).await
-        })
-    };
+	let spawn = || {
+		let dataloader = dataloader.clone();
+		tokio::spawn(async move { dataloader.load_many(0..size).await })
+	};
 
-	futures::future::join_all([
-		spawn(),
-		spawn(),
-		spawn(),
-		spawn(),
-	])
-	.await;
+	futures::future::join_all([spawn(), spawn(), spawn(), spawn()]).await;
 }
 
 async fn run_scuffle_dataloader_single(
 	size: usize,
 	loader: impl scuffle_batching::DataLoaderFetcher<Key = usize, Value = usize> + Send + Sync + 'static,
 ) {
-	let dataloader = Arc::new(scuffle_batching::DataLoader::new(loader, size / 2, 100, std::time::Duration::from_millis(5)));
+	let dataloader = Arc::new(scuffle_batching::DataLoader::new(
+		loader,
+		size / 2,
+		100,
+		std::time::Duration::from_millis(5),
+	));
 
-    let spawn = |i| {
-        let dataloader = dataloader.clone();
-        tokio::spawn(async move {
-            dataloader.load(i).await
-        })
-    };
+	let spawn = |i| {
+		let dataloader = dataloader.clone();
+		tokio::spawn(async move { dataloader.load(i).await })
+	};
 
 	futures::future::join_all((0..size).cycle().take(size * 4).map(spawn)).await;
 }
@@ -73,29 +73,29 @@ fn delay(c: &mut Criterion) {
 	let runtime = || tokio::runtime::Builder::new_current_thread().enable_time().build().unwrap();
 
 	group.bench_with_input(BenchmarkId::new("many", size), &size, |b, &s| {
-		b.to_async(runtime())
-			.iter(|| async move {
-				run_scuffle_dataloader_many(
-					s,
-					DataloaderImpl::new(|keys: HashSet<usize>| async move {
-						black_box(tokio::time::sleep(std::time::Duration::from_millis(1))).await;
-						black_box(Some(keys.into_iter().map(black_box).map(|k| (k, k)).collect()))
-					}),
-				).await;
-			});
+		b.to_async(runtime()).iter(|| async move {
+			run_scuffle_dataloader_many(
+				s,
+				DataloaderImpl::new(|keys: HashSet<usize>| async move {
+					black_box(tokio::time::sleep(std::time::Duration::from_millis(1))).await;
+					black_box(Some(keys.into_iter().map(black_box).map(|k| (k, k)).collect()))
+				}),
+			)
+			.await;
+		});
 	});
 
-    group.bench_with_input(BenchmarkId::new("single", size), &size, |b, &s| {
-		b.to_async(runtime())
-			.iter(|| async move {
-				run_scuffle_dataloader_single(
-					s,
-					DataloaderImpl::new(|keys: HashSet<usize>| async move {
-						black_box(tokio::time::sleep(std::time::Duration::from_millis(1))).await;
-						black_box(Some(keys.into_iter().map(black_box).map(|k| (k, k)).collect()))
-					}),
-				).await;
-			});
+	group.bench_with_input(BenchmarkId::new("single", size), &size, |b, &s| {
+		b.to_async(runtime()).iter(|| async move {
+			run_scuffle_dataloader_single(
+				s,
+				DataloaderImpl::new(|keys: HashSet<usize>| async move {
+					black_box(tokio::time::sleep(std::time::Duration::from_millis(1))).await;
+					black_box(Some(keys.into_iter().map(black_box).map(|k| (k, k)).collect()))
+				}),
+			)
+			.await;
+		});
 	});
 
 	group.finish();

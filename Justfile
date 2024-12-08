@@ -7,7 +7,7 @@ fmt *args:
     cargo +nightly fmt --all {{args}}
 
 lint *args:
-    cargo +nightly clippy --fix --allow-dirty --all-targets --all-features {{args}}
+    cargo +nightly clippy --fix --allow-dirty --all-targets --all-features --allow-staged {{args}}
 
 test *args:
     #!/bin/bash

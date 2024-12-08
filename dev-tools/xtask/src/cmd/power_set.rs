@@ -28,6 +28,12 @@ pub struct PowerSet {
 	#[clap(long, default_value = "true")]
 	/// Fail fast
 	fail_fast: bool,
+	#[clap(long, default_value = "target/power-set")]
+	/// Target directory
+	target_dir: String,
+	#[clap(long, action = clap::ArgAction::SetTrue)]
+	/// Override target directory
+	no_override_target_dir: bool,
 	#[clap(name = "command", default_value = "clippy")]
 	/// Command to run
 	command: String,
@@ -117,6 +123,10 @@ impl PowerSet {
 					cmd.arg("--features").arg(comma_delimited(features.iter()));
 				}
 				cmd.arg("--package").arg(package);
+
+				if !self.no_override_target_dir {
+					cmd.arg("--target-dir").arg(&self.target_dir);
+				}
 
 				println!("executing {:?} ({}/{})", cmd, i, total);
 
