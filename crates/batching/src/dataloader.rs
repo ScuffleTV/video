@@ -159,7 +159,7 @@ where
 		let mut waiters = Vec::<BatchWaiting<E::Key, E::Value>>::new();
 
 		let mut count = 0;
-		
+
 		{
 			let mut new_batch = false;
 			let mut batch = self.current_batch.lock().await;
@@ -319,10 +319,14 @@ mod tests {
 			assert!(keys.len() <= self.capacity);
 			tokio::time::sleep(self.delay).await;
 			self.requests.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-			Some(keys.into_iter().filter_map(|k| {
-				let value = self.values.get(&k)?.clone();
-				Some((k, value))
-			}).collect())
+			Some(
+				keys.into_iter()
+					.filter_map(|k| {
+						let value = self.values.get(&k)?.clone();
+						Some((k, value))
+					})
+					.collect(),
+			)
 		}
 	}
 
@@ -383,7 +387,10 @@ mod tests {
 		let loader = DataLoader::builder().batch_size(2).concurrency(10).build(fetcher);
 
 		let start = std::time::Instant::now();
-		let ab = loader.load_many(vec!["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]).await.unwrap();
+		let ab = loader
+			.load_many(vec!["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"])
+			.await
+			.unwrap();
 		assert_eq!(ab, HashMap::from_iter(vec![("a", 1), ("b", 2), ("c", 3)]));
 		assert!(start.elapsed() < std::time::Duration::from_millis(15));
 		assert_eq!(requests.load(std::sync::atomic::Ordering::Relaxed), 5);
@@ -400,10 +407,17 @@ mod tests {
 			capacity: 2,
 		};
 
-		let loader = DataLoader::builder().batch_size(2).concurrency(1).delay(std::time::Duration::from_millis(10)).build(fetcher);
+		let loader = DataLoader::builder()
+			.batch_size(2)
+			.concurrency(1)
+			.delay(std::time::Duration::from_millis(10))
+			.build(fetcher);
 
 		let start = std::time::Instant::now();
-		let ab = loader.load_many(vec!["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]).await.unwrap();
+		let ab = loader
+			.load_many(vec!["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"])
+			.await
+			.unwrap();
 		assert_eq!(ab, HashMap::from_iter(vec![("a", 1), ("b", 2), ("c", 3)]));
 		assert!(start.elapsed() < std::time::Duration::from_millis(35));
 		assert!(start.elapsed() >= std::time::Duration::from_millis(25));
@@ -421,10 +435,17 @@ mod tests {
 			capacity: 100,
 		};
 
-		let loader = DataLoaderBuilder::default().batch_size(100).concurrency(1).delay(std::time::Duration::from_millis(10)).build(fetcher);
+		let loader = DataLoaderBuilder::default()
+			.batch_size(100)
+			.concurrency(1)
+			.delay(std::time::Duration::from_millis(10))
+			.build(fetcher);
 
 		let start = std::time::Instant::now();
-		let ab = loader.load_many(vec!["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]).await.unwrap();
+		let ab = loader
+			.load_many(vec!["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"])
+			.await
+			.unwrap();
 		assert_eq!(ab, HashMap::from_iter(vec![("a", 1), ("b", 2), ("c", 3)]));
 		assert!(start.elapsed() >= std::time::Duration::from_millis(10));
 		assert_eq!(requests.load(std::sync::atomic::Ordering::Relaxed), 1);
@@ -441,7 +462,11 @@ mod tests {
 			capacity: 100,
 		};
 
-		let loader = DataLoaderBuilder::default().batch_size(100).concurrency(10).delay(std::time::Duration::from_millis(10)).build(fetcher);
+		let loader = DataLoaderBuilder::default()
+			.batch_size(100)
+			.concurrency(10)
+			.delay(std::time::Duration::from_millis(10))
+			.build(fetcher);
 
 		let start = std::time::Instant::now();
 		let ab = loader.load_many(0..1134).await.unwrap();
@@ -462,12 +487,19 @@ mod tests {
 			capacity: 2,
 		};
 
-		let loader = DataLoader::builder().batch_size(2).concurrency(100).delay(std::time::Duration::from_millis(10)).build(fetcher);
+		let loader = DataLoader::builder()
+			.batch_size(2)
+			.concurrency(100)
+			.delay(std::time::Duration::from_millis(10))
+			.build(fetcher);
 
 		tokio::time::sleep(std::time::Duration::from_millis(20)).await;
 
 		let start = std::time::Instant::now();
-		let ab = loader.load_many(vec!["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]).await.unwrap();
+		let ab = loader
+			.load_many(vec!["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"])
+			.await
+			.unwrap();
 		assert_eq!(ab, HashMap::from_iter(vec![("a", 1), ("b", 2), ("c", 3)]));
 		assert!(start.elapsed() >= std::time::Duration::from_millis(5));
 		assert!(start.elapsed() < std::time::Duration::from_millis(25));
@@ -484,7 +516,11 @@ mod tests {
 			capacity: 2,
 		};
 
-		let loader = DataLoader::builder().batch_size(2).concurrency(100).delay(std::time::Duration::from_millis(10)).build(fetcher);
+		let loader = DataLoader::builder()
+			.batch_size(2)
+			.concurrency(100)
+			.delay(std::time::Duration::from_millis(10))
+			.build(fetcher);
 
 		tokio::time::sleep(std::time::Duration::from_millis(5)).await;
 
@@ -506,7 +542,11 @@ mod tests {
 			capacity: 4,
 		};
 
-		let loader = DataLoader::builder().batch_size(4).concurrency(1).delay(std::time::Duration::from_millis(10)).build(fetcher);
+		let loader = DataLoader::builder()
+			.batch_size(4)
+			.concurrency(1)
+			.delay(std::time::Duration::from_millis(10))
+			.build(fetcher);
 
 		let start = std::time::Instant::now();
 		let ab = loader.load_many(vec!["a", "a", "b", "b", "c", "c"]).await.unwrap();

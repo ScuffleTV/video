@@ -286,7 +286,8 @@ where
 #[cfg_attr(all(coverage_nightly, test), coverage(off))]
 #[cfg(test)]
 mod tests {
-	use std::{collections::HashMap, sync::atomic::AtomicUsize};
+	use std::collections::HashMap;
+	use std::sync::atomic::AtomicUsize;
 
 	use super::*;
 
@@ -376,7 +377,9 @@ mod tests {
 		let loader = Batcher::builder().batch_size(2).concurrency(10).build(fetcher);
 
 		let start = std::time::Instant::now();
-		let ab = loader.execute_many(vec!["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]).await;
+		let ab = loader
+			.execute_many(vec!["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"])
+			.await;
 		assert_eq!(ab, vec![Some(1), Some(2), Some(3), None, None, None, None, None, None, None]);
 		assert!(start.elapsed() < std::time::Duration::from_millis(15));
 		assert_eq!(requests.load(std::sync::atomic::Ordering::Relaxed), 5);
@@ -393,10 +396,16 @@ mod tests {
 			capacity: 2,
 		};
 
-		let loader = Batcher::builder().batch_size(2).concurrency(1).delay(std::time::Duration::from_millis(10)).build(fetcher);
+		let loader = Batcher::builder()
+			.batch_size(2)
+			.concurrency(1)
+			.delay(std::time::Duration::from_millis(10))
+			.build(fetcher);
 
 		let start = std::time::Instant::now();
-		let ab = loader.execute_many(vec!["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]).await;
+		let ab = loader
+			.execute_many(vec!["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"])
+			.await;
 		assert_eq!(ab, vec![Some(1), Some(2), Some(3), None, None, None, None, None, None, None]);
 		assert!(start.elapsed() < std::time::Duration::from_millis(35));
 		assert!(start.elapsed() >= std::time::Duration::from_millis(25));
@@ -414,10 +423,16 @@ mod tests {
 			capacity: 100,
 		};
 
-		let loader = BatcherBuilder::default().batch_size(100).concurrency(1).delay(std::time::Duration::from_millis(10)).build(fetcher);
+		let loader = BatcherBuilder::default()
+			.batch_size(100)
+			.concurrency(1)
+			.delay(std::time::Duration::from_millis(10))
+			.build(fetcher);
 
 		let start = std::time::Instant::now();
-		let ab = loader.execute_many(vec!["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]).await;
+		let ab = loader
+			.execute_many(vec!["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"])
+			.await;
 		assert_eq!(ab, vec![Some(1), Some(2), Some(3), None, None, None, None, None, None, None]);
 		assert!(start.elapsed() >= std::time::Duration::from_millis(10));
 		assert_eq!(requests.load(std::sync::atomic::Ordering::Relaxed), 1);
@@ -434,7 +449,11 @@ mod tests {
 			capacity: 100,
 		};
 
-		let loader = BatcherBuilder::default().batch_size(100).concurrency(10).delay(std::time::Duration::from_millis(10)).build(fetcher);
+		let loader = BatcherBuilder::default()
+			.batch_size(100)
+			.concurrency(10)
+			.delay(std::time::Duration::from_millis(10))
+			.build(fetcher);
 
 		let start = std::time::Instant::now();
 		let ab = loader.execute_many(0..1134).await;
@@ -455,12 +474,18 @@ mod tests {
 			capacity: 2,
 		};
 
-		let loader = BatcherBuilder::default().batch_size(2).concurrency(100).delay(std::time::Duration::from_millis(10)).build(fetcher);
+		let loader = BatcherBuilder::default()
+			.batch_size(2)
+			.concurrency(100)
+			.delay(std::time::Duration::from_millis(10))
+			.build(fetcher);
 
 		tokio::time::sleep(std::time::Duration::from_millis(20)).await;
 
 		let start = std::time::Instant::now();
-		let ab = loader.execute_many(vec!["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]).await;
+		let ab = loader
+			.execute_many(vec!["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"])
+			.await;
 		assert_eq!(ab, vec![Some(1), Some(2), Some(3), None, None, None, None, None, None, None]);
 		assert!(start.elapsed() >= std::time::Duration::from_millis(5));
 		assert!(start.elapsed() < std::time::Duration::from_millis(25));
@@ -477,7 +502,11 @@ mod tests {
 			capacity: 2,
 		};
 
-		let loader = BatcherBuilder::default().batch_size(2).concurrency(100).delay(std::time::Duration::from_millis(10)).build(fetcher);
+		let loader = BatcherBuilder::default()
+			.batch_size(2)
+			.concurrency(100)
+			.delay(std::time::Duration::from_millis(10))
+			.build(fetcher);
 
 		tokio::time::sleep(std::time::Duration::from_millis(5)).await;
 
@@ -499,7 +528,11 @@ mod tests {
 			capacity: 4,
 		};
 
-		let loader = BatcherBuilder::default().batch_size(4).concurrency(1).delay(std::time::Duration::from_millis(10)).build(fetcher);
+		let loader = BatcherBuilder::default()
+			.batch_size(4)
+			.concurrency(1)
+			.delay(std::time::Duration::from_millis(10))
+			.build(fetcher);
 
 		let start = std::time::Instant::now();
 		let ab = loader.execute_many(vec!["a", "a", "b", "b", "c", "c"]).await;
@@ -530,11 +563,26 @@ mod tests {
 			}
 		}
 
-		let loader = BatcherBuilder::default().batch_size(4).concurrency(1).delay(std::time::Duration::from_millis(10)).build(TestExecutor(requests.clone()));
+		let loader = BatcherBuilder::default()
+			.batch_size(4)
+			.concurrency(1)
+			.delay(std::time::Duration::from_millis(10))
+			.build(TestExecutor(requests.clone()));
 
 		let start = std::time::Instant::now();
 		let ab = loader.execute_many(vec!["1", "1", "2", "2", "3", "3", "hello"]).await;
-		assert_eq!(ab, vec![Some(Ok(1)), Some(Ok(1)), Some(Ok(2)), Some(Ok(2)), Some(Ok(3)), Some(Ok(3)), Some(Err(()))]);
+		assert_eq!(
+			ab,
+			vec![
+				Some(Ok(1)),
+				Some(Ok(1)),
+				Some(Ok(2)),
+				Some(Ok(2)),
+				Some(Ok(3)),
+				Some(Ok(3)),
+				Some(Err(()))
+			]
+		);
 		assert_eq!(requests.load(std::sync::atomic::Ordering::Relaxed), 2);
 		assert!(start.elapsed() >= std::time::Duration::from_millis(5));
 		assert!(start.elapsed() < std::time::Duration::from_millis(20));
@@ -561,11 +609,26 @@ mod tests {
 			}
 		}
 
-		let loader = BatcherBuilder::default().batch_size(4).concurrency(1).delay(std::time::Duration::from_millis(10)).build(TestExecutor(requests.clone()));
+		let loader = BatcherBuilder::default()
+			.batch_size(4)
+			.concurrency(1)
+			.delay(std::time::Duration::from_millis(10))
+			.build(TestExecutor(requests.clone()));
 
 		let start = std::time::Instant::now();
 		let ab = loader.execute_many(vec!["1", "1", "2", "2", "3", "3", "hello"]).await;
-		assert_eq!(ab, vec![Some(Some(1)), Some(Some(1)), Some(Some(2)), Some(Some(2)), Some(Some(3)), Some(Some(3)), Some(None)]);
+		assert_eq!(
+			ab,
+			vec![
+				Some(Some(1)),
+				Some(Some(1)),
+				Some(Some(2)),
+				Some(Some(2)),
+				Some(Some(3)),
+				Some(Some(3)),
+				Some(None)
+			]
+		);
 		assert_eq!(requests.load(std::sync::atomic::Ordering::Relaxed), 2);
 		assert!(start.elapsed() >= std::time::Duration::from_millis(5));
 		assert!(start.elapsed() < std::time::Duration::from_millis(20));
