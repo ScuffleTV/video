@@ -20,6 +20,9 @@ comment:
   require_head: no
   require_base: no
 
+ignore:
+  - "dev-tools/**"
+
 component_management:
   individual_components:
     - component_id: scuffle-batching
