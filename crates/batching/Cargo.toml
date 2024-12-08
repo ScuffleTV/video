@@ -20,6 +20,9 @@ name = "scuffle-batching-dataloader"
 harness = false
 path = "benchmarks/dataloader.rs"
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
+
 [dependencies]
 tokio = { version = "1", default-features = false, features = ["time", "sync", "rt"] }
 tokio-util = "0.7"
