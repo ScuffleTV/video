@@ -1,3 +1,5 @@
+mod? local
+
 # An alias for cargo +nightly xtask check
 powerset *args:
     cargo +nightly xtask powerset {{args}}

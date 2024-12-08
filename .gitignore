@@ -11,3 +11,4 @@ local/
 coverage/
 benchmark.txt
 .aliases
+local.just
