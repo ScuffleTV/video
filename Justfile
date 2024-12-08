@@ -25,7 +25,7 @@ test *args:
     cargo llvm-cov report --lcov --output-path ./lcov.info
 
 deny *args:
-    cargo deny check
+    cargo deny {{args}} --all-features check
 
 workspace-hack:
     cargo hakari manage-deps

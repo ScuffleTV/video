@@ -13,6 +13,7 @@ allow = [
     "Zlib",
     "WTFPL",
     "OpenSSL",
+    "CC0-1.0",
 ]
 
 unused-allowed-license = "warn"
