@@ -4,13 +4,18 @@
 </div>
 
 <p align="center">
-    <a href="https://twitter.com/scufflecloud"><img height="25" src="https://img.shields.io/badge/Twitter-000000?style=flat&logo=x&logoColor=white" alt="Twitter"></a>
-    &nbsp;
-    <a href="https://bsky.app/profile/scuffle.cloud"><img height="25" src="https://img.shields.io/badge/Bluesky-00A0FF?style=flat&logo=bluesky&logoColor=white" alt="Bluesky"></a>
-    &nbsp;
-    <a href="https://discord.gg/scuffle"><img height="25" src="https://img.shields.io/badge/Discord-5865f2?style=flat&logo=discord&logoColor=white" alt="Discord"></a>
-    &nbsp;
-    <a href="https://linkedin.com/company/scufflecloud"><img height="25" src="https://img.shields.io/badge/LinkedIn-0A66C2?style=flat&logo=linkedin&logoColor=white" alt="LinkedIn"></a>
+    <a href="https://twitter.com/scufflecloud" style="text-decoration: none;">
+        <img height="25" src="https://img.shields.io/badge/Twitter-000000?style=flat&logo=x&logoColor=white" alt="Twitter">
+    </a>
+    <a href="https://bsky.app/profile/scuffle.cloud" style="text-decoration: none;">
+        <img height="25" src="https://img.shields.io/badge/Bluesky-00A0FF?style=flat&logo=bluesky&logoColor=white" alt="Bluesky">
+    </a>
+    <a href="https://discord.gg/scuffle" style="text-decoration: none;">
+        <img height="25" src="https://img.shields.io/badge/Discord-5865f2?style=flat&logo=discord&logoColor=white" alt="Discord">
+    </a>
+    <a href="https://linkedin.com/company/scufflecloud" style="text-decoration: none;">
+        <img height="25" src="https://img.shields.io/badge/LinkedIn-0A66C2?style=flat&logo=linkedin&logoColor=white" alt="LinkedIn">
+    </a>
 </p>
 
 <p align="center">
