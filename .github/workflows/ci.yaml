@@ -30,9 +30,10 @@ jobs:
           components: clippy
 
       - uses: Swatinem/rust-cache@v2
+        id: cache-rust
         with:
           prefix-key: "v0-rust-${{ steps.setup-rust.outputs.cachekey }}"
-          key: clippy
+          shared-key: clippy
 
       - name: Make sure code is linted
         run: cargo +nightly xtask powerset clippy
@@ -98,7 +99,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           prefix-key: "v0-rust-${{ steps.setup-rust.outputs.cachekey }}"
-          key: test
+          shared-key: test
 
       - uses: cargo-bins/cargo-binstall@main
 
