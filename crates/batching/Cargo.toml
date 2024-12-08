@@ -10,7 +10,21 @@ license = "MIT OR Apache-2.0"
 description = "Optimized batching and dataloading for external services."
 keywords = ["batching", "dataloading", "external", "services", "async"]
 
+[[bench]]
+name = "scuffle-batching-batcher"
+harness = false
+path = "benchmarks/batcher.rs"
+
+[[bench]]
+name = "scuffle-batching-dataloader"
+harness = false
+path = "benchmarks/dataloader.rs"
+
 [dependencies]
 tokio = { version = "1", default-features = false, features = ["time", "sync", "rt"] }
 tokio-util = "0.7"
 scuffle-workspace-hack.workspace = true
+
+[dev-dependencies]
+criterion = { version = "0.5.1", features = ["async_tokio"] }
+futures = "0.3"

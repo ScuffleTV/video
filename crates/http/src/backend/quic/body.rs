@@ -1,3 +1,5 @@
+#![cfg_attr(not(feature = "quic-quinn"), allow(dead_code))]
+
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
@@ -25,6 +27,7 @@ pub(crate) struct QuicIncomingBodyInner<B: BidiStream<Bytes>> {
 }
 
 impl<B: BidiStream<Bytes>> QuicIncomingBodyInner<B> {
+	#[cfg(feature = "quic-quinn")]
 	pub(crate) fn new(stream: RequestStream<B::RecvStream, Bytes>, size_hint: Option<u64>) -> Self {
 		Self {
 			stream,
@@ -44,6 +47,11 @@ impl http_body::Body for QuicIncomingBody {
 		match self.get_mut() {
 			#[cfg(feature = "quic-quinn")]
 			QuicIncomingBody::Quinn(inner) => Pin::new(inner).poll_frame(cx),
+			#[cfg(not(feature = "quic-quinn"))]
+			_ => {
+				let _ = cx;
+				unreachable!("impossible to construct QuicIncomingBody with no transport")
+			}
 		}
 	}
 
@@ -51,6 +59,8 @@ impl http_body::Body for QuicIncomingBody {
 		match self {
 			#[cfg(feature = "quic-quinn")]
 			QuicIncomingBody::Quinn(inner) => Pin::new(inner).size_hint(),
+			#[cfg(not(feature = "quic-quinn"))]
+			_ => unreachable!("impossible to construct QuicIncomingBody with no transport"),
 		}
 	}
 
@@ -58,6 +68,8 @@ impl http_body::Body for QuicIncomingBody {
 		match self {
 			#[cfg(feature = "quic-quinn")]
 			QuicIncomingBody::Quinn(inner) => inner.is_end_stream(),
+			#[cfg(not(feature = "quic-quinn"))]
+			_ => unreachable!("impossible to construct QuicIncomingBody with no transport"),
 		}
 	}
 }
@@ -115,6 +127,7 @@ impl<B: BidiStream<Bytes>> http_body::Body for QuicIncomingBodyInner<B> {
 				Poll::Ready(Ok(Some(trailers))) => Poll::Ready(Some(Ok(http_body::Frame::trailers(trailers)))),
 				// We will only poll the recv_trailers once so if pending is returned we are done.
 				Poll::Pending => {
+					#[cfg(feature = "tracing")]
 					tracing::warn!("recv_trailers is pending");
 					Poll::Ready(None)
 				}

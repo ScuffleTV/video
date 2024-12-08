@@ -61,7 +61,9 @@ async fn serve_handle(
 	config: Arc<QuinnServerConfigInner>,
 	ctx: scuffle_context::Context,
 ) {
+	#[cfg(feature = "tracing")]
 	tracing::debug!("serving quinn connection: {:?}", conn.remote_address());
+
 	let handle = Arc::new(handle);
 
 	let (ctx, ctx_handler) = ctx.new_child();
@@ -212,6 +214,7 @@ async fn serve_handle_inner(
 		};
 
 		let Some((request, stream)) = conn.with_context("quinn accept")? else {
+			#[cfg(feature = "tracing")]
 			tracing::debug!("no request, closing connection");
 			return Ok(());
 		};

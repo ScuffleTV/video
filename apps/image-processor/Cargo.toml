@@ -26,17 +26,17 @@ file-format = "0.26.0"
 rgb = "0.8"
 imgref = "1.10"
 libavif-sys = { version = "0.17.0", features = ["codec-dav1d", "codec-rav1e"], default-features = false }
-libwebp-sys2 = { version = "0.1", features = ["1_2", "demux", "mux", "static"] }
+libwebp-sys2 = { version = "0.1.9", features = ["1_2", "demux", "mux", "static"] }
 gifski = { version = "1.13", default-features = false, features = ["gifsicle"] }
 png = "0.17"
-bytes = "1.0"
+bytes = "1"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 fast_image_resize = "5.0.0"
 chrono = { version = "0.4", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
 http = "1"
 humantime-serde = "1"
-smart-default = "0.7.1"
+smart-default = "0.7"
 axum = { version = "0.7" }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 mongodb = { version = "3" }

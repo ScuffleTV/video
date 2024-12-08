@@ -202,6 +202,7 @@ async fn serve_handle(
 	config: TcpServerConfigInner,
 	ctx: &scuffle_context::Context,
 ) -> Result<(), crate::Error> {
+	#[cfg(feature = "tracing")]
 	tracing::debug!("serving connection: {:?}", addr);
 
 	let io = hyper_util::rt::TokioIo::new(stream);

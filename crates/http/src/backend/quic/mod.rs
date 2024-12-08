@@ -1,11 +1,8 @@
-#[cfg(not(any(feature = "quic-quinn")))]
-compile_error!("http3 feature requires a transport feature to be enabled: quic-quinn");
-
 mod body;
 
 pub(crate) use body::QuicIncomingBody;
 
-#[cfg(feature = "h3-quinn")]
+#[cfg(feature = "quic-quinn")]
 pub mod quinn;
 
 #[cfg(feature = "http3-webtransport")]
@@ -16,14 +13,14 @@ use crate::svc::ConnectionAcceptor;
 
 #[derive(derive_more::From, derive_more::Debug)]
 pub enum QuicServer {
-	#[cfg(feature = "h3-quinn")]
+	#[cfg(feature = "quic-quinn")]
 	#[debug("Quinn")]
 	Quinn(quinn::QuinnServer),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum QuicBackendError {
-	#[cfg(feature = "h3-quinn")]
+	#[cfg(feature = "quic-quinn")]
 	#[error("quinn: {0}")]
 	Quinn(#[from] quinn::QuinnServerError),
 }
@@ -37,8 +34,13 @@ impl HttpServer for QuicServer {
 		workers: usize,
 	) -> Result<(), Self::Error> {
 		match self {
-			#[cfg(feature = "h3-quinn")]
+			#[cfg(feature = "quic-quinn")]
 			QuicServer::Quinn(server) => Ok(server.start(service, workers).await?),
+			#[cfg(not(any(feature = "quic-quinn")))]
+			_ => {
+				let _ = (service, workers);
+				unreachable!("impossible to construct QuicServer with no transports")
+			}
 		}
 	}
 
@@ -46,6 +48,8 @@ impl HttpServer for QuicServer {
 		match self {
 			#[cfg(feature = "h3-quinn")]
 			QuicServer::Quinn(server) => Ok(server.shutdown().await?),
+			#[cfg(not(any(feature = "h3-quinn")))]
+			_ => unreachable!("impossible to construct QuicServer with no transports"),
 		}
 	}
 
@@ -53,6 +57,8 @@ impl HttpServer for QuicServer {
 		match self {
 			#[cfg(feature = "h3-quinn")]
 			QuicServer::Quinn(server) => Ok(server.local_addr()?),
+			#[cfg(not(any(feature = "h3-quinn")))]
+			_ => unreachable!("impossible to construct QuicServer with no transports"),
 		}
 	}
 
@@ -60,6 +66,8 @@ impl HttpServer for QuicServer {
 		match self {
 			#[cfg(feature = "h3-quinn")]
 			QuicServer::Quinn(server) => Ok(server.wait().await?),
+			#[cfg(not(any(feature = "h3-quinn")))]
+			_ => unreachable!("impossible to construct QuicServer with no transports"),
 		}
 	}
 }

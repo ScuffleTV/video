@@ -19,6 +19,3 @@ pin-project-lite = "0.2"
 scuffle-context = { version = "0.0.1", path = "../context" }
 scuffle-bootstrap-derive = { version = "0.0.1", path = "./derive" }
 scuffle-workspace-hack.workspace = true
-
-[features]
-default = []

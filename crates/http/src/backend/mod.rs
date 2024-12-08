@@ -1,6 +1,6 @@
 use crate::svc::ConnectionAcceptor;
 
-#[cfg(feature = "h3")]
+#[cfg(feature = "_quic")]
 pub mod quic;
 #[cfg(feature = "_tcp")]
 pub mod tcp;

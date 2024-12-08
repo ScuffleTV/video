@@ -33,9 +33,18 @@ templates = ["minijinja"]
 all-formats = ["toml", "json", "yaml", "json5", "ini", "ron"]
 full = ["all-formats", "templates", "cli", "bootstrap"]
 bootstrap = ["scuffle-bootstrap", "anyhow", "cli"]
-default = []
 
-[dev-dependencies]
-serde_derive = "1"
-tracing = "0.1"
-tracing-subscriber = "0.3.18"
+[package.metadata.xtask]
+addative-features = [
+    "cli",
+    "ron",
+    "toml",
+    "yaml",
+    "json",
+    "json5",
+    "ini",
+    "templates",
+    "all-formats",
+    "full",
+    "bootstrap",
+]

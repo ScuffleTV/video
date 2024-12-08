@@ -20,12 +20,12 @@ name = "scuffle-bootstrap-tracing"
 path = "src/tracing.rs"
 
 [dependencies]
-serde_derive = "1.0"
-serde = "1.0"
+serde_derive = "1"
+serde = "1"
 smart-default = "0.7"
 tracing = "0.1"
 tracing-subscriber = "0.3"
-anyhow = "1.0"
+anyhow = "1"
 
 scuffle-bootstrap = { version = "0.0.1", path = ".."}
 scuffle-settings = { version = "0.0.1", path = "../../settings", features = ["bootstrap"] }

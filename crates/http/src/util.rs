@@ -1,12 +1,12 @@
+#![cfg_attr(not(any(feature = "http1", feature = "http2", feature = "http3")), allow(dead_code))]
+
 pub struct AbortOnDrop<T>(Option<tokio::task::JoinHandle<T>>);
 
 impl<T> AbortOnDrop<T> {
-	#[cfg_attr(not(any(feature = "_tcp", feature = "_quic")), allow(dead_code))]
 	pub fn new(handle: tokio::task::JoinHandle<T>) -> Self {
 		Self(Some(handle))
 	}
 
-	#[cfg_attr(not(any(feature = "_tcp", feature = "_quic")), allow(dead_code))]
 	pub fn disarm(mut self) -> tokio::task::JoinHandle<T> {
 		self.0.take().expect("disarmed twice")
 	}

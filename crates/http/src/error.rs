@@ -1,5 +1,4 @@
 use std::convert::Infallible;
-use std::error::Error as StdError;
 
 #[derive(Debug)]
 pub struct Error {
@@ -212,7 +211,7 @@ pub(crate) fn downcast(error: Box<dyn std::error::Error + Send + Sync + 'static>
 	Error::with_kind(ErrorKind::Unknown(error))
 }
 
-#[cfg(any(feature = "http1", feature = "http2"))]
+#[cfg(any(feature = "_tcp", feature = "_quic"))]
 pub(crate) fn find_source(mut error: &(dyn std::error::Error + 'static)) -> Option<ErrorSeverity> {
 	loop {
 		if let Some(err) = error.downcast_ref::<Error>() {
@@ -301,10 +300,10 @@ impl std::fmt::Display for Error {
 pub enum ErrorKind {
 	#[error("http: {0}")]
 	Http(#[from] http::Error),
-	#[cfg(feature = "http3")]
+	#[cfg(feature = "_quic")]
 	#[error("h3: {0}")]
 	H3(#[from] h3::Error),
-	#[cfg(any(feature = "http1", feature = "http2"))]
+	#[cfg(feature = "_tcp")]
 	#[error("hyper: {0}")]
 	Hyper(#[from] hyper::Error),
 	#[error("closed")]
@@ -337,7 +336,7 @@ impl ErrorKindExt for http::Error {
 	}
 }
 
-#[cfg(feature = "http3")]
+#[cfg(feature = "_quic")]
 impl ErrorKindExt for h3::Error {
 	fn severity(&self) -> ErrorSeverity {
 		match self.kind() {
@@ -348,6 +347,8 @@ impl ErrorKindExt for h3::Error {
 				_ => ErrorSeverity::Error,
 			},
 			_ => {
+				use std::error::Error as StdError;
+
 				if let Some(severity) = self.source().and_then(find_source) {
 					severity
 				} else {
@@ -358,9 +359,11 @@ impl ErrorKindExt for h3::Error {
 	}
 }
 
-#[cfg(any(feature = "http1", feature = "http2"))]
+#[cfg(feature = "_tcp")]
 impl ErrorKindExt for hyper::Error {
 	fn severity(&self) -> ErrorSeverity {
+		use std::error::Error as StdError;
+
 		if self.is_incomplete_message() {
 			ErrorSeverity::Debug
 		} else {
@@ -426,9 +429,9 @@ impl ErrorKind {
 			Self::Configuration => ErrorSeverity::Error,
 			Self::Closed => ErrorSeverity::Debug,
 			Self::Unknown(_) => ErrorSeverity::Error,
-			#[cfg(feature = "http3")]
+			#[cfg(feature = "_quic")]
 			Self::H3(err) => err.severity(),
-			#[cfg(any(feature = "http1", feature = "http2"))]
+			#[cfg(feature = "_tcp")]
 			Self::Hyper(err) => err.severity(),
 			#[cfg(feature = "axum")]
 			Self::Axum(err) => err.severity(),

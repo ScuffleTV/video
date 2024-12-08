@@ -25,3 +25,12 @@ prometheus = ["dep:prometheus-client"]
 default = ["prometheus"]
 tracing = ["internal-logs", "dep:tracing"]
 extended-numbers = []
+
+[package.metadata.xtask]
+addative-features = [
+    "prometheus",
+    "tracing",
+    "extended-numbers",
+    "internal-logs",
+    "default",
+]

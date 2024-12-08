@@ -9,3 +9,5 @@ node_modules/
 lcov.info
 local/
 coverage/
+benchmark.txt
+.aliases

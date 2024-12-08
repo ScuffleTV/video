@@ -9,11 +9,11 @@ path = "src/tcp.rs"
 
 [dependencies]
 scuffle-http = { path = "..", features = ["http1", "http2", "tracing"] }
-tokio = { version = "1.41.1", features = ["full"] }
+tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
-http-body = "1.0.1"
+http-body = "1"
 http-body-util = "0.1.2"
-http = "1.1.0"
-bytes = "1.6.0"
+http = "1"
+bytes = "1"
 scuffle-workspace-hack.workspace = true

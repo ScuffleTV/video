@@ -11,19 +11,28 @@ description = "FFmpeg bindings for Rust."
 keywords = ["ffmpeg", "video", "audio", "media"]
 
 [dependencies]
-ffmpeg-sys-next = "7.1.0"
+ffmpeg-sys-next = "7.1"
 libc = "0.2"
-bytes = { optional = true, version = "1.8.0" }
-tokio = { optional = true, version = "1.41.1" }
+bytes = { optional = true, version = "1" }
+tokio = { optional = true, version = "1" }
 crossbeam-channel = { optional = true, version = "0.5.13" }
-tracing = { optional = true, version = "0.1.40" }
-arc-swap = { version = "1.7.1" }
+tracing = { optional = true, version = "0.1" }
+arc-swap = { version = "1.7" }
 scuffle-workspace-hack.workspace = true
 
 [features]
-default = []
 channel = ["dep:bytes"]
 tokio-channel = ["channel", "dep:tokio"]
 crossbeam-channel = ["channel", "dep:crossbeam-channel"]
 tracing = ["dep:tracing"]
 build = ["ffmpeg-sys-next/build"]
+
+[package.metadata.xtask]
+# Note: build is not an addative feature because it changes the build.rs and therefore
+# requires a full rebuild of the crate.
+addative-features = [
+    "channel",
+    "tokio-channel",
+    "crossbeam-channel",
+    "tracing",
+]

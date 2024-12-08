@@ -53,19 +53,14 @@ hyper-util = { version = "0.1.10", optional = true, features = ["server", "tokio
 scuffle-context = { version = "0.0.1", path = "../context" }
 scuffle-workspace-hack.workspace = true
 
-[dev-dependencies]
-tokio = { version = "1", features = ["macros"] }
-tracing-fmt = { version = "0.1" }
-tracing-subscriber = { version = "0.3" }
-axum = { version = "0.7" }
-tokio-stream = { version = "0.1" }
-
 [features]
 _tcp = [
     "hyper",
     "hyper-util",
 ]
-_quic = []
+_quic = [
+    "h3",
+]
 
 error-backtrace = []
 
@@ -136,4 +131,24 @@ default = [
     "http1",
     "http2",
     "tracing",
+]
+
+[package.metadata.xtask]
+addative-features = [
+    "_tcp",
+    "_quic",
+    "error-backtrace",
+    "http1",
+    "http2",
+    "http3",
+    "http3-webtransport",
+    "quic-quinn",
+    "_tls",
+    "tls-rustls",
+    "tls-rustls-pem",
+    "tracing",
+    "tower",
+    "axum",
+    "http3-default",
+    "default",
 ]

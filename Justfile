@@ -1,4 +1,13 @@
-mod ci 'just/ci.just'
+# An alias for cargo +nightly xtask check
+powerset *args:
+    cargo +nightly xtask powerset {{args}}
+
+# An alias for cargo +nightly fmt --all
+fmt *args:
+    cargo +nightly fmt --all {{args}}
+
+lint *args:
+    cargo +nightly clippy --fix --allow-dirty --all-targets --all-features {{args}}
 
 test *args:
     #!/bin/bash
@@ -15,12 +24,9 @@ test *args:
     cargo llvm-cov report --html
     cargo llvm-cov report --lcov --output-path ./lcov.info
 
-hakari:
-    cargo +nightly hakari generate
-    cargo +nightly hakari manage-deps
+deny *args:
+    cargo deny check
 
-clippy:
-    cargo +nightly clippy --fix --allow-dirty --all-targets --all-features
-
-fmt:
-    cargo +nightly fmt --all
+workspace-hack:
+    cargo hakari manage-deps
+    cargo hakari generate

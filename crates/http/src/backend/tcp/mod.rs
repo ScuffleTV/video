@@ -84,7 +84,7 @@ impl HttpServer for TcpServer {
 		#[cfg(all(feature = "http2", feature = "tls-rustls"))]
 		let allow_http2 = config.allow_upgrades || config.only_http.is_none_or(|v| v == config::HttpVersion::Http2);
 
-		#[cfg(feature = "tls-rustls")]
+		#[cfg(all(feature = "tls-rustls", any(feature = "http1", feature = "http2")))]
 		if let Some(acceptor) = &mut config.acceptor {
 			let mut alpn = Vec::new();
 			#[cfg(feature = "http2")]

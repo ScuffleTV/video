@@ -12,12 +12,12 @@ pub struct IncomingBody {
 }
 
 impl IncomingBody {
-	#[cfg_attr(not(any(feature = "_quic", feature = "_tcp")), allow(dead_code))]
+	#[cfg_attr(not(any(feature = "http3", feature = "http1", feature = "http2")), allow(dead_code))]
 	pub(crate) fn new(inner: impl Into<IncomingBodyInner>) -> Self {
 		Self { inner: inner.into() }
 	}
 
-	#[cfg_attr(not(any(feature = "_quic", feature = "_tcp")), allow(dead_code))]
+	#[cfg_attr(not(any(feature = "http3", feature = "http1", feature = "http2")), allow(dead_code))]
 	pub(crate) fn empty() -> Self {
 		Self {
 			inner: IncomingBodyInner::Empty,
@@ -37,7 +37,7 @@ pub(crate) enum IncomingBodyInner {
 	Tcp(#[from] hyper::body::Incoming),
 	#[cfg(feature = "_quic")]
 	Quic(#[from] QuicIncomingBody),
-	#[cfg_attr(not(any(feature = "_quic", feature = "_tcp")), allow(dead_code))]
+	#[cfg_attr(not(any(feature = "http3", feature = "http1", feature = "http2")), allow(dead_code))]
 	Empty,
 }
 
@@ -46,7 +46,7 @@ impl http_body::Body for IncomingBody {
 	type Error = crate::Error;
 
 	fn poll_frame(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Result<Frame<Self::Data>, Self::Error>>> {
-		#[cfg(not(any(feature = "_quic", feature = "_tcp")))]
+		#[cfg(not(any(feature = "http3", feature = "http1", feature = "http2")))]
 		let _ = cx;
 
 		match &mut self.inner {
@@ -140,7 +140,7 @@ where
 	}
 }
 
-#[cfg_attr(not(any(feature = "_quic", feature = "_tcp")), allow(dead_code))]
+#[cfg_attr(not(any(feature = "http3", feature = "http1", feature = "http2")), allow(dead_code))]
 pub(crate) fn has_body(method: &http::Method) -> bool {
 	!matches!(
 		method,

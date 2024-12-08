@@ -15,11 +15,11 @@ tracing = "0.1"
 anyhow = "1"
 prometheus-client = { version = "0.22.3", optional = true }
 http = "1"
-http-body = "1.0.1"
-http-body-util = "0.1"
-bytes = "1.6.0"
+http-body = "1"
+http-body-util = "0.1.2"
+bytes = "1"
 querystring = { version = "1", optional = true }
-tokio = { version = "1.36.0", optional = true }
+tokio = { version = "1", optional = true, features = ["rt"], default-features = false}
 thiserror = { version = "2", optional = true }
 
 opentelemetry = { version = "0.27", optional = true }
@@ -37,7 +37,17 @@ scuffle-workspace-hack.workspace = true
 default = ["prometheus", "pprof", "opentelemetry-metrics", "opentelemetry-traces", "opentelemetry-logs"]
 prometheus = ["prometheus-client", "opentelemetry"]
 pprof = ["scuffle-pprof", "querystring", "tokio"]
-opentelemetry = ["dep:opentelemetry", "dep:opentelemetry_sdk", "thiserror"]
+opentelemetry = ["dep:opentelemetry", "dep:opentelemetry_sdk", "thiserror", "tokio"]
 opentelemetry-metrics = ["opentelemetry"]
 opentelemetry-traces = ["opentelemetry", "tracing-opentelemetry"]
 opentelemetry-logs = ["opentelemetry", "opentelemetry-appender-tracing"]
+
+[package.metadata.xtask]
+addative-features = [
+    "default",
+    "prometheus",
+    "pprof",
+    "opentelemetry-metrics",
+    "opentelemetry-traces",
+    "opentelemetry-logs",
+]

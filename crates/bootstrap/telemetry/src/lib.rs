@@ -1,5 +1,9 @@
 use anyhow::Context;
 use bytes::Bytes;
+#[cfg(feature = "opentelemetry-logs")]
+pub use opentelemetry_appender_tracing;
+#[cfg(feature = "opentelemetry")]
+pub use opentelemetry_sdk;
 #[cfg(feature = "prometheus")]
 pub use prometheus_client;
 use scuffle_bootstrap::global::Global;
@@ -7,8 +11,8 @@ use scuffle_bootstrap::service::Service;
 use scuffle_context::ContextFutExt;
 use scuffle_http::backend::HttpServer;
 use scuffle_http::body::IncomingBody;
-#[cfg(feature = "opentelemetry")]
-pub use {opentelemetry_appender_tracing, opentelemetry_sdk, tracing_opentelemetry};
+#[cfg(feature = "opentelemetry-traces")]
+pub use tracing_opentelemetry;
 
 pub struct TelemetrySvc;
 
@@ -272,14 +276,38 @@ pub mod opentelemetry {
 		}
 
 		pub fn is_enabled(&self) -> bool {
-			self.metrics.is_some() || self.traces.is_some() || self.logs.is_some()
+			#[cfg_attr(
+				not(any(
+					feature = "opentelemetry-metrics",
+					feature = "opentelemetry-traces",
+					feature = "opentelemetry-logs"
+				)),
+				allow(unused_mut)
+			)]
+			let mut enabled = false;
+			#[cfg(feature = "opentelemetry-metrics")]
+			{
+				enabled |= self.metrics.is_some();
+			}
+			#[cfg(feature = "opentelemetry-traces")]
+			{
+				enabled |= self.traces.is_some();
+			}
+			#[cfg(feature = "opentelemetry-logs")]
+			{
+				enabled |= self.logs.is_some();
+			}
+			enabled
 		}
 
 		#[cfg(feature = "opentelemetry-metrics")]
 		pub fn with_metrics(self, metrics: impl Into<Option<opentelemetry_sdk::metrics::SdkMeterProvider>>) -> Self {
 			Self {
 				metrics: metrics.into(),
-				..self
+				#[cfg(feature = "opentelemetry-traces")]
+				traces: self.traces,
+				#[cfg(feature = "opentelemetry-logs")]
+				logs: self.logs,
 			}
 		}
 
@@ -287,7 +315,10 @@ pub mod opentelemetry {
 		pub fn with_traces(self, traces: impl Into<Option<opentelemetry_sdk::trace::TracerProvider>>) -> Self {
 			Self {
 				traces: traces.into(),
-				..self
+				#[cfg(feature = "opentelemetry-metrics")]
+				metrics: self.metrics,
+				#[cfg(feature = "opentelemetry-logs")]
+				logs: self.logs,
 			}
 		}
 
@@ -295,7 +326,10 @@ pub mod opentelemetry {
 		pub fn with_logs(self, logs: impl Into<Option<opentelemetry_sdk::logs::LoggerProvider>>) -> Self {
 			Self {
 				logs: logs.into(),
-				..self
+				#[cfg(feature = "opentelemetry-traces")]
+				traces: self.traces,
+				#[cfg(feature = "opentelemetry-metrics")]
+				metrics: self.metrics,
 			}
 		}
 

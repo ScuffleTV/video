@@ -1,10 +1,13 @@
-name: cargo
+name: ci
 
 on:
   push:
     branches:
       - main
-  pull_request: {}
+
+  pull_request:
+  workflow_dispatch:
+  merge_group:
 
 jobs:
   pre-job:
@@ -30,8 +33,6 @@ jobs:
     if: ${{ needs.pre-job.outputs.should_skip != 'true' }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
 
       - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
@@ -48,14 +49,8 @@ jobs:
           prefix-key: "v0-rust-${{ steps.setup-rust.outputs.cachekey }}"
           key: clippy
 
-      - uses: cargo-bins/cargo-binstall@main
-
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: just
-
       - name: Make sure code is linted
-        run: just ci clippy
+        run: cargo +nightly xtask powerset clippy
 
   fmt:
     name: Fmt
@@ -66,8 +61,6 @@ jobs:
       checks: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
 
       - uses: dtolnay/rust-toolchain@stable
         id: setup-rust
@@ -75,14 +68,8 @@ jobs:
           toolchain: nightly
           components: rustfmt
 
-      - uses: cargo-bins/cargo-binstall@main
-
-      - uses: taiki-e/install-action@v2
-        with:
-          tool: just
-
       - name: Make sure code is formatted
-        run: just ci fmt
+        run: cargo +nightly fmt --check
 
   hakari:
     name: Hakari
@@ -91,8 +78,6 @@ jobs:
     if: ${{ needs.pre-job.outputs.should_skip != 'true' }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
 
       - uses: dtolnay/rust-toolchain@stable
         id: setup-rust
@@ -103,10 +88,15 @@ jobs:
 
       - uses: taiki-e/install-action@v2
         with:
-          tool: cargo-hakari,just
+          tool: cargo-hakari
 
       - name: Make sure Hakari is up-to-date
-        run: just ci hakari
+        run: |
+          set -xeo pipefail
+
+          cargo hakari manage-deps --dry-run
+          cargo hakari generate --diff
+          cargo hakari verify
 
   test:
     name: Test
@@ -115,8 +105,6 @@ jobs:
     if: ${{ needs.pre-job.outputs.should_skip != 'true' }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
 
       - uses: awalsh128/cache-apt-pkgs-action@latest
         with:
@@ -137,9 +125,12 @@ jobs:
 
       - uses: taiki-e/install-action@v2
         with:
-          tool: cargo-nextest,cargo-llvm-cov,just
+          tool: cargo-nextest,cargo-llvm-cov
 
-      - run: just ci test
+      # Note; we don't run the powerset here because it's very slow on CI
+      # Perhaps we should consider it at some point.
+      - name: Run tests
+        run: cargo +nightly llvm-cov nextest --branch --no-fail-fast --all-features --lcov --output-path ./lcov.info --profile ci
 
       - uses: codecov/codecov-action@v5
         with:

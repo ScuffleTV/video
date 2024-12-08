@@ -25,6 +25,7 @@ members = [
     "apps/image-processor/proto",
     "apps/image-processor/examples",
     "crates/workspace-hack",
+    "dev-tools/xtask",
 ]
 
 resolver = "2"

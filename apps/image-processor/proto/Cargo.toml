@@ -31,3 +31,11 @@ serde = [
     "pbjson",
 ]
 
+[package.metadata.xtask]
+# Even though these features effect the build.rs they are additive because they do not
+# effect each other.
+addative-features = [
+    "server",
+    "client",
+    "serde",
+]
