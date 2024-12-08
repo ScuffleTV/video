@@ -39,3 +39,4 @@ debug = true
 
 [patch.crates-io.scuffle-workspace-hack]
 path = "crates/workspace-hack"
+version = "=0.1.0"
