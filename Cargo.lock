@@ -4624,7 +4624,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-http"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "async-trait",
  "axum-core",
@@ -4751,7 +4751,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-metrics"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "opentelemetry",
  "opentelemetry_sdk",
