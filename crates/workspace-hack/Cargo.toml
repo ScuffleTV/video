@@ -33,6 +33,7 @@ futures-io = { version = "0.3" }
 futures-sink = { version = "0.3" }
 futures-util = { version = "0.3", default-features = false, features = ["async-await-macro", "channel", "io", "sink"] }
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
+h3 = { version = "0.0.6", default-features = false, features = ["i-implement-a-third-party-backend-and-opt-into-breaking-changes"] }
 insta = { version = "1", features = ["filters"] }
 libc = { version = "0.2", features = ["extra_traits"] }
 log = { version = "0.4", default-features = false, features = ["std"] }
@@ -86,6 +87,7 @@ futures-io = { version = "0.3" }
 futures-sink = { version = "0.3" }
 futures-util = { version = "0.3", default-features = false, features = ["async-await-macro", "channel", "io", "sink"] }
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
+h3 = { version = "0.0.6", default-features = false, features = ["i-implement-a-third-party-backend-and-opt-into-breaking-changes"] }
 insta = { version = "1", features = ["filters"] }
 itertools = { version = "0.12", default-features = false, features = ["use_alloc"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -125,7 +127,6 @@ hyper = { version = "1", features = ["client", "http1", "http2", "server"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "http1", "http2", "server"] }
 once_cell = { version = "1" }
 rustls = { version = "0.23", features = ["ring"] }
-rustls-webpki = { version = "0.102", default-features = false, features = ["aws_lc_rs", "ring", "std"] }
 spin = { version = "0.9" }
 tokio-rustls = { version = "0.26", features = ["ring"] }
 
@@ -135,7 +136,6 @@ hyper = { version = "1", features = ["client", "http1", "http2", "server"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "http1", "http2", "server"] }
 once_cell = { version = "1" }
 rustls = { version = "0.23", features = ["ring"] }
-rustls-webpki = { version = "0.102", default-features = false, features = ["aws_lc_rs", "ring", "std"] }
 spin = { version = "0.9" }
 tokio-rustls = { version = "0.26", features = ["ring"] }
 
@@ -146,7 +146,6 @@ hyper-util = { version = "0.1", features = ["client-legacy", "http1", "http2", "
 num-traits = { version = "0.2", default-features = false, features = ["i128"] }
 once_cell = { version = "1" }
 rustls = { version = "0.23", features = ["ring"] }
-rustls-webpki = { version = "0.102", default-features = false, features = ["aws_lc_rs", "ring", "std"] }
 spin = { version = "0.9" }
 tokio-rustls = { version = "0.26", features = ["ring"] }
 
@@ -157,7 +156,6 @@ hyper-util = { version = "0.1", features = ["client-legacy", "http1", "http2", "
 num-traits = { version = "0.2", default-features = false, features = ["i128"] }
 once_cell = { version = "1" }
 rustls = { version = "0.23", features = ["ring"] }
-rustls-webpki = { version = "0.102", default-features = false, features = ["aws_lc_rs", "ring", "std"] }
 spin = { version = "0.9" }
 tokio-rustls = { version = "0.26", features = ["ring"] }
 
