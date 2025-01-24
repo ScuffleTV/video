@@ -190,7 +190,7 @@ pub(crate) fn downcast(error: Box<dyn std::error::Error + Send + Sync + 'static>
         return Error::with_kind(ErrorKind::Hyper(*error.downcast().unwrap()));
     }
 
-    #[cfg(feature = "quic-quinn")]
+    #[cfg(feature = "http3")]
     if error.is::<quinn::ConnectionError>() {
         return Error::with_kind(ErrorKind::QuinnConnection(*error.downcast().unwrap()));
     }
@@ -211,7 +211,7 @@ pub(crate) fn downcast(error: Box<dyn std::error::Error + Send + Sync + 'static>
     Error::with_kind(ErrorKind::Unknown(error))
 }
 
-#[cfg(any(feature = "hyper", feature = "h3"))]
+#[cfg(any(feature = "http1", feature = "http2", feature = "http3"))]
 pub(crate) fn find_source(mut error: &(dyn std::error::Error + 'static)) -> Option<ErrorSeverity> {
     loop {
         if let Some(err) = error.downcast_ref::<Error>() {
@@ -232,7 +232,7 @@ pub(crate) fn find_source(mut error: &(dyn std::error::Error + 'static)) -> Opti
             return Some(err.severity());
         }
 
-        #[cfg(feature = "quic-quinn")]
+        #[cfg(feature = "http3")]
         if let Some(err) = error.downcast_ref::<quinn::ConnectionError>() {
             return Some(err.severity());
         }
@@ -300,7 +300,7 @@ impl std::fmt::Display for Error {
 pub enum ErrorKind {
     #[error("http: {0}")]
     Http(#[from] http::Error),
-    #[cfg(feature = "h3")]
+    #[cfg(feature = "http3")]
     #[error("h3: {0}")]
     H3(#[from] h3::Error),
     #[cfg(feature = "hyper")]
@@ -313,7 +313,7 @@ pub enum ErrorKind {
     #[cfg(feature = "axum")]
     #[error("axum: {0}")]
     Axum(#[from] axum_core::Error),
-    #[cfg(feature = "quinn")]
+    #[cfg(feature = "http3")]
     #[error("quinn: {0}")]
     QuinnConnection(#[from] quinn::ConnectionError),
     #[error("io: {0}")]
@@ -336,7 +336,7 @@ impl ErrorKindExt for http::Error {
     }
 }
 
-#[cfg(feature = "h3")]
+#[cfg(feature = "http3")]
 impl ErrorKindExt for h3::Error {
     fn severity(&self) -> ErrorSeverity {
         match self.kind() {
@@ -372,7 +372,7 @@ impl ErrorKindExt for hyper::Error {
     }
 }
 
-#[cfg(feature = "quinn")]
+#[cfg(feature = "http3")]
 impl ErrorKindExt for quinn::ConnectionError {
     fn severity(&self) -> ErrorSeverity {
         match self {
@@ -388,7 +388,7 @@ impl ErrorKindExt for quinn::ConnectionError {
     }
 }
 
-#[cfg(feature = "quinn")]
+#[cfg(feature = "http3")]
 impl ErrorKindExt for quinn::TransportErrorCode {
     fn severity(&self) -> ErrorSeverity {
         match *self {
@@ -429,13 +429,13 @@ impl ErrorKind {
             Self::Configuration => ErrorSeverity::Error,
             Self::Closed => ErrorSeverity::Debug,
             Self::Unknown(_) => ErrorSeverity::Error,
-            #[cfg(feature = "h3")]
+            #[cfg(feature = "http3")]
             Self::H3(err) => err.severity(),
             #[cfg(feature = "hyper")]
             Self::Hyper(err) => err.severity(),
             #[cfg(feature = "axum")]
             Self::Axum(err) => err.severity(),
-            #[cfg(feature = "quinn")]
+            #[cfg(feature = "http3")]
             Self::QuinnConnection(err) => err.severity(),
             Self::Io(io) => io.severity(),
             Self::Http(err) => err.severity(),

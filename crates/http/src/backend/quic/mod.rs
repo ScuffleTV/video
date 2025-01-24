@@ -2,7 +2,7 @@ mod body;
 
 pub(crate) use body::QuicIncomingBody;
 
-#[cfg(feature = "quic-quinn")]
+#[cfg(feature = "http3")]
 pub mod quinn;
 
 #[cfg(feature = "http3-webtransport")]
@@ -13,14 +13,14 @@ use crate::svc::ConnectionAcceptor;
 
 #[derive(derive_more::From, derive_more::Debug)]
 pub enum QuicServer {
-    #[cfg(feature = "quic-quinn")]
+    #[cfg(feature = "http3")]
     #[debug("Quinn")]
     Quinn(quinn::QuinnServer),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum QuicBackendError {
-    #[cfg(feature = "quic-quinn")]
+    #[cfg(feature = "http3")]
     #[error("quinn: {0}")]
     Quinn(#[from] quinn::QuinnServerError),
 }
@@ -34,9 +34,9 @@ impl HttpServer for QuicServer {
         workers: usize,
     ) -> Result<(), Self::Error> {
         match self {
-            #[cfg(feature = "quic-quinn")]
+            #[cfg(feature = "http3")]
             QuicServer::Quinn(server) => Ok(server.start(service, workers).await?),
-            #[cfg(not(any(feature = "quic-quinn")))]
+            #[cfg(not(any(feature = "http3")))]
             _ => {
                 let _ = (service, workers);
                 unreachable!("impossible to construct QuicServer with no transports")
@@ -46,27 +46,27 @@ impl HttpServer for QuicServer {
 
     async fn shutdown(&self) -> Result<(), Self::Error> {
         match self {
-            #[cfg(feature = "h3-quinn")]
+            #[cfg(feature = "http3")]
             QuicServer::Quinn(server) => Ok(server.shutdown().await?),
-            #[cfg(not(any(feature = "h3-quinn")))]
+            #[cfg(not(any(feature = "http3")))]
             _ => unreachable!("impossible to construct QuicServer with no transports"),
         }
     }
 
     fn local_addr(&self) -> Result<std::net::SocketAddr, Self::Error> {
         match self {
-            #[cfg(feature = "h3-quinn")]
+            #[cfg(feature = "http3")]
             QuicServer::Quinn(server) => Ok(server.local_addr()?),
-            #[cfg(not(any(feature = "h3-quinn")))]
+            #[cfg(not(any(feature = "http3")))]
             _ => unreachable!("impossible to construct QuicServer with no transports"),
         }
     }
 
     async fn wait(&self) -> Result<(), Self::Error> {
         match self {
-            #[cfg(feature = "h3-quinn")]
+            #[cfg(feature = "http3")]
             QuicServer::Quinn(server) => Ok(server.wait().await?),
-            #[cfg(not(any(feature = "h3-quinn")))]
+            #[cfg(not(any(feature = "http3")))]
             _ => unreachable!("impossible to construct QuicServer with no transports"),
         }
     }

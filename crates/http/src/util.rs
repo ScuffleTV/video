@@ -23,7 +23,7 @@ impl<T> Drop for AbortOnDrop<T> {
 use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 
-#[cfg_attr(not(any(feature = "hyper", feature = "h3")), allow(dead_code))]
+#[cfg_attr(not(any(feature = "hyper", feature = "http3")), allow(dead_code))]
 pub struct TimeoutTracker {
     timeout: tokio::time::Duration,
     notify: tokio::sync::Notify,
@@ -38,7 +38,7 @@ impl Drop for TimeoutTrackerDropGuard {
     }
 }
 
-#[cfg_attr(not(any(feature = "hyper", feature = "h3")), allow(dead_code))]
+#[cfg_attr(not(any(feature = "hyper", feature = "http3")), allow(dead_code))]
 impl TimeoutTracker {
     pub fn new(timeout: tokio::time::Duration) -> Self {
         Self {

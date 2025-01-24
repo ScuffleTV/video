@@ -26,35 +26,41 @@ smallvec = { version = "1" }
 spin = { version = "0.9" }
 async-trait = { version = "0.1" }
 scuffle-future-ext.workspace = true
+scuffle-context.workspace = true
+scuffle-workspace-hack.workspace = true
+
 # For extra services features
 tower-service = { version = "0.3", optional = true }
 axum-core = { version = "0.4", optional = true }
 
 # for tls-rustls features
 rustls = { version = "0.23", optional = true }
+tokio-rustls = { version = "0.26", optional = true }
+
 # for tls-rustls-pem features
 rustls-pemfile = { version = "2.2", optional = true }
-tokio-rustls = { version = "0.26", optional = true }
 
 # For tracing features
 tracing = { version = "0.1", optional = true }
 
+# For http1 and http2
+hyper = { version = "1.5.1", optional = true, features = ["server"] }
+hyper-util = { version = "0.1.10", optional = true, features = ["server", "tokio"] }
+
 # For http3 features
 h3 = { version = "0", optional = true }
-scuffle-h3-webtransport = { workspace = true, optional = true }
-
-# For http3-quinn features
 h3-quinn = { version = "0", optional = true }
 quinn = { version = "0.11", optional = true }
 
-hyper = { version = "1.5.1", optional = true, features = ["server"] } # http1, http2
-hyper-util = { version = "0.1.10", optional = true, features = ["server", "tokio"] } # http1, http2
-
-scuffle-context.workspace = true
-scuffle-workspace-hack.workspace = true
+# For http3-webtransport features
+scuffle-h3-webtransport = { workspace = true, optional = true }
 
 [features]
 error-backtrace = []
+
+tracing = [
+    "dep:tracing",
+]
 
 http1 = [
     "hyper/http1",
@@ -67,36 +73,34 @@ http2 = [
 ]
 
 http3 = [
-    "h3",
-    "quic-quinn",
+    "dep:h3",
+    "dep:h3-quinn",
+    "dep:quinn",
+]
+
+http3-default = [
+    "http3",
+    "tls-rustls",
 ]
 
 http3-webtransport = [
     "http3",
-    "quic-quinn",
-    "scuffle-h3-webtransport",
+    "dep:scuffle-h3-webtransport",
 ]
 
-# Quinn is a quic backend for http3
-quic-quinn = [
-    "http3",
-    "h3-quinn",
-    "quinn",
-]
+# TLS
 
 tls-rustls = [
-    "rustls",
-    "tokio-rustls",
+    "dep:rustls",
+    "dep:tokio-rustls",
 ]
 
 tls-rustls-pem = [
     "tls-rustls",
-    "rustls-pemfile",
+    "dep:rustls-pemfile",
 ]
 
-tracing = [
-    "dep:tracing",
-]
+# Services
 
 tower = [
     "dep:tower-service",
@@ -107,31 +111,25 @@ axum = [
     "tower",
 ]
 
-http3-default = [
-    "http3",
-    "quic-quinn",
-    "tls-rustls",
-]
-
 default = [
     "http1",
     "http2",
+    "http3-default",
     "tracing",
 ]
 
 [package.metadata.xtask]
 additive-features = [
     "error-backtrace",
+    "tracing",
     "http1",
     "http2",
     "http3",
+    "http3-default",
     "http3-webtransport",
-    "quic-quinn",
     "tls-rustls",
     "tls-rustls-pem",
-    "tracing",
     "tower",
     "axum",
-    "http3-default",
     "default",
 ]

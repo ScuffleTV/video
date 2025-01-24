@@ -1,4 +1,4 @@
-#![cfg_attr(not(feature = "quic-quinn"), allow(dead_code))]
+#![cfg_attr(not(feature = "http3"), allow(dead_code))]
 
 use std::future::Future;
 use std::pin::Pin;
@@ -10,7 +10,7 @@ use h3::server::RequestStream;
 
 #[derive(derive_more::From)]
 pub(crate) enum QuicIncomingBody {
-    #[cfg(feature = "quic-quinn")]
+    #[cfg(feature = "http3")]
     Quinn(#[from] QuicIncomingBodyInner<h3_quinn::BidiStream<Bytes>>),
 }
 
@@ -27,7 +27,7 @@ pub(crate) struct QuicIncomingBodyInner<B: BidiStream<Bytes>> {
 }
 
 impl<B: BidiStream<Bytes>> QuicIncomingBodyInner<B> {
-    #[cfg(feature = "quic-quinn")]
+    #[cfg(feature = "http3")]
     pub(crate) fn new(stream: RequestStream<B::RecvStream, Bytes>, size_hint: Option<u64>) -> Self {
         Self {
             stream,
@@ -45,9 +45,9 @@ impl http_body::Body for QuicIncomingBody {
         cx: &mut Context<'_>,
     ) -> Poll<Option<Result<http_body::Frame<Self::Data>, Self::Error>>> {
         match self.get_mut() {
-            #[cfg(feature = "quic-quinn")]
+            #[cfg(feature = "http3")]
             QuicIncomingBody::Quinn(inner) => Pin::new(inner).poll_frame(cx),
-            #[cfg(not(feature = "quic-quinn"))]
+            #[cfg(not(feature = "http3"))]
             _ => {
                 let _ = cx;
                 unreachable!("impossible to construct QuicIncomingBody with no transport")
@@ -57,18 +57,18 @@ impl http_body::Body for QuicIncomingBody {
 
     fn size_hint(&self) -> http_body::SizeHint {
         match self {
-            #[cfg(feature = "quic-quinn")]
+            #[cfg(feature = "http3")]
             QuicIncomingBody::Quinn(inner) => Pin::new(inner).size_hint(),
-            #[cfg(not(feature = "quic-quinn"))]
+            #[cfg(not(feature = "http3"))]
             _ => unreachable!("impossible to construct QuicIncomingBody with no transport"),
         }
     }
 
     fn is_end_stream(&self) -> bool {
         match self {
-            #[cfg(feature = "quic-quinn")]
+            #[cfg(feature = "http3")]
             QuicIncomingBody::Quinn(inner) => inner.is_end_stream(),
-            #[cfg(not(feature = "quic-quinn"))]
+            #[cfg(not(feature = "http3"))]
             _ => unreachable!("impossible to construct QuicIncomingBody with no transport"),
         }
     }
