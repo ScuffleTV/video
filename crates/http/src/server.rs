@@ -1,9 +1,15 @@
-use std::{io, net::SocketAddr};
+use std::{
+    fmt::{Debug, Display},
+    net::SocketAddr,
+};
 
 use futures::{stream::FuturesUnordered, StreamExt};
 use itertools::Itertools;
 
-use crate::backend::{ServerBackend, ServerRustlsBackend};
+use crate::{
+    backend::{ServerBackend, ServerRustlsBackend},
+    error::Error,
+};
 
 #[derive(Debug, Clone)]
 pub struct Server {
@@ -27,16 +33,16 @@ impl Server {
         }
     }
 
-    pub async fn run<M, B>(self, make_service: M) -> io::Result<()>
+    pub async fn run<M, B>(self, make_service: M) -> Result<(), Error<M>>
     where
         M: tower::MakeService<SocketAddr, crate::backend::IncomingRequest, Response = http::Response<B>>
             + Clone
             + Send
             + 'static,
-        M::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+        M::Error: std::error::Error + Display + Send + Sync + 'static,
         M::Service: Send + Clone + 'static,
         <M::Service as tower::Service<crate::backend::IncomingRequest>>::Future: Send,
-        M::MakeError: std::fmt::Debug,
+        M::MakeError: Debug + Display,
         M::Future: Send,
         B: http_body::Body + Send + 'static,
         B::Error: Into<Box<dyn std::error::Error + Send + Sync>> + Send,
@@ -64,16 +70,16 @@ impl ServerWithRustls {
         self
     }
 
-    pub async fn run<M, B>(mut self, make_service: M) -> io::Result<()>
+    pub async fn run<M, B>(mut self, make_service: M) -> Result<(), Error<M>>
     where
         M: tower::MakeService<SocketAddr, crate::backend::IncomingRequest, Response = http::Response<B>>
             + Clone
             + Send
             + 'static,
-        M::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+        M::Error: std::error::Error + Display + Send + Sync + 'static,
         M::Service: Send + Clone + 'static,
         <M::Service as tower::Service<crate::backend::IncomingRequest>>::Future: Send,
-        M::MakeError: std::fmt::Debug,
+        M::MakeError: Debug + Display,
         M::Future: Send,
         B: http_body::Body + Send + 'static,
         B::Error: Into<Box<dyn std::error::Error + Send + Sync>> + Send,
