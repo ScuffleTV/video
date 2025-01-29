@@ -15,6 +15,12 @@ pub struct Server {
     backends: Vec<ServerBackend>,
 }
 
+impl Default for Server {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Server {
     pub fn new() -> Self {
         Self {
@@ -58,7 +64,7 @@ impl Server {
     {
         let mut futures: FuturesUnordered<_> = self.backends.into_iter().map(|b| b.run(make_service.clone())).collect();
 
-        let ctx = self.ctx.unwrap_or_else(|| scuffle_context::Context::global());
+        let ctx = self.ctx.unwrap_or_else(scuffle_context::Context::global);
 
         while let Some(Some(res)) = futures.next().with_context(ctx.clone()).await {
             res?;
@@ -115,7 +121,7 @@ impl ServerWithRustls {
             .map(|b| b.run(make_service.clone(), self.rustls_config.clone()))
             .collect();
 
-        let ctx = self.ctx.unwrap_or_else(|| scuffle_context::Context::global());
+        let ctx = self.ctx.unwrap_or_else(scuffle_context::Context::global);
 
         while let Some(Some(res)) = futures.next().with_context(ctx.clone()).await {
             res?;

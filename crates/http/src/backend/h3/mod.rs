@@ -83,16 +83,16 @@ impl Http3Backend {
                                 // make a new service
                                 poll_fn(|cx| tower::MakeService::poll_ready(&mut make_service, cx))
                                     .await
-                                    .map_err(|e| Error::MakeServiceError(e.into()))?;
+                                    .map_err(|e| Error::MakeServiceError(e))?;
                                 let mut tower_service = tower::MakeService::make_service(&mut make_service, addr)
                                     .await
-                                    .map_err(|e| Error::MakeServiceError(e.into()))?;
+                                    .map_err(|e| Error::MakeServiceError(e))?;
 
                                 tokio::spawn(async move {
                                     let res: Result<_, Error<M>> = async move {
                                         let resp = tower::Service::call(&mut tower_service, req)
                                             .await
-                                            .map_err(|e| Error::ServiceError(e.into()))?;
+                                            .map_err(|e| Error::ServiceError(e))?;
                                         let (parts, body) = resp.into_parts();
 
                                         send.send_response(hyper::Response::from_parts(parts, ())).await?;
