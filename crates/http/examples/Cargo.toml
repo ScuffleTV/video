@@ -15,7 +15,7 @@ name = "scuffle-http-axum"
 path = "src/axum.rs"
 
 [dev-dependencies]
-axum = { version = "0.8.1", features = ["macros"] }
+axum = { version = "0.8.1", features = ["macros", "ws"] }
 tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }

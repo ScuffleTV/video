@@ -6,17 +6,16 @@ use hyper_util::{
 };
 use tokio::io::{AsyncRead, AsyncWrite};
 
-use crate::config::HttpConfig;
-
 pub mod insecure;
 pub mod secure;
 
 /// Helper function used by both secure and insecure servers to handle incoming connections.
 async fn handle_connection<M, D, I>(
     make_service: &mut M,
-    config: HttpConfig,
     addr: SocketAddr,
     io: I,
+    http1: bool,
+    http2: bool,
 ) where
     M: tower::MakeService<
         SocketAddr,
@@ -56,23 +55,23 @@ async fn handle_connection<M, D, I>(
     tokio::spawn(async move {
         let mut builder = auto::Builder::new(TokioExecutor::new());
 
-        let res = if config.http1_enabled && config.http2_enabled {
+        let res = if http1 && http2 {
             builder
                 .http1()
                 .timer(TokioTimer::new())
                 .http2()
                 .timer(TokioTimer::new())
-                .serve_connection(io, hyper_proxy_service)
+                .serve_connection_with_upgrades(io, hyper_proxy_service)
                 .await
-        } else if config.http1_enabled {
+        } else if http1 {
             builder
                 .http1_only()
-                .serve_connection(io, hyper_proxy_service)
+                .serve_connection_with_upgrades(io, hyper_proxy_service)
                 .await
-        } else if config.http2_enabled {
+        } else if http2 {
             builder
                 .http2_only()
-                .serve_connection(io, hyper_proxy_service)
+                .serve_connection_with_upgrades(io, hyper_proxy_service)
                 .await
         } else {
             unreachable!()
