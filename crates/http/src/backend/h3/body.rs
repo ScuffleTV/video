@@ -1,6 +1,6 @@
-use std::{
-    future::Future, pin::Pin, task::{Context, Poll}
-};
+use std::future::Future;
+use std::pin::Pin;
+use std::task::{Context, Poll};
 
 use bytes::{Buf, Bytes};
 use h3::server::RequestStream;
@@ -48,17 +48,13 @@ impl<B: h3::quic::BidiStream<Bytes>> http_body::Body for QuicIncomingBody<B> {
                     if let Some(remaining) = remaining {
                         if buf_size > *remaining {
                             *state = State::Done;
-                            return Poll::Ready(Some(Err(
-                                h3::error::Code::H3_FRAME_UNEXPECTED.into()
-                            )));
+                            return Poll::Ready(Some(Err(h3::error::Code::H3_FRAME_UNEXPECTED.into())));
                         }
 
                         *remaining -= buf_size;
                     }
 
-                    return Poll::Ready(Some(Ok(http_body::Frame::data(
-                        buf.copy_to_bytes(buf_size as usize),
-                    ))));
+                    return Poll::Ready(Some(Ok(http_body::Frame::data(buf.copy_to_bytes(buf_size as usize)))));
                 }
                 Poll::Ready(Ok(None)) => {
                     *state = State::Trailers;
@@ -80,9 +76,7 @@ impl<B: h3::quic::BidiStream<Bytes>> http_body::Body for QuicIncomingBody<B> {
         // ready after a single poll We avoid pinning to the heap.
         let resp = match stream.poll_recv_data(cx) {
             Poll::Ready(Ok(None)) => match std::pin::pin!(stream.recv_trailers()).poll(cx) {
-                Poll::Ready(Ok(Some(trailers))) => {
-                    Poll::Ready(Some(Ok(http_body::Frame::trailers(trailers))))
-                }
+                Poll::Ready(Ok(Some(trailers))) => Poll::Ready(Some(Ok(http_body::Frame::trailers(trailers)))),
                 // We will only poll the recv_trailers once so if pending is returned we are done.
                 Poll::Pending => {
                     tracing::warn!("recv_trailers is pending");
@@ -92,9 +86,7 @@ impl<B: h3::quic::BidiStream<Bytes>> http_body::Body for QuicIncomingBody<B> {
                 Poll::Ready(Err(err)) => Poll::Ready(Some(Err(err))),
             },
             // We are not expecting any data after the previous poll returned None
-            Poll::Ready(Ok(Some(_))) => {
-                Poll::Ready(Some(Err(h3::error::Code::H3_FRAME_UNEXPECTED.into())))
-            }
+            Poll::Ready(Ok(Some(_))) => Poll::Ready(Some(Err(h3::error::Code::H3_FRAME_UNEXPECTED.into()))),
             Poll::Ready(Err(err)) => Poll::Ready(Some(Err(err))),
             Poll::Pending => return Poll::Pending,
         };

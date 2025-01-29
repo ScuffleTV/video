@@ -1,13 +1,9 @@
-use std::{
-    fmt::{Debug, Display},
-    future::poll_fn,
-    net::SocketAddr,
-};
+use std::fmt::{Debug, Display};
+use std::future::poll_fn;
+use std::net::SocketAddr;
 
-use hyper_util::{
-    rt::{TokioExecutor, TokioIo, TokioTimer},
-    server::conn::auto,
-};
+use hyper_util::rt::{TokioExecutor, TokioIo, TokioTimer};
+use hyper_util::server::conn::auto;
 use tokio::io::{AsyncRead, AsyncWrite};
 
 use crate::error::Error;

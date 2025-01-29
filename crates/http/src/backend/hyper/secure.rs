@@ -1,8 +1,6 @@
-use std::{
-    fmt::{Debug, Display},
-    net::SocketAddr,
-    sync::Arc,
-};
+use std::fmt::{Debug, Display};
+use std::net::SocketAddr;
+use std::sync::Arc;
 
 use crate::error::Error;
 
@@ -41,11 +39,7 @@ impl SecureBackend {
         protocols
     }
 
-    pub async fn run<M, B>(
-        self,
-        mut make_service: M,
-        mut rustls_config: rustls::ServerConfig,
-    ) -> Result<(), Error<M>>
+    pub async fn run<M, B>(self, mut make_service: M, mut rustls_config: rustls::ServerConfig) -> Result<(), Error<M>>
     where
         M: tower::MakeService<SocketAddr, crate::backend::IncomingRequest, Response = http::Response<B>> + Clone,
         M::Error: std::error::Error + Display + Send + Sync + 'static,

@@ -2,10 +2,7 @@ use bytes::{Buf, Bytes};
 use h3::quic::SendStream;
 use h3::server::RequestStream;
 
-pub async fn copy_response_body(
-    mut send: RequestStream<impl SendStream<Bytes>, Bytes>,
-    body: impl http_body::Body,
-) {
+pub async fn copy_response_body(mut send: RequestStream<impl SendStream<Bytes>, Bytes>, body: impl http_body::Body) {
     let mut body = std::pin::pin!(body);
     while let Some(frame) = std::future::poll_fn(|cx| body.as_mut().poll_frame(cx)).await {
         match frame {

@@ -1,7 +1,5 @@
-use std::{
-    fmt::{Debug, Display},
-    net::SocketAddr,
-};
+use std::fmt::{Debug, Display};
+use std::net::SocketAddr;
 
 use crate::error::Error;
 

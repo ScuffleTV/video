@@ -1,4 +1,5 @@
-use std::{fmt::{Debug, Display}, net::SocketAddr};
+use std::fmt::{Debug, Display};
+use std::net::SocketAddr;
 
 use crate::error::Error;
 
@@ -56,10 +57,12 @@ impl InsecureBackend {
         loop {
             let res: Result<_, Error<M>> = async {
                 let (tcp_stream, addr) = listener.accept().await?;
-                super::handle_connection(&mut make_service, addr, tcp_stream, self.http1_enabled, self.http2_enabled).await?;
+                super::handle_connection(&mut make_service, addr, tcp_stream, self.http1_enabled, self.http2_enabled)
+                    .await?;
 
                 Ok(())
-            }.await;
+            }
+            .await;
 
             if let Err(e) = res {
                 tracing::warn!("error: {}", e);
