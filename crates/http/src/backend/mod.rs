@@ -1,7 +1,11 @@
-use std::{io, net::SocketAddr};
+use std::{
+    fmt::{Debug, Display},
+    net::SocketAddr,
+};
+
+use crate::error::Error;
 
 mod body;
-mod error;
 pub mod h3;
 pub mod hyper;
 
@@ -19,16 +23,16 @@ impl ServerBackend {
         }
     }
 
-    pub async fn run<M, B>(self, make_service: M) -> io::Result<()>
+    pub async fn run<M, B>(self, make_service: M) -> Result<(), Error<M>>
     where
         M: tower::MakeService<SocketAddr, crate::backend::IncomingRequest, Response = http::Response<B>>
             + Clone
             + Send
             + 'static,
-        M::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+        M::Error: std::error::Error + Display + Send + Sync + 'static,
         M::Service: Send + Clone + 'static,
         <M::Service as tower::Service<crate::backend::IncomingRequest>>::Future: Send,
-        M::MakeError: std::fmt::Debug,
+        M::MakeError: Debug + Display,
         M::Future: Send,
         B: http_body::Body + Send + 'static,
         B::Error: Into<Box<dyn std::error::Error + Send + Sync>> + Send,
@@ -62,16 +66,16 @@ impl ServerRustlsBackend {
         }
     }
 
-    pub async fn run<M, B>(self, make_service: M, rustls_config: rustls::ServerConfig) -> io::Result<()>
+    pub async fn run<M, B>(self, make_service: M, rustls_config: rustls::ServerConfig) -> Result<(), Error<M>>
     where
         M: tower::MakeService<SocketAddr, crate::backend::IncomingRequest, Response = http::Response<B>>
             + Clone
             + Send
             + 'static,
-        M::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+        M::Error: std::error::Error + Display + Send + Sync + 'static,
         M::Service: Send + Clone + 'static,
         <M::Service as tower::Service<crate::backend::IncomingRequest>>::Future: Send,
-        M::MakeError: std::fmt::Debug,
+        M::MakeError: Debug + Display,
         M::Future: Send,
         B: http_body::Body + Send + 'static,
         B::Error: Into<Box<dyn std::error::Error + Send + Sync>> + Send,

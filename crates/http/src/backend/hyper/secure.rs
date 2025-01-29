@@ -1,4 +1,10 @@
-use std::{io, net::SocketAddr, sync::Arc};
+use std::{
+    fmt::{Debug, Display},
+    net::SocketAddr,
+    sync::Arc,
+};
+
+use crate::error::Error;
 
 #[derive(Debug, Clone)]
 pub struct SecureBackend {
@@ -35,13 +41,17 @@ impl SecureBackend {
         protocols
     }
 
-    pub async fn run<M, B>(self, mut make_service: M, mut rustls_config: rustls::ServerConfig) -> io::Result<()>
+    pub async fn run<M, B>(
+        self,
+        mut make_service: M,
+        mut rustls_config: rustls::ServerConfig,
+    ) -> Result<(), Error<M>>
     where
         M: tower::MakeService<SocketAddr, crate::backend::IncomingRequest, Response = http::Response<B>> + Clone,
-        M::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+        M::Error: std::error::Error + Display + Send + Sync + 'static,
         M::Service: Send + Clone + 'static,
         <M::Service as tower::Service<crate::backend::IncomingRequest>>::Future: Send,
-        M::MakeError: std::fmt::Debug,
+        M::MakeError: Debug + Display,
         M::Future: Send,
         B: http_body::Body + Send + 'static,
         B::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
@@ -57,25 +67,18 @@ impl SecureBackend {
         let tls_acceptor = tokio_rustls::TlsAcceptor::from(Arc::new(rustls_config));
 
         loop {
-            let (tcp_stream, addr) = match listener.accept().await {
-                Ok((stream, addr)) => (stream, addr),
-                Err(err) => {
-                    tracing::error!("failed to accept connection: {}", err);
-                    continue;
-                }
-            };
-            tracing::info!("accepted tcp connection from {}", addr);
+            let res: Result<_, Error<M>> = async {
+                let (tcp_stream, addr) = listener.accept().await?;
+                let stream = tls_acceptor.accept(tcp_stream).await?;
+                super::handle_connection(&mut make_service, addr, stream, self.http1_enabled, self.http2_enabled).await?;
 
-            let stream = match tls_acceptor.accept(tcp_stream).await {
-                Ok(stream) => stream,
-                Err(err) => {
-                    tracing::error!("failed to accept TLS connection: {}", err);
-                    continue;
-                }
-            };
+                Ok(())
+            }
+            .await;
 
-            tracing::info!("accepted tls connection from {}", addr);
-            super::handle_connection(&mut make_service, addr, stream, self.http1_enabled, self.http2_enabled).await;
+            if let Err(err) = res {
+                tracing::warn!("error: {}", err);
+            }
         }
     }
 }

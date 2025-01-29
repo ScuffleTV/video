@@ -1,4 +1,6 @@
-use std::{io, net::SocketAddr};
+use std::{fmt::{Debug, Display}, net::SocketAddr};
+
+use crate::error::Error;
 
 #[derive(Debug, Clone)]
 pub struct InsecureBackend {
@@ -35,13 +37,13 @@ impl InsecureBackend {
         protocols
     }
 
-    pub async fn run<M, D>(self, mut make_service: M) -> io::Result<()>
+    pub async fn run<M, D>(self, mut make_service: M) -> Result<(), Error<M>>
     where
         M: tower::MakeService<SocketAddr, crate::backend::IncomingRequest, Response = http::Response<D>> + Clone,
-        M::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+        M::Error: std::error::Error + Display + Send + Sync + 'static,
         M::Service: Send + Clone + 'static,
         <M::Service as tower::Service<crate::backend::IncomingRequest>>::Future: Send,
-        M::MakeError: std::fmt::Debug,
+        M::MakeError: Debug + Display,
         M::Future: Send,
         D: http_body::Body + Send + 'static,
         D::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
@@ -52,16 +54,16 @@ impl InsecureBackend {
         let listener = tokio::net::TcpListener::bind(self.bind).await?;
 
         loop {
-            let (tcp_stream, addr) = match listener.accept().await {
-                Ok((stream, addr)) => (stream, addr),
-                Err(err) => {
-                    tracing::error!("failed to accept connection: {}", err);
-                    continue;
-                }
-            };
+            let res: Result<_, Error<M>> = async {
+                let (tcp_stream, addr) = listener.accept().await?;
+                super::handle_connection(&mut make_service, addr, tcp_stream, self.http1_enabled, self.http2_enabled).await?;
 
-            tracing::info!("accepted tcp connection from {}", addr);
-            super::handle_connection(&mut make_service, addr, tcp_stream, self.http1_enabled, self.http2_enabled).await;
+                Ok(())
+            }.await;
+
+            if let Err(e) = res {
+                tracing::warn!("error: {}", e);
+            }
         }
     }
 }
