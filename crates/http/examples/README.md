@@ -1,15 +1,8 @@
-# scuffle-http
-
-> [!WARNING]  
-> This crate is under active development and may not be stable.
-
-[![crates.io](https://img.shields.io/crates/v/scuffle-http.svg)](https://crates.io/crates/scuffle-http) [![docs.rs](https://img.shields.io/docsrs/scuffle-http)](https://docs.rs/scuffle-http)
-
----
+# scuffle-http-examples
 
 Examples of using the `scuffle-http` crate.
 
-- [axum_router](./src/axum_router.rs) - Example of creating a cpu profile.
+- [axum](./src/axum.rs) - Example of creating a cpu profile.
 
 ## Status
 
