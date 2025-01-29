@@ -1,13 +1,10 @@
-use std::{
-    fmt::{Debug, Display},
-    future::poll_fn,
-    net::SocketAddr,
-    sync::Arc,
-};
-
-use h3_quinn::BidiStream;
+use std::fmt::{Debug, Display};
+use std::future::poll_fn;
+use std::net::SocketAddr;
+use std::sync::Arc;
 
 use body::QuicIncomingBody;
+use h3_quinn::BidiStream;
 use utils::copy_response_body;
 
 use crate::error::Error;

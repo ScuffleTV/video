@@ -1,16 +1,13 @@
-use std::{
-    fmt::{Debug, Display},
-    net::SocketAddr,
-};
+use std::fmt::{Debug, Display};
+use std::net::SocketAddr;
 
-use futures::{stream::FuturesUnordered, StreamExt};
+use futures::stream::FuturesUnordered;
+use futures::StreamExt;
 use itertools::Itertools;
 use scuffle_context::ContextFutExt;
 
-use crate::{
-    backend::{ServerBackend, ServerRustlsBackend},
-    error::Error,
-};
+use crate::backend::{ServerBackend, ServerRustlsBackend};
+use crate::error::Error;
 
 #[derive(Debug, Clone)]
 pub struct Server {
