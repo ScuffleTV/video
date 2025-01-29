@@ -22,6 +22,7 @@ clap = { version = "4" }
 clap_builder = { version = "4", default-features = false, features = ["color", "help", "std", "suggestions", "usage"] }
 config = { version = "0.14", default-features = false, features = ["ini", "json", "json5", "ron", "toml", "yaml"] }
 crossbeam-utils = { version = "0.8" }
+digest = { version = "0.10", features = ["mac", "std"] }
 either = { version = "1", default-features = false, features = ["use_std"] }
 fastrand = { version = "2" }
 ffmpeg-sys-next = { version = "7", features = ["build"] }
@@ -75,6 +76,7 @@ clap = { version = "4" }
 clap_builder = { version = "4", default-features = false, features = ["color", "help", "std", "suggestions", "usage"] }
 config = { version = "0.14", default-features = false, features = ["ini", "json", "json5", "ron", "toml", "yaml"] }
 crossbeam-utils = { version = "0.8" }
+digest = { version = "0.10", features = ["mac", "std"] }
 either = { version = "1", default-features = false, features = ["use_std"] }
 fastrand = { version = "2" }
 ffmpeg-sys-next = { version = "7", features = ["build"] }
