@@ -2,6 +2,13 @@
 name = "scuffle-http-examples"
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/scuffle-http-examples"
+license = "MIT OR Apache-2.0"
+description = "Examples for scuffle-http"
+keywords = ["http", "server", "http1", "http2", "http3"]
 
 [[example]]
 name = "scuffle-http-axum"
