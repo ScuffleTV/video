@@ -303,7 +303,7 @@ pub enum ErrorKind {
     #[cfg(feature = "http3")]
     #[error("h3: {0}")]
     H3(#[from] h3::Error),
-    #[cfg(feature = "hyper")]
+    #[cfg(any(feature = "http1", feature = "http2"))]
     #[error("hyper: {0}")]
     Hyper(#[from] hyper::Error),
     #[error("closed")]
@@ -359,7 +359,7 @@ impl ErrorKindExt for h3::Error {
     }
 }
 
-#[cfg(feature = "hyper")]
+#[cfg(any(feature = "http1", feature = "http2"))]
 impl ErrorKindExt for hyper::Error {
     fn severity(&self) -> ErrorSeverity {
         use std::error::Error as StdError;
@@ -431,7 +431,7 @@ impl ErrorKind {
             Self::Unknown(_) => ErrorSeverity::Error,
             #[cfg(feature = "http3")]
             Self::H3(err) => err.severity(),
-            #[cfg(feature = "hyper")]
+            #[cfg(any(feature = "http1", feature = "http2"))]
             Self::Hyper(err) => err.severity(),
             #[cfg(feature = "axum")]
             Self::Axum(err) => err.severity(),

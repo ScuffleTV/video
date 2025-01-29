@@ -224,9 +224,7 @@ impl<A> TcpServerConfigBuilder<A, ()> {
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]
 pub enum HyperBackendBuilderError {
-    #[cfg(feature = "tls-rustls-pem")]
     Io(#[from] std::io::Error),
-    #[cfg(feature = "tls-rustls-pem")]
     Rustls(#[from] rustls::Error),
 }
 
