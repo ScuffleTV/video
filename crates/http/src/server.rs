@@ -5,6 +5,7 @@ use std::{
 
 use futures::{stream::FuturesUnordered, StreamExt};
 use itertools::Itertools;
+use scuffle_context::ContextFutExt;
 
 use crate::{
     backend::{ServerBackend, ServerRustlsBackend},
@@ -13,12 +14,21 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub struct Server {
+    ctx: Option<scuffle_context::Context>,
     backends: Vec<ServerBackend>,
 }
 
 impl Server {
     pub fn new() -> Self {
-        Self { backends: Vec::new() }
+        Self {
+            ctx: None,
+            backends: Vec::new(),
+        }
+    }
+
+    pub fn with_context(mut self, ctx: scuffle_context::Context) -> Self {
+        self.ctx = Some(ctx);
+        self
     }
 
     pub fn with_backend(mut self, backend: impl Into<ServerBackend>) -> Self {
@@ -28,6 +38,7 @@ impl Server {
 
     pub fn with_rustls_config(self, rustls_config: rustls::ServerConfig) -> ServerWithRustls {
         ServerWithRustls {
+            ctx: self.ctx,
             backends: self.backends.into_iter().map(Into::into).collect(),
             rustls_config,
         }
@@ -50,7 +61,9 @@ impl Server {
     {
         let mut futures: FuturesUnordered<_> = self.backends.into_iter().map(|b| b.run(make_service.clone())).collect();
 
-        while let Some(res) = futures.next().await {
+        let ctx = self.ctx.unwrap_or_else(|| scuffle_context::Context::global());
+
+        while let Some(Some(res)) = futures.next().with_context(ctx.clone()).await {
             res?;
         }
 
@@ -60,11 +73,17 @@ impl Server {
 
 #[derive(Debug, Clone)]
 pub struct ServerWithRustls {
+    ctx: Option<scuffle_context::Context>,
     backends: Vec<ServerRustlsBackend>,
     rustls_config: rustls::ServerConfig,
 }
 
 impl ServerWithRustls {
+    pub fn with_context(mut self, ctx: scuffle_context::Context) -> Self {
+        self.ctx = Some(ctx);
+        self
+    }
+
     pub fn with_backend(mut self, backend: impl Into<ServerRustlsBackend>) -> Self {
         self.backends.push(backend.into());
         self
@@ -99,7 +118,9 @@ impl ServerWithRustls {
             .map(|b| b.run(make_service.clone(), self.rustls_config.clone()))
             .collect();
 
-        while let Some(res) = futures.next().await {
+        let ctx = self.ctx.unwrap_or_else(|| scuffle_context::Context::global());
+
+        while let Some(Some(res)) = futures.next().with_context(ctx.clone()).await {
             res?;
         }
 
