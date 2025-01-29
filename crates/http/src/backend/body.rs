@@ -4,6 +4,14 @@ use bytes::Bytes;
 
 use crate::backend::h3::body::QuicIncomingBody;
 
+#[derive(thiserror::Error, Debug)]
+pub enum IncomingBodyError {
+    #[error("hyper error: {0}")]
+    Hyper(#[from] hyper::Error),
+    #[error("quic error: {0}")]
+    Quic(#[from] h3::Error),
+}
+
 pub enum IncomingBody {
     Hyper(hyper::body::Incoming),
     Quic(QuicIncomingBody<h3_quinn::BidiStream<Bytes>>),
@@ -23,7 +31,7 @@ impl From<QuicIncomingBody<h3_quinn::BidiStream<Bytes>>> for IncomingBody {
 
 impl http_body::Body for IncomingBody {
     type Data = Bytes;
-    type Error = crate::backend::error::Error;
+    type Error = IncomingBodyError;
 
     fn is_end_stream(&self) -> bool {
         match self {

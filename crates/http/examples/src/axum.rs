@@ -17,7 +17,8 @@ async fn hello_world(req: Request<axum::body::Body>) -> axum::response::Response
     let mut resp = axum::response::Response::new("Hello, World!\n".to_string());
 
     // TODO: this has to be part of the library somehow
-    resp.headers_mut().insert("Alt-Svc", "h3=\":443\"; ma=3600, h2=\":443\"; ma=3600".parse().unwrap());
+    resp.headers_mut()
+        .insert("Alt-Svc", "h3=\":443\"; ma=3600, h2=\":443\"; ma=3600".parse().unwrap());
 
     resp
 }
@@ -32,7 +33,7 @@ async fn ws(ws: axum::extract::ws::WebSocketUpgrade) -> Response<Body> {
 }
 
 #[tokio::main]
-async fn main() -> io::Result<()> {
+async fn main() {
     tracing_subscriber::registry()
         .with(fmt::layer())
         .with(
@@ -48,14 +49,13 @@ async fn main() -> io::Result<()> {
         .into_make_service_with_connect_info::<SocketAddr>();
 
     scuffle_http::server::Server::new()
-        .with_rustls_config(get_tls_config()?)
-        .with_backend(InsecureBackend::default())
+        .with_rustls_config(get_tls_config().expect("failed to load tls config"))
         .with_backend(Http3Backend::default())
         .with_backend(SecureBackend::default())
+        .with_backend(InsecureBackend::default())
         .run(make_service)
-        .await?;
-
-    Ok(())
+        .await
+        .expect("server failed");
 }
 
 pub fn get_tls_config() -> io::Result<rustls::ServerConfig> {

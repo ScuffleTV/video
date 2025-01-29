@@ -1,10 +1,16 @@
-use std::{future::poll_fn, net::SocketAddr};
+use std::{
+    fmt::{Debug, Display},
+    future::poll_fn,
+    net::SocketAddr,
+};
 
 use hyper_util::{
     rt::{TokioExecutor, TokioIo, TokioTimer},
     server::conn::auto,
 };
 use tokio::io::{AsyncRead, AsyncWrite};
+
+use crate::error::Error;
 
 pub mod insecure;
 pub mod secure;
@@ -16,16 +22,13 @@ async fn handle_connection<M, D, I>(
     io: I,
     http1: bool,
     http2: bool,
-) where
-    M: tower::MakeService<
-        SocketAddr,
-        crate::backend::IncomingRequest,
-        Response = http::Response<D>,
-    >,
-    M::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+) -> Result<(), Error<M>>
+where
+    M: tower::MakeService<SocketAddr, crate::backend::IncomingRequest, Response = http::Response<D>>,
+    M::Error: std::error::Error + Display + Send + Sync + 'static,
     M::Service: Send + Clone + 'static,
     <M::Service as tower::Service<crate::backend::IncomingRequest>>::Future: Send,
-    M::MakeError: std::fmt::Debug,
+    M::MakeError: Debug + Display,
     M::Future: Send,
     D: http_body::Body + Send + 'static,
     D::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
@@ -37,20 +40,20 @@ async fn handle_connection<M, D, I>(
     // make a new service
     poll_fn(|cx| tower::MakeService::poll_ready(make_service, cx))
         .await
-        .unwrap();
+        .map_err(Error::MakeServiceError)?;
     let tower_service = tower::MakeService::make_service(make_service, addr)
         .await
-        .unwrap();
-    let hyper_proxy_service =
-        hyper::service::service_fn(move |req: http::Request<hyper::body::Incoming>| {
-            let mut tower_service = tower_service.clone();
-            async move {
-                let (parts, body) = req.into_parts();
-                let body = crate::backend::body::IncomingBody::from(body);
-                let req = http::Request::from_parts(parts, body);
-                tower::Service::call(&mut tower_service, req).await
-            }
-        });
+        .map_err(Error::MakeServiceError)?;
+
+    let hyper_proxy_service = hyper::service::service_fn(move |req: http::Request<hyper::body::Incoming>| {
+        let mut tower_service = tower_service.clone();
+        async move {
+            let (parts, body) = req.into_parts();
+            let body = crate::backend::body::IncomingBody::from(body);
+            let req = http::Request::from_parts(parts, body);
+            tower::Service::call(&mut tower_service, req).await
+        }
+    });
 
     tokio::spawn(async move {
         let mut builder = auto::Builder::new(TokioExecutor::new());
@@ -79,4 +82,6 @@ async fn handle_connection<M, D, I>(
 
         tracing::info!("connection closed: {:?}", res);
     });
+
+    Ok(())
 }
