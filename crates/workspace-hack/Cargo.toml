@@ -33,7 +33,8 @@ futures-io = { version = "0.3" }
 futures-sink = { version = "0.3" }
 futures-util = { version = "0.3", default-features = false, features = ["async-await-macro", "channel", "io", "sink"] }
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
-h3 = { version = "0.0.6", default-features = false, features = ["i-implement-a-third-party-backend-and-opt-into-breaking-changes"] }
+h3 = { version = "0.0.6", default-features = false, features = ["i-implement-a-third-party-backend-and-opt-into-breaking-changes", "tracing"] }
+hyper-util = { version = "0.1", features = ["server-auto", "service", "tokio"] }
 insta = { version = "1", features = ["filters"] }
 libc = { version = "0.2", features = ["extra_traits"] }
 log = { version = "0.4", default-features = false, features = ["std"] }
@@ -52,13 +53,14 @@ regex-automata = { version = "0.4", default-features = false, features = ["meta"
 regex-syntax = { version = "0.8", default-features = false, features = ["std", "unicode"] }
 rusty_ffmpeg = { version = "0.16", default-features = false, features = ["link_system_ffmpeg", "link_vcpkg_ffmpeg"] }
 serde = { version = "1", features = ["alloc", "derive"] }
-serde_json = { version = "1", features = ["unbounded_depth"] }
+serde_json = { version = "1", features = ["raw_value", "unbounded_depth"] }
 smallvec = { version = "1", default-features = false, features = ["const_new"] }
 stable_deref_trait = { version = "1" }
 syn = { version = "2", features = ["extra-traits", "fold", "full", "visit", "visit-mut"] }
 sync_wrapper = { version = "1", default-features = false, features = ["futures"] }
 tokio = { version = "1", features = ["full", "test-util"] }
 tokio-util = { version = "0.7", features = ["codec", "io"] }
+tower = { version = "0.5", default-features = false, features = ["log", "make", "util"] }
 tracing = { version = "0.1", features = ["log"] }
 tracing-core = { version = "0.1" }
 tracing-log = { version = "0.2", default-features = false, features = ["log-tracer", "std"] }
@@ -87,7 +89,8 @@ futures-io = { version = "0.3" }
 futures-sink = { version = "0.3" }
 futures-util = { version = "0.3", default-features = false, features = ["async-await-macro", "channel", "io", "sink"] }
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
-h3 = { version = "0.0.6", default-features = false, features = ["i-implement-a-third-party-backend-and-opt-into-breaking-changes"] }
+h3 = { version = "0.0.6", default-features = false, features = ["i-implement-a-third-party-backend-and-opt-into-breaking-changes", "tracing"] }
+hyper-util = { version = "0.1", features = ["server-auto", "service", "tokio"] }
 insta = { version = "1", features = ["filters"] }
 itertools = { version = "0.12", default-features = false, features = ["use_alloc"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -107,13 +110,14 @@ regex-automata = { version = "0.4", default-features = false, features = ["meta"
 regex-syntax = { version = "0.8", default-features = false, features = ["std", "unicode"] }
 rusty_ffmpeg = { version = "0.16", default-features = false, features = ["link_system_ffmpeg", "link_vcpkg_ffmpeg"] }
 serde = { version = "1", features = ["alloc", "derive"] }
-serde_json = { version = "1", features = ["unbounded_depth"] }
+serde_json = { version = "1", features = ["raw_value", "unbounded_depth"] }
 smallvec = { version = "1", default-features = false, features = ["const_new"] }
 stable_deref_trait = { version = "1" }
 syn = { version = "2", features = ["extra-traits", "fold", "full", "visit", "visit-mut"] }
 sync_wrapper = { version = "1", default-features = false, features = ["futures"] }
 tokio = { version = "1", features = ["full", "test-util"] }
 tokio-util = { version = "0.7", features = ["codec", "io"] }
+tower = { version = "0.5", default-features = false, features = ["log", "make", "util"] }
 tracing = { version = "0.1", features = ["log"] }
 tracing-core = { version = "0.1" }
 tracing-log = { version = "0.2", default-features = false, features = ["log-tracer", "std"] }
@@ -124,39 +128,39 @@ zerocopy = { version = "0.7", features = ["derive", "simd"] }
 [target.x86_64-unknown-linux-gnu.dependencies]
 bitflags = { version = "2", default-features = false, features = ["std"] }
 hyper = { version = "1", features = ["client", "http1", "http2", "server"] }
-hyper-util = { version = "0.1", features = ["client-legacy", "http1", "http2", "server"] }
+hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 once_cell = { version = "1" }
 rustls = { version = "0.23", features = ["ring"] }
-spin = { version = "0.9" }
 tokio-rustls = { version = "0.26", features = ["ring"] }
+tower = { version = "0.5", default-features = false, features = ["timeout"] }
 
 [target.x86_64-unknown-linux-gnu.build-dependencies]
 bitflags = { version = "2", default-features = false, features = ["std"] }
 hyper = { version = "1", features = ["client", "http1", "http2", "server"] }
-hyper-util = { version = "0.1", features = ["client-legacy", "http1", "http2", "server"] }
+hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 once_cell = { version = "1" }
 rustls = { version = "0.23", features = ["ring"] }
-spin = { version = "0.9" }
 tokio-rustls = { version = "0.26", features = ["ring"] }
+tower = { version = "0.5", default-features = false, features = ["timeout"] }
 
 [target.x86_64-apple-darwin.dependencies]
 bitflags = { version = "2", default-features = false, features = ["std"] }
 hyper = { version = "1", features = ["client", "http1", "http2", "server"] }
-hyper-util = { version = "0.1", features = ["client-legacy", "http1", "http2", "server"] }
+hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 num-traits = { version = "0.2", default-features = false, features = ["i128"] }
 once_cell = { version = "1" }
 rustls = { version = "0.23", features = ["ring"] }
-spin = { version = "0.9" }
 tokio-rustls = { version = "0.26", features = ["ring"] }
+tower = { version = "0.5", default-features = false, features = ["timeout"] }
 
 [target.x86_64-apple-darwin.build-dependencies]
 bitflags = { version = "2", default-features = false, features = ["std"] }
 hyper = { version = "1", features = ["client", "http1", "http2", "server"] }
-hyper-util = { version = "0.1", features = ["client-legacy", "http1", "http2", "server"] }
+hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 num-traits = { version = "0.2", default-features = false, features = ["i128"] }
 once_cell = { version = "1" }
 rustls = { version = "0.23", features = ["ring"] }
-spin = { version = "0.9" }
 tokio-rustls = { version = "0.26", features = ["ring"] }
+tower = { version = "0.5", default-features = false, features = ["timeout"] }
 
 ### END HAKARI SECTION
