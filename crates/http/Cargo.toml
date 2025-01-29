@@ -11,124 +11,32 @@ description = "A high-performance HTTP server supporting HTTP/1.1, HTTP/2, and H
 keywords = ["http", "server", "http1", "http2", "http3"]
 
 [dependencies]
-tokio = { version = "1", features = ["net", "sync", "time", "rt"], default-features = false }
-http = { version = "1" }
-http-body = { version = "1" }
-pin-project-lite = { version = "0.2" }
-thiserror = { version = "2.0.0" }
-derive_more = { version = "1.0.0", features = ["debug", "from"] }
-futures = { version = "0.3" }
-bytes = { version = "1" }
-libc = { version = "0.2" }
-httpdate = { version = "1" }
-itoa = { version = "1" }
-smallvec = { version = "1" }
-spin = { version = "0.9" }
-async-trait = { version = "0.1" }
-scuffle-future-ext.workspace = true
-scuffle-context.workspace = true
-scuffle-workspace-hack.workspace = true
+tokio = { version = "1.43.0" }
+tower = { version = "0.5.2", features = ["make"] }
+thiserror = "2.0.11"
 
-# For extra services features
-tower-service = { version = "0.3", optional = true }
-axum-core = { version = "0.4", optional = true }
+# Config
+serde = { version = "1.0.217", features = ["derive"] }
 
-# for tls-rustls features
-rustls = { version = "0.23", optional = true }
-tokio-rustls = { version = "0.26", optional = true }
+# HTTP parsing
+http = "1.2.0"
+http-body = "1.0.1"
+bytes = "1.9.0"
 
-# for tls-rustls-pem features
-rustls-pemfile = { version = "2.2", optional = true }
+# Tracing
+tracing = "0.1.41"
 
-# For tracing features
-tracing = { version = "0.1", optional = true }
+# HTTP/1.1, HTTP/2
+# hyper = { version = "1.6.0", features = ["http1", "http2", "server", "tracing"] }
+hyper = { version = "1.6.0", features = ["http1", "http2", "server"] }
+hyper-util = { version = "0.1.10", features = ["server-auto", "tokio"] }
 
-# For http1 and http2
-hyper = { version = "1.5.1", optional = true, features = ["server"] }
-hyper-util = { version = "0.1.10", optional = true, features = ["server", "tokio"] }
-
-# For http3 features
-h3 = { version = "0.0.6", optional = true }
-h3-quinn = { version = "0.0.7", optional = true }
-quinn = { version = "0.11", optional = true }
-
-# For http3-webtransport features
-scuffle-h3-webtransport = { workspace = true, optional = true }
-
-[features]
-error-backtrace = []
-
-tracing = [
-    "dep:tracing",
-]
-
-http1 = [
-    "hyper/http1",
-    "hyper-util/http1",
-]
-
-http2 = [
-    "hyper/http2",
-    "hyper-util/http2",
-]
-
-http3 = [
-    "dep:h3",
-    "dep:h3-quinn",
-    "dep:quinn",
-]
-
-http3-default = [
-    "http3",
-    "tls-rustls",
-]
-
-http3-webtransport = [
-    "http3",
-    "dep:scuffle-h3-webtransport",
-]
+# QUIC + HTTP/3
+quinn = { version = "0.11.6", features = ["aws-lc-rs"] }
+h3-quinn = { version = "0.0.7", features = ["tracing"] }
+h3 = { version = "0.0.6", features = ["tracing"] }
 
 # TLS
-
-tls-rustls = [
-    "dep:rustls",
-    "dep:tokio-rustls",
-]
-
-tls-rustls-pem = [
-    "tls-rustls",
-    "dep:rustls-pemfile",
-]
-
-# Services
-
-tower = [
-    "dep:tower-service",
-]
-
-axum = [
-    "dep:axum-core",
-    "tower",
-]
-
-default = [
-    "http1",
-    "http2",
-    "tracing",
-]
-
-[package.metadata.xtask]
-additive-features = [
-    "error-backtrace",
-    "tracing",
-    "http1",
-    "http2",
-    "http3",
-    "http3-default",
-    "http3-webtransport",
-    "tls-rustls",
-    "tls-rustls-pem",
-    "tower",
-    "axum",
-    "default",
-]
+tokio-rustls = "0.26.1"
+rustls = "0.23.21"
+futures = "0.3.31"

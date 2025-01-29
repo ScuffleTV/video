@@ -1,12 +1,19 @@
-# scuffle-http-examples
+# scuffle-http
+
+> [!WARNING]  
+> This crate is under active development and may not be stable.
+
+[![crates.io](https://img.shields.io/crates/v/scuffle-http.svg)](https://crates.io/crates/scuffle-http) [![docs.rs](https://img.shields.io/docsrs/scuffle-http)](https://docs.rs/scuffle-http)
+
+---
 
 Examples of using the `scuffle-http` crate.
 
-- [tcp](./tcp) - An example of how to use the crate to make a simple HTTP server.
+- [axum_router](./src/axum_router.rs) - Example of creating a cpu profile.
 
 ## Status
 
-This crate is currently under development and is not yet stable, unit tests are not yet fully implemented.
+This crate is currently under development and is not yet stable.
 
 Unit tests are not yet fully implemented. Use at your own risk.
 
