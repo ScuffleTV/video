@@ -33,7 +33,7 @@ impl std::fmt::Debug for IncomingBody {
 
 #[derive(derive_more::From)]
 pub(crate) enum IncomingBodyInner {
-    #[cfg(feature = "hyper")]
+    #[cfg(any(feature = "http1", feature = "http2"))]
     Tcp(#[from] hyper::body::Incoming),
     #[cfg(feature = "http3")]
     Quic(#[from] QuicIncomingBody),
@@ -50,7 +50,7 @@ impl http_body::Body for IncomingBody {
         let _ = cx;
 
         match &mut self.inner {
-            #[cfg(feature = "hyper")]
+            #[cfg(any(feature = "http1", feature = "http2"))]
             IncomingBodyInner::Tcp(body) => Pin::new(body).poll_frame(cx).map_err(Into::into),
             #[cfg(feature = "http3")]
             IncomingBodyInner::Quic(body) => Pin::new(body).poll_frame(cx).map_err(Into::into),
@@ -60,7 +60,7 @@ impl http_body::Body for IncomingBody {
 
     fn is_end_stream(&self) -> bool {
         match &self.inner {
-            #[cfg(feature = "hyper")]
+            #[cfg(any(feature = "http1", feature = "http2"))]
             IncomingBodyInner::Tcp(body) => body.is_end_stream(),
             #[cfg(feature = "http3")]
             IncomingBodyInner::Quic(body) => body.is_end_stream(),
@@ -70,7 +70,7 @@ impl http_body::Body for IncomingBody {
 
     fn size_hint(&self) -> http_body::SizeHint {
         match &self.inner {
-            #[cfg(feature = "hyper")]
+            #[cfg(any(feature = "http1", feature = "http2"))]
             IncomingBodyInner::Tcp(body) => body.size_hint(),
             #[cfg(feature = "http3")]
             IncomingBodyInner::Quic(body) => body.size_hint(),

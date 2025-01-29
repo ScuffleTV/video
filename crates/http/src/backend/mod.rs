@@ -48,7 +48,7 @@ impl HttpServer for Server {
     type Error = ServerError;
 
     async fn start<S: ConnectionAcceptor + Clone>(&self, service: S, workers: usize) -> Result<(), Self::Error> {
-        #[cfg(not(any(feature = "http3", feature = "hyper")))]
+        #[cfg(not(any(feature = "http1", feature = "http2", feature = "http3")))]
         let _ = (service, workers);
 
         match self {
