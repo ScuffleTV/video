@@ -6,6 +6,7 @@ use axum::http::Request;
 use axum::response::Response;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use scuffle_http::backend::h3::Http3Backend;
+use scuffle_http::backend::hyper::insecure::InsecureBackend;
 use scuffle_http::backend::hyper::secure::SecureBackend;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
@@ -48,6 +49,7 @@ async fn main() -> io::Result<()> {
 
     scuffle_http::server::Server::new()
         .with_rustls_config(get_tls_config()?)
+        .with_backend(InsecureBackend::default())
         .with_backend(Http3Backend::default())
         .with_backend(SecureBackend::default())
         .run(make_service)
