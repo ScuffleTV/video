@@ -11,34 +11,7 @@ pub struct SecureBackend {
     pub http2_enabled: bool,
 }
 
-impl Default for SecureBackend {
-    fn default() -> Self {
-        Self {
-            bind: "[::]:443".parse().unwrap(),
-            http1_enabled: true,
-            http2_enabled: true,
-        }
-    }
-}
-
 impl SecureBackend {
-    pub fn alpn_protocols(&self) -> Vec<Vec<u8>> {
-        let mut protocols = Vec::new();
-
-        if self.http1_enabled {
-            // HTTP/1.0 and HTTP/1.1
-            protocols.push(b"http/1.0".to_vec());
-            protocols.push(b"http/1.1".to_vec());
-        }
-
-        if self.http2_enabled {
-            // HTTP/2 over TLS
-            protocols.push(b"h2".to_vec());
-        }
-
-        protocols
-    }
-
     pub async fn run<M, B>(self, mut make_service: M, mut rustls_config: rustls::ServerConfig) -> Result<(), Error<M>>
     where
         M: tower::MakeService<SocketAddr, crate::backend::IncomingRequest, Response = http::Response<B>> + Clone,

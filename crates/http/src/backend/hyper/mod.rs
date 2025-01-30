@@ -73,7 +73,8 @@ where
                 .serve_connection_with_upgrades(io, hyper_proxy_service)
                 .await
         } else {
-            unreachable!()
+            tracing::warn!("both http1 and http2 are disabled, closing connection");
+            return;
         };
 
         tracing::info!("connection closed: {:?}", res);
