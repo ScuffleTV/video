@@ -5,9 +5,6 @@ use axum::body::Body;
 use axum::http::Request;
 use axum::response::Response;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer};
-use scuffle_http::backend::h3::Http3Backend;
-use scuffle_http::backend::hyper::insecure::InsecureBackend;
-use scuffle_http::backend::hyper::secure::SecureBackend;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -50,12 +47,13 @@ async fn main() {
         .route("/ws", axum::routing::get(ws))
         .into_make_service_with_connect_info::<SocketAddr>();
 
-    scuffle_http::server::Server::new()
-        .with_rustls_config(get_tls_config().expect("failed to load tls config"))
-        .with_backend(Http3Backend::default())
-        .with_backend(SecureBackend::default())
-        .with_backend(InsecureBackend::default())
-        .run(make_service)
+    scuffle_http::server::HttpServer::builder()
+        .with_rustls(get_tls_config().expect("failed to load tls config"))
+        .with_service(make_service)
+        .bind("[::]:443".parse().unwrap())
+        .build()
+        .expect("failed to build server")
+        .run()
         .await
         .expect("server failed");
 }
