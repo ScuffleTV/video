@@ -10,34 +10,7 @@ pub struct InsecureBackend {
     pub http2_enabled: bool,
 }
 
-impl Default for InsecureBackend {
-    fn default() -> Self {
-        Self {
-            bind: "[::]:80".parse().unwrap(),
-            http1_enabled: true,
-            http2_enabled: true,
-        }
-    }
-}
-
 impl InsecureBackend {
-    pub fn alpn_protocols(&self) -> Vec<Vec<u8>> {
-        let mut protocols = Vec::new();
-
-        if self.http1_enabled {
-            // HTTP/1.0 and HTTP/1.1
-            protocols.push(b"http/1.0".to_vec());
-            protocols.push(b"http/1.1".to_vec());
-        }
-
-        if self.http2_enabled {
-            // HTTP/2 over cleartext TCP
-            protocols.push(b"h2c".to_vec());
-        }
-
-        protocols
-    }
-
     pub async fn run<M, D>(self, mut make_service: M) -> Result<(), Error<M>>
     where
         M: tower::MakeService<SocketAddr, crate::backend::IncomingRequest, Response = http::Response<D>> + Clone,

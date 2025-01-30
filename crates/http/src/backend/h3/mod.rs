@@ -17,19 +17,7 @@ pub struct Http3Backend {
     pub bind: SocketAddr,
 }
 
-impl Default for Http3Backend {
-    fn default() -> Self {
-        Self {
-            bind: "[::]:443".parse().unwrap(),
-        }
-    }
-}
-
 impl Http3Backend {
-    pub fn alpn_protocols(&self) -> Vec<Vec<u8>> {
-        vec![b"h3".to_vec()]
-    }
-
     pub async fn run<M, D>(self, make_service: M, mut rustls_config: rustls::ServerConfig) -> Result<(), Error<M>>
     where
         M: tower::MakeService<SocketAddr, crate::backend::IncomingRequest, Response = hyper::Response<D>>
