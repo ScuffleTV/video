@@ -2,6 +2,7 @@ use std::fmt::{Debug, Display};
 use std::net::SocketAddr;
 
 use crate::error::Error;
+use crate::service::{HttpService, HttpServiceFactory};
 
 #[derive(Debug, Clone)]
 pub struct InsecureBackend {
@@ -11,26 +12,24 @@ pub struct InsecureBackend {
 }
 
 impl InsecureBackend {
-    pub async fn run<M, D>(self, mut make_service: M) -> Result<(), Error<M>>
+    pub async fn run<S>(self, mut service_factory: S) -> Result<(), Error<S>>
     where
-        M: tower::MakeService<SocketAddr, crate::backend::IncomingRequest, Response = http::Response<D>> + Clone,
-        M::Error: std::error::Error + Display + Send + Sync + 'static,
-        M::Service: Send + Clone + 'static,
-        <M::Service as tower::Service<crate::backend::IncomingRequest>>::Future: Send,
-        M::MakeError: Debug + Display,
-        M::Future: Send,
-        D: http_body::Body + Send + 'static,
-        D::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
-        D::Data: Send,
+        S: HttpServiceFactory,
+        S::Error: Debug + Display,
+        S::Service: Clone + Send + 'static,
+        <S::Service as HttpService>::Error: std::error::Error + Debug + Display + Send + Sync,
+        <S::Service as HttpService>::ResBody: Send,
+        <<S::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
+        <<S::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
     {
-        tracing::info!("starting server");
+        tracing::debug!("starting server");
 
         let listener = tokio::net::TcpListener::bind(self.bind).await?;
 
         loop {
-            let res: Result<_, Error<M>> = async {
+            let res: Result<_, Error<S>> = async {
                 let (tcp_stream, addr) = listener.accept().await?;
-                super::handle_connection(&mut make_service, addr, tcp_stream, self.http1_enabled, self.http2_enabled)
+                super::handle_connection(&mut service_factory, addr, tcp_stream, self.http1_enabled, self.http2_enabled)
                     .await?;
 
                 Ok(())
