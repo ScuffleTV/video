@@ -1,18 +1,9 @@
-#![cfg_attr(not(feature = "quic-quinn"), allow(dead_code))]
-
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use bytes::{Buf, Bytes};
-use h3::quic::{BidiStream, SendStream};
 use h3::server::RequestStream;
-
-#[derive(derive_more::From)]
-pub(crate) enum QuicIncomingBody {
-    #[cfg(feature = "quic-quinn")]
-    Quinn(#[from] QuicIncomingBodyInner<h3_quinn::BidiStream<Bytes>>),
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum State {
@@ -21,14 +12,13 @@ enum State {
     Done,
 }
 
-pub(crate) struct QuicIncomingBodyInner<B: BidiStream<Bytes>> {
+pub struct QuicIncomingBody<B: h3::quic::BidiStream<Bytes>> {
     stream: RequestStream<B::RecvStream, Bytes>,
     state: State,
 }
 
-impl<B: BidiStream<Bytes>> QuicIncomingBodyInner<B> {
-    #[cfg(feature = "quic-quinn")]
-    pub(crate) fn new(stream: RequestStream<B::RecvStream, Bytes>, size_hint: Option<u64>) -> Self {
+impl<B: h3::quic::BidiStream<Bytes>> QuicIncomingBody<B> {
+    pub fn new(stream: RequestStream<B::RecvStream, Bytes>, size_hint: Option<u64>) -> Self {
         Self {
             stream,
             state: State::Data(size_hint),
@@ -36,45 +26,7 @@ impl<B: BidiStream<Bytes>> QuicIncomingBodyInner<B> {
     }
 }
 
-impl http_body::Body for QuicIncomingBody {
-    type Data = Bytes;
-    type Error = h3::Error;
-
-    fn poll_frame(
-        self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-    ) -> Poll<Option<Result<http_body::Frame<Self::Data>, Self::Error>>> {
-        match self.get_mut() {
-            #[cfg(feature = "quic-quinn")]
-            QuicIncomingBody::Quinn(inner) => Pin::new(inner).poll_frame(cx),
-            #[cfg(not(feature = "quic-quinn"))]
-            _ => {
-                let _ = cx;
-                unreachable!("impossible to construct QuicIncomingBody with no transport")
-            }
-        }
-    }
-
-    fn size_hint(&self) -> http_body::SizeHint {
-        match self {
-            #[cfg(feature = "quic-quinn")]
-            QuicIncomingBody::Quinn(inner) => Pin::new(inner).size_hint(),
-            #[cfg(not(feature = "quic-quinn"))]
-            _ => unreachable!("impossible to construct QuicIncomingBody with no transport"),
-        }
-    }
-
-    fn is_end_stream(&self) -> bool {
-        match self {
-            #[cfg(feature = "quic-quinn")]
-            QuicIncomingBody::Quinn(inner) => inner.is_end_stream(),
-            #[cfg(not(feature = "quic-quinn"))]
-            _ => unreachable!("impossible to construct QuicIncomingBody with no transport"),
-        }
-    }
-}
-
-impl<B: BidiStream<Bytes>> http_body::Body for QuicIncomingBodyInner<B> {
+impl<B: h3::quic::BidiStream<Bytes>> http_body::Body for QuicIncomingBody<B> {
     type Data = Bytes;
     type Error = h3::Error;
 
@@ -82,7 +34,7 @@ impl<B: BidiStream<Bytes>> http_body::Body for QuicIncomingBodyInner<B> {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<Option<Result<http_body::Frame<Self::Data>, Self::Error>>> {
-        let QuicIncomingBodyInner { stream, state } = self.as_mut().get_mut();
+        let QuicIncomingBody { stream, state } = self.as_mut().get_mut();
 
         if *state == State::Done {
             return Poll::Ready(None);
@@ -127,7 +79,6 @@ impl<B: BidiStream<Bytes>> http_body::Body for QuicIncomingBodyInner<B> {
                 Poll::Ready(Ok(Some(trailers))) => Poll::Ready(Some(Ok(http_body::Frame::trailers(trailers)))),
                 // We will only poll the recv_trailers once so if pending is returned we are done.
                 Poll::Pending => {
-                    #[cfg(feature = "tracing")]
                     tracing::warn!("recv_trailers is pending");
                     Poll::Ready(None)
                 }
@@ -159,28 +110,4 @@ impl<B: BidiStream<Bytes>> http_body::Body for QuicIncomingBodyInner<B> {
             State::Data(_) => false,
         }
     }
-}
-
-pub(crate) async fn copy_body<E: Into<crate::Error>>(
-    mut send: RequestStream<impl SendStream<Bytes>, Bytes>,
-    body: impl http_body::Body<Error = E>,
-) -> Result<(), crate::Error> {
-    let mut body = std::pin::pin!(body);
-    while let Some(frame) = std::future::poll_fn(|cx| body.as_mut().poll_frame(cx)).await {
-        match frame {
-            Ok(frame) => match frame.into_data().map_err(|f| f.into_trailers()) {
-                Ok(mut data) => send.send_data(data.copy_to_bytes(data.remaining())).await?,
-                Err(Ok(trailers)) => {
-                    send.send_trailers(trailers).await?;
-                    return Ok(());
-                }
-                Err(Err(_)) => continue,
-            },
-            Err(err) => return Err(err.into()),
-        }
-    }
-
-    send.finish().await?;
-
-    Ok(())
 }

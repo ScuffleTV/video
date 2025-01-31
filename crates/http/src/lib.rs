@@ -1,8 +1,7 @@
 pub mod backend;
-pub mod body;
-pub mod builder;
 pub mod error;
-pub mod svc;
-mod util;
+mod server;
+pub mod service;
 
-pub use error::Error;
+pub use server::builder::ServerBuilder;
+pub use server::HttpServer;
