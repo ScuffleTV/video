@@ -1,4 +1,5 @@
-use std::{fmt::Debug, net::SocketAddr};
+use std::fmt::Debug;
+use std::net::SocketAddr;
 
 use super::HttpServer;
 

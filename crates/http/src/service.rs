@@ -1,4 +1,5 @@
-use std::{future::Future, net::SocketAddr};
+use std::future::Future;
+use std::net::SocketAddr;
 
 use crate::backend::IncomingRequest;
 
