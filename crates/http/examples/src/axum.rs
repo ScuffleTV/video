@@ -51,6 +51,7 @@ async fn main() {
         .with_rustls(get_tls_config().expect("failed to load tls config"))
         .with_service(make_service)
         .bind("[::]:443".parse().unwrap())
+        .enable_http3()
         .build()
         .expect("failed to build server")
         .run()
