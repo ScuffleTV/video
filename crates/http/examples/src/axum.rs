@@ -47,7 +47,7 @@ async fn main() {
         .route("/ws", axum::routing::get(ws))
         .into_make_service_with_connect_info::<SocketAddr>();
 
-    scuffle_http::server::HttpServer::builder()
+    scuffle_http::HttpServer::builder()
         .with_rustls(get_tls_config().expect("failed to load tls config"))
         .with_service(make_service)
         .bind("[::]:443".parse().unwrap())

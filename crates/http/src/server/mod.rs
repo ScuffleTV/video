@@ -8,7 +8,7 @@ use crate::backend::hyper::insecure::InsecureBackend;
 use crate::backend::hyper::secure::SecureBackend;
 use crate::error::Error;
 
-mod builder;
+pub mod builder;
 
 #[derive(Debug, Clone)]
 pub struct HttpServer<M> {
