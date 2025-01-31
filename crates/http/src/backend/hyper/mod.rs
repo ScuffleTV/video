@@ -1,5 +1,4 @@
 use std::fmt::{Debug, Display};
-use std::future::poll_fn;
 use std::net::SocketAddr;
 
 use hyper_util::rt::{TokioExecutor, TokioIo, TokioTimer};
@@ -7,47 +6,41 @@ use hyper_util::server::conn::auto;
 use tokio::io::{AsyncRead, AsyncWrite};
 
 use crate::error::Error;
+use crate::service::{HttpService, HttpServiceFactory};
 
 pub mod insecure;
 pub mod secure;
 
 /// Helper function used by both secure and insecure servers to handle incoming connections.
-async fn handle_connection<M, D, I>(
-    make_service: &mut M,
+async fn handle_connection<S, I>(
+    service_factory: &mut S,
     addr: SocketAddr,
     io: I,
     http1: bool,
     http2: bool,
-) -> Result<(), Error<M>>
+) -> Result<(), Error<S>>
 where
-    M: tower::MakeService<SocketAddr, crate::backend::IncomingRequest, Response = http::Response<D>>,
-    M::Error: std::error::Error + Display + Send + Sync + 'static,
-    M::Service: Send + Clone + 'static,
-    <M::Service as tower::Service<crate::backend::IncomingRequest>>::Future: Send,
-    M::MakeError: Debug + Display,
-    M::Future: Send,
-    D: http_body::Body + Send + 'static,
-    D::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
-    D::Data: Send,
+    S: HttpServiceFactory,
+    S::Error: Debug + Display,
+    S::Service: Clone + Send + 'static,
+    <S::Service as HttpService>::Error: std::error::Error + Debug + Display + Send + Sync,
+    <S::Service as HttpService>::ResBody: Send,
+    <<S::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
+    <<S::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
     I: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
     let io = TokioIo::new(io);
 
     // make a new service
-    poll_fn(|cx| tower::MakeService::poll_ready(make_service, cx))
-        .await
-        .map_err(Error::MakeServiceError)?;
-    let tower_service = tower::MakeService::make_service(make_service, addr)
-        .await
-        .map_err(Error::MakeServiceError)?;
+    let http_service = service_factory.new_service(addr).await.map_err(Error::ServiceFactoryError)?;
 
     let hyper_proxy_service = hyper::service::service_fn(move |req: http::Request<hyper::body::Incoming>| {
-        let mut tower_service = tower_service.clone();
+        let mut http_service = http_service.clone();
         async move {
             let (parts, body) = req.into_parts();
             let body = crate::backend::body::IncomingBody::from(body);
             let req = http::Request::from_parts(parts, body);
-            tower::Service::call(&mut tower_service, req).await
+            http_service.call(req).await
         }
     });
 

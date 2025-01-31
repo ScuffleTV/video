@@ -1,5 +1,4 @@
 use std::fmt::{Debug, Display};
-use std::future::poll_fn;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -8,6 +7,7 @@ use h3_quinn::BidiStream;
 use utils::copy_response_body;
 
 use crate::error::Error;
+use crate::service::{HttpService, HttpServiceFactory};
 
 pub mod body;
 mod utils;
@@ -18,20 +18,15 @@ pub struct Http3Backend {
 }
 
 impl Http3Backend {
-    pub async fn run<M, D>(self, make_service: M, mut rustls_config: rustls::ServerConfig) -> Result<(), Error<M>>
+    pub async fn run<S>(self, service_factory: S, mut rustls_config: rustls::ServerConfig) -> Result<(), Error<S>>
     where
-        M: tower::MakeService<SocketAddr, crate::backend::IncomingRequest, Response = hyper::Response<D>>
-            + Clone
-            + Send
-            + 'static,
-        M::Error: std::error::Error + Display + Send + Sync + 'static,
-        M::Service: Send + Clone + 'static,
-        <M::Service as tower::Service<crate::backend::IncomingRequest>>::Future: Send,
-        M::MakeError: Debug + Display,
-        M::Future: Send,
-        D: http_body::Body + Send + 'static,
-        D::Error: Into<Box<dyn std::error::Error + Send + Sync>> + Send,
-        D::Data: Send,
+        S: HttpServiceFactory + Clone + Send + 'static,
+        S::Error: Debug + Display,
+        S::Service: Clone + Send + 'static,
+        <S::Service as HttpService>::Error: std::error::Error + Debug + Display + Send + Sync,
+        <S::Service as HttpService>::ResBody: Send,
+        <<S::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
+        <<S::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
     {
         tracing::debug!("starting server");
 
@@ -44,10 +39,10 @@ impl Http3Backend {
 
         // handle incoming connections and requests
         while let Some(new_conn) = endpoint.accept().await {
-            let mut make_service = make_service.clone();
+            let mut service_factory = service_factory.clone();
 
             tokio::spawn(async move {
-                let res: Result<_, Error<M>> = async move {
+                let res: Result<_, Error<S>> = async move {
                     let conn = new_conn.await?;
                     let addr = conn.remote_address();
 
@@ -69,18 +64,17 @@ impl Http3Backend {
                                 );
 
                                 // make a new service
-                                poll_fn(|cx| tower::MakeService::poll_ready(&mut make_service, cx))
+                                let mut http_service = service_factory
+                                    .new_service(addr)
                                     .await
-                                    .map_err(|e| Error::MakeServiceError(e))?;
-                                let mut tower_service = tower::MakeService::make_service(&mut make_service, addr)
-                                    .await
-                                    .map_err(|e| Error::MakeServiceError(e))?;
+                                    .map_err(|e| Error::ServiceFactoryError(e))?;
 
                                 tokio::spawn(async move {
-                                    let res: Result<_, Error<M>> = async move {
-                                        let resp = tower::Service::call(&mut tower_service, req)
-                                            .await
-                                            .map_err(|e| Error::ServiceError(e))?;
+                                    let res: Result<_, Error<S>> = async move {
+                                        // let resp = tower::Service::call(&mut tower_service, req)
+                                        //     .await
+                                        //     .map_err(|e| Error::ServiceError(e))?;
+                                        let resp = http_service.call(req).await.map_err(|e| Error::ServiceError(e))?;
                                         let (parts, body) = resp.into_parts();
 
                                         send.send_response(hyper::Response::from_parts(parts, ())).await?;

@@ -1,14 +1,13 @@
 use std::fmt::{Debug, Display};
-use std::net::SocketAddr;
 
-use crate::backend::IncomingRequest;
+use crate::service::{HttpService, HttpServiceFactory};
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error<M>
+pub enum Error<S>
 where
-    M: tower::MakeService<SocketAddr, IncomingRequest>,
-    M::MakeError: Debug + Display,
-    M::Error: Debug + Display,
+    S: HttpServiceFactory,
+    S::Error: Debug + Display,
+    <S::Service as HttpService>::Error: Debug + Display,
 {
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
@@ -19,7 +18,7 @@ where
     #[error("quinn connection error: {0}")]
     QuinnConnection(#[from] h3_quinn::quinn::ConnectionError),
     #[error("make service error: {0}")]
-    MakeServiceError(M::MakeError),
+    ServiceFactoryError(S::Error),
     #[error("service error: {0}")]
-    ServiceError(M::Error),
+    ServiceError(<S::Service as HttpService>::Error),
 }
