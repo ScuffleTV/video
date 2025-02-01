@@ -49,7 +49,7 @@ async fn main() {
 
     scuffle_http::HttpServer::builder()
         .with_rustls(get_tls_config().expect("failed to load tls config"))
-        .with_service(make_service)
+        .with_service_factory(make_service)
         .bind("[::]:443".parse().unwrap())
         .enable_http3()
         .build()

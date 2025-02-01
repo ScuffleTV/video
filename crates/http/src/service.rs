@@ -1,7 +1,8 @@
+use std::fmt::Debug;
 use std::future::Future;
 use std::net::SocketAddr;
 
-use crate::backend::IncomingRequest;
+use crate::IncomingRequest;
 
 pub trait HttpService {
     type Error;
@@ -11,6 +12,43 @@ pub trait HttpService {
         &mut self,
         req: IncomingRequest,
     ) -> impl Future<Output = Result<http::Response<Self::ResBody>, Self::Error>> + Send;
+}
+
+#[derive(Clone)]
+pub struct FnHttpService<F>(F);
+
+impl<F> Debug for FnHttpService<F> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("FnHttpService").field(&std::any::type_name::<F>()).finish()
+    }
+}
+
+pub fn fn_http_service<F, Fut, E, B>(f: F) -> FnHttpService<F>
+where
+    F: Fn(IncomingRequest) -> Fut,
+    Fut: Future<Output = Result<http::Response<B>, E>> + Send,
+    E: std::error::Error,
+    B: http_body::Body,
+{
+    FnHttpService(f)
+}
+
+impl<F, Fut, E, B> HttpService for FnHttpService<F>
+where
+    F: Fn(IncomingRequest) -> Fut,
+    Fut: Future<Output = Result<http::Response<B>, E>> + Send,
+    E: std::error::Error,
+    B: http_body::Body,
+{
+    type Error = E;
+    type ResBody = B;
+
+    fn call(
+        &mut self,
+        req: IncomingRequest,
+    ) -> impl Future<Output = Result<http::Response<Self::ResBody>, Self::Error>> + Send {
+        (self.0)(req)
+    }
 }
 
 impl<T, B> HttpService for T
@@ -35,6 +73,42 @@ pub trait HttpServiceFactory {
     type Service: HttpService;
 
     fn new_service(&mut self, remote_addr: SocketAddr) -> impl Future<Output = Result<Self::Service, Self::Error>> + Send;
+}
+
+#[derive(Clone)]
+pub struct FnHttpServiceFactory<F>(F);
+
+impl<F> Debug for FnHttpServiceFactory<F> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("FnHttpServiceFactory")
+            .field(&std::any::type_name::<F>())
+            .finish()
+    }
+}
+
+pub fn fn_http_service_factory<F, Fut, E, S>(f: F) -> FnHttpServiceFactory<F>
+where
+    F: Fn(SocketAddr) -> Fut,
+    Fut: Future<Output = Result<S, E>> + Send,
+    E: std::error::Error,
+    S: HttpService,
+{
+    FnHttpServiceFactory(f)
+}
+
+impl<F, Fut, E, S> HttpServiceFactory for FnHttpServiceFactory<F>
+where
+    F: Fn(SocketAddr) -> Fut,
+    Fut: Future<Output = Result<S, E>> + Send,
+    E: std::error::Error,
+    S: HttpService,
+{
+    type Error = E;
+    type Service = S;
+
+    fn new_service(&mut self, remote_addr: SocketAddr) -> impl Future<Output = Result<Self::Service, Self::Error>> + Send {
+        (self.0)(remote_addr)
+    }
 }
 
 impl<T> HttpServiceFactory for T

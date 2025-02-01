@@ -4,11 +4,12 @@ use std::net::SocketAddr;
 use super::HttpServer;
 
 #[derive(Debug, thiserror::Error)]
+#[allow(clippy::enum_variant_names)]
 pub enum ServerBuilderError {
     #[error("missing bind address")]
     MissingBind,
     #[error("missing service")]
-    MissingService,
+    MissingServiceFactory,
     #[error("missing rustls configuration")]
     MissingRustlsConfig,
 }
@@ -16,7 +17,7 @@ pub enum ServerBuilderError {
 pub struct ServerBuilder<S> {
     ctx: Option<scuffle_context::Context>,
     bind: Option<SocketAddr>,
-    service: Option<S>,
+    service_factory: Option<S>,
     rustls_config: Option<rustls::ServerConfig>,
     enable_http1: bool,
     enable_http2: bool,
@@ -28,7 +29,7 @@ impl<S> Default for ServerBuilder<S> {
         Self {
             ctx: None,
             bind: None,
-            service: None,
+            service_factory: None,
             rustls_config: None,
             enable_http1: true,
             enable_http2: true,
@@ -48,8 +49,8 @@ impl<S> ServerBuilder<S> {
         self
     }
 
-    pub fn with_service(mut self, service: S) -> Self {
-        self.service = Some(service);
+    pub fn with_service_factory(mut self, service: S) -> Self {
+        self.service_factory = Some(service);
         self
     }
 
@@ -122,7 +123,7 @@ impl<S> ServerBuilder<S> {
 
         Ok(HttpServer {
             ctx: self.ctx.unwrap_or_else(scuffle_context::Context::global),
-            service_factory: self.service.ok_or(ServerBuilderError::MissingService)?,
+            service_factory: self.service_factory.ok_or(ServerBuilderError::MissingServiceFactory)?,
             bind: self.bind.ok_or(ServerBuilderError::MissingBind)?,
             rustls_config: self.rustls_config,
             enable_http1: self.enable_http1,

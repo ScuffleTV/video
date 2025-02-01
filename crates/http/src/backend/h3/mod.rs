@@ -58,10 +58,8 @@ impl Http3Backend {
                                     .get(hyper::http::header::CONTENT_LENGTH)
                                     .and_then(|len| len.to_str().ok().and_then(|x| x.parse().ok()));
                                 let body: QuicIncomingBody<BidiStream<_>> = QuicIncomingBody::new(recv, size_hint);
-                                let req = http::Request::from_parts(
-                                    req.into_parts().0,
-                                    crate::backend::body::IncomingBody::from(body),
-                                );
+                                let req =
+                                    http::Request::from_parts(req.into_parts().0, crate::body::IncomingBody::from(body));
 
                                 // make a new service
                                 let mut http_service = service_factory
