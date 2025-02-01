@@ -3,9 +3,8 @@ use std::net::SocketAddr;
 
 use crate::{
     service::{
-        custom_tower_make_service_factory, tower_make_service_factory, tower_make_service_with_addr_factory,
-        CustomTowerMakeServiceFactory, HttpService, HttpServiceFactory, TowerMakeServiceFactory,
-        TowerMakeServiceWithAddrFactory,
+        custom_tower_make_service_factory, tower_make_service_factory, tower_make_service_with_addr_factory, HttpService,
+        HttpServiceFactory, TowerMakeServiceFactory, TowerMakeServiceWithAddrFactory,
     },
     IncomingRequest,
 };
@@ -53,7 +52,7 @@ where
     }
 }
 
-impl<M> ServerBuilder<TowerMakeServiceFactory<M>>
+impl<M> ServerBuilder<TowerMakeServiceFactory<M, ()>>
 where
     M: tower::MakeService<(), IncomingRequest> + Send,
     M::Future: Send,
@@ -77,7 +76,7 @@ where
     }
 }
 
-impl<M, T> ServerBuilder<CustomTowerMakeServiceFactory<M, T>>
+impl<M, T> ServerBuilder<TowerMakeServiceFactory<M, T>>
 where
     M: tower::MakeService<T, IncomingRequest> + Send,
     M::Future: Send,
