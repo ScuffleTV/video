@@ -122,9 +122,6 @@ pub use opentelemetry_sdk;
 pub use prometheus_client;
 use scuffle_bootstrap::global::Global;
 use scuffle_bootstrap::service::Service;
-use scuffle_context::ContextFutExt;
-use scuffle_http::backend::HttpServer;
-use scuffle_http::body::IncomingBody;
 #[cfg(feature = "opentelemetry-traces")]
 pub use tracing_opentelemetry;
 
@@ -236,44 +233,39 @@ impl<Global: TelemetryConfig> Service<Global> for TelemetrySvc {
     }
 
     async fn run(self, global: std::sync::Arc<Global>, ctx: scuffle_context::Context) -> anyhow::Result<()> {
-        let server = global.bind_address().map(|addr| {
-            scuffle_http::backend::tcp::TcpServerConfig::builder()
-                .with_bind(addr)
-                .with_server_name(global.http_server_name())
+        if let Some(bind_addr) = global.bind_address() {
+            let global = global.clone();
+
+            let service = scuffle_http::service::fn_http_service(move |req| {
+                let global = global.clone();
+                async move {
+                    match req.uri().path() {
+                        "/health" => health_check(&global, req).await,
+                        #[cfg(feature = "prometheus")]
+                        "/metrics" => metrics(&global, req).await,
+                        #[cfg(feature = "pprof")]
+                        "/pprof/cpu" => pprof(&global, req).await,
+                        #[cfg(feature = "opentelemetry")]
+                        "/opentelemetry/flush" => opentelemetry_flush(&global).await,
+                        _ => Ok(http::Response::builder()
+                            .status(http::StatusCode::NOT_FOUND)
+                            .body(http_body_util::Full::new(Bytes::from_static(b"not found")))?),
+                    }
+                }
+            });
+
+            scuffle_http::HttpServer::builder()
+                .bind(bind_addr)
+                .with_ctx(ctx)
+                .with_service_factory(scuffle_http::service::fn_http_service_factory(move |_addr| {
+                    let service = service.clone();
+                    async move { Ok::<_, std::convert::Infallible>(service) }
+                }))
                 .build()
-                .into_server()
-        });
-
-        let global2 = global.clone();
-
-        if let Some(server) = server {
-            server
-                .start(
-                    scuffle_http::svc::function_service(move |req| {
-                        let global = global2.clone();
-                        async move {
-                            match req.uri().path() {
-                                "/health" => health_check(&global, req).await,
-                                #[cfg(feature = "prometheus")]
-                                "/metrics" => metrics(&global, req).await,
-                                #[cfg(feature = "pprof")]
-                                "/pprof/cpu" => pprof(&global, req).await,
-                                #[cfg(feature = "opentelemetry")]
-                                "/opentelemetry/flush" => opentelemetry_flush(&global).await,
-                                _ => Ok(http::Response::builder()
-                                    .status(http::StatusCode::NOT_FOUND)
-                                    .body(http_body_util::Full::new(Bytes::from_static(b"not found")))?),
-                            }
-                        }
-                    }),
-                    1,
-                )
+                .context("server builder")?
+                .run()
                 .await
-                .context("server start")?;
-
-            server.wait().with_context(&ctx).await.transpose().context("server wait")?;
-
-            server.shutdown().await.context("server shutdown")?;
+                .context("server run")?;
         } else {
             ctx.done().await;
         }
@@ -294,8 +286,8 @@ impl<Global: TelemetryConfig> Service<Global> for TelemetrySvc {
 
 async fn health_check<G: TelemetryConfig>(
     global: &std::sync::Arc<G>,
-    _: http::Request<IncomingBody>,
-) -> Result<http::Response<http_body_util::Full<Bytes>>, scuffle_http::Error> {
+    _: http::Request<scuffle_http::body::IncomingBody>,
+) -> Result<http::Response<http_body_util::Full<Bytes>>, http::Error> {
     if let Err(err) = global.health_check().await {
         tracing::error!("health check failed: {err}");
         Ok(http::Response::builder()
@@ -311,15 +303,15 @@ async fn health_check<G: TelemetryConfig>(
 #[cfg(feature = "prometheus")]
 async fn metrics<G: TelemetryConfig>(
     global: &std::sync::Arc<G>,
-    _: http::Request<IncomingBody>,
-) -> Result<http::Response<http_body_util::Full<Bytes>>, scuffle_http::Error> {
+    _: http::Request<scuffle_http::body::IncomingBody>,
+) -> Result<http::Response<http_body_util::Full<Bytes>>, http::Error> {
     if let Some(metrics) = global.prometheus_metrics_registry() {
         let mut buf = String::new();
         if prometheus_client::encoding::text::encode(&mut buf, metrics).is_err() {
             tracing::error!("metrics encode failed");
-            return Ok(http::Response::builder()
+            return http::Response::builder()
                 .status(http::StatusCode::INTERNAL_SERVER_ERROR)
-                .body(http_body_util::Full::new("metrics encode failed".to_string().into()))?);
+                .body(http_body_util::Full::new("metrics encode failed".to_string().into()));
         }
 
         Ok(http::Response::builder()
@@ -335,8 +327,8 @@ async fn metrics<G: TelemetryConfig>(
 #[cfg(feature = "pprof")]
 async fn pprof<G: TelemetryConfig>(
     _: &std::sync::Arc<G>,
-    req: http::Request<IncomingBody>,
-) -> Result<http::Response<http_body_util::Full<Bytes>>, scuffle_http::Error> {
+    req: http::Request<scuffle_http::body::IncomingBody>,
+) -> Result<http::Response<http_body_util::Full<Bytes>>, http::Error> {
     let query = req.uri().query();
     let query = query.map(querystring::querify).into_iter().flatten();
 
@@ -349,18 +341,18 @@ async fn pprof<G: TelemetryConfig>(
             freq = match value.parse() {
                 Ok(v) => v,
                 Err(err) => {
-                    return Ok(http::Response::builder()
+                    return http::Response::builder()
                         .status(http::StatusCode::BAD_REQUEST)
-                        .body(http_body_util::Full::new(format!("invalid freq: {err:#}").into()))?);
+                        .body(http_body_util::Full::new(format!("invalid freq: {err:#}").into()));
                 }
             };
         } else if key == "duration" {
             duration = match value.parse() {
                 Ok(v) => std::time::Duration::from_secs(v),
                 Err(err) => {
-                    return Ok(http::Response::builder()
+                    return http::Response::builder()
                         .status(http::StatusCode::BAD_REQUEST)
-                        .body(http_body_util::Full::new(format!("invalid duration: {err:#}").into()))?);
+                        .body(http_body_util::Full::new(format!("invalid duration: {err:#}").into()));
                 }
             };
         } else if key == "ignore" {
@@ -392,7 +384,7 @@ async fn pprof<G: TelemetryConfig>(
 #[cfg(feature = "opentelemetry")]
 async fn opentelemetry_flush<G: TelemetryConfig>(
     global: &std::sync::Arc<G>,
-) -> Result<http::Response<http_body_util::Full<Bytes>>, scuffle_http::Error> {
+) -> Result<http::Response<http_body_util::Full<Bytes>>, http::Error> {
     if let Some(opentelemetry) = global.opentelemetry().cloned() {
         if opentelemetry.is_enabled() {
             match tokio::task::spawn_blocking(move || opentelemetry.flush()).await {
