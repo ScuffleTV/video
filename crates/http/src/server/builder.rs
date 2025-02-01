@@ -1,6 +1,15 @@
 use std::fmt::Debug;
 use std::net::SocketAddr;
 
+use crate::{
+    service::{
+        custom_tower_make_service_factory, tower_make_service_factory, tower_make_service_with_addr_factory,
+        CustomTowerMakeServiceFactory, HttpService, HttpServiceFactory, TowerMakeServiceFactory,
+        TowerMakeServiceWithAddrFactory,
+    },
+    IncomingRequest,
+};
+
 use super::HttpServer;
 
 #[derive(Debug, thiserror::Error)]
@@ -14,17 +23,23 @@ pub enum ServerBuilderError {
     MissingRustlsConfig,
 }
 
-pub struct ServerBuilder<S> {
+pub struct ServerBuilder<F>
+where
+    F: HttpServiceFactory,
+{
     ctx: Option<scuffle_context::Context>,
     bind: Option<SocketAddr>,
-    service_factory: Option<S>,
+    service_factory: Option<F>,
     rustls_config: Option<rustls::ServerConfig>,
     enable_http1: bool,
     enable_http2: bool,
     enable_http3: bool,
 }
 
-impl<S> Default for ServerBuilder<S> {
+impl<F> Default for ServerBuilder<F>
+where
+    F: HttpServiceFactory,
+{
     fn default() -> Self {
         Self {
             ctx: None,
@@ -38,7 +53,47 @@ impl<S> Default for ServerBuilder<S> {
     }
 }
 
-impl<S> ServerBuilder<S> {
+impl<M> ServerBuilder<TowerMakeServiceFactory<M>>
+where
+    M: tower::MakeService<(), IncomingRequest> + Send,
+    M::Future: Send,
+    M::Service: HttpService,
+{
+    pub fn with_tower_make_service(mut self, tower_make_service: M) -> Self {
+        self.service_factory = Some(tower_make_service_factory(tower_make_service));
+        self
+    }
+}
+
+impl<M> ServerBuilder<TowerMakeServiceWithAddrFactory<M>>
+where
+    M: tower::MakeService<SocketAddr, IncomingRequest> + Send,
+    M::Future: Send,
+    M::Service: HttpService,
+{
+    pub fn with_tower_make_service_with_addr(mut self, tower_make_service: M) -> Self {
+        self.service_factory = Some(tower_make_service_with_addr_factory(tower_make_service));
+        self
+    }
+}
+
+impl<M, T> ServerBuilder<CustomTowerMakeServiceFactory<M, T>>
+where
+    M: tower::MakeService<T, IncomingRequest> + Send,
+    M::Future: Send,
+    M::Service: HttpService,
+    T: Clone + Send,
+{
+    pub fn with_custom_tower_make_service(mut self, tower_make_service: M, target: T) -> Self {
+        self.service_factory = Some(custom_tower_make_service_factory(tower_make_service, target));
+        self
+    }
+}
+
+impl<F> ServerBuilder<F>
+where
+    F: HttpServiceFactory,
+{
     pub fn with_ctx(mut self, ctx: scuffle_context::Context) -> Self {
         self.ctx = Some(ctx);
         self
@@ -49,8 +104,8 @@ impl<S> ServerBuilder<S> {
         self
     }
 
-    pub fn with_service_factory(mut self, service: S) -> Self {
-        self.service_factory = Some(service);
+    pub fn with_service_factory(mut self, service_factory: F) -> Self {
+        self.service_factory = Some(service_factory);
         self
     }
 
@@ -98,7 +153,7 @@ impl<S> ServerBuilder<S> {
         self
     }
 
-    pub fn build(mut self) -> Result<HttpServer<S>, ServerBuilderError> {
+    pub fn build(mut self) -> Result<HttpServer<F>, ServerBuilderError> {
         // https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml#alpn-protocol-ids
         if let Some(rustlsconfig) = &mut self.rustls_config {
             rustlsconfig.alpn_protocols.clear();

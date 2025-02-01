@@ -22,8 +22,8 @@ pub struct HttpServer<S> {
     rustls_config: Option<rustls::ServerConfig>,
 }
 
-impl<M> HttpServer<M> {
-    pub fn builder() -> builder::ServerBuilder<M> {
+impl<F> HttpServer<F> where F: HttpServiceFactory {
+    pub fn builder() -> builder::ServerBuilder<F> {
         builder::ServerBuilder::default()
     }
 }

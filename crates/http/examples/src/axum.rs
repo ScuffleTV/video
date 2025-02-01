@@ -1,4 +1,3 @@
-use std::net::SocketAddr;
 use std::{fs, io};
 
 use axum::body::Body;
@@ -45,11 +44,11 @@ async fn main() {
     let make_service = axum::Router::<()>::new()
         .route("/", axum::routing::get(hello_world))
         .route("/ws", axum::routing::get(ws))
-        .into_make_service_with_connect_info::<SocketAddr>();
+        .into_make_service();
 
     scuffle_http::HttpServer::builder()
         .with_rustls(get_tls_config().expect("failed to load tls config"))
-        .with_service_factory(make_service)
+        .with_tower_make_service(make_service)
         .bind("[::]:443".parse().unwrap())
         .enable_http3()
         .build()
