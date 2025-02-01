@@ -1,8 +1,7 @@
 use std::net::SocketAddr;
 
-use crate::IncomingRequest;
-
 use super::{HttpService, HttpServiceFactory};
+use crate::IncomingRequest;
 
 #[derive(Clone, Debug)]
 pub struct TowerMakeServiceFactory<M, T> {
@@ -11,10 +10,7 @@ pub struct TowerMakeServiceFactory<M, T> {
 }
 
 pub fn custom_tower_make_service_factory<M, T>(make_service: M, target: T) -> TowerMakeServiceFactory<M, T> {
-    TowerMakeServiceFactory {
-        make_service,
-        target,
-    }
+    TowerMakeServiceFactory { make_service, target }
 }
 
 pub fn tower_make_service_factory<M>(make_service: M) -> TowerMakeServiceFactory<M, ()> {
