@@ -1,15 +1,12 @@
 use std::fmt::Debug;
 use std::net::SocketAddr;
 
-use crate::{
-    service::{
-        custom_tower_make_service_factory, tower_make_service_factory, tower_make_service_with_addr_factory, HttpService,
-        HttpServiceFactory, TowerMakeServiceFactory, TowerMakeServiceWithAddrFactory,
-    },
-    IncomingRequest,
-};
-
 use super::HttpServer;
+use crate::service::{
+    custom_tower_make_service_factory, tower_make_service_factory, tower_make_service_with_addr_factory, HttpService,
+    HttpServiceFactory, TowerMakeServiceFactory, TowerMakeServiceWithAddrFactory,
+};
+use crate::IncomingRequest;
 
 #[derive(Debug, thiserror::Error)]
 #[allow(clippy::enum_variant_names)]

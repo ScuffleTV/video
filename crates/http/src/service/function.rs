@@ -1,8 +1,9 @@
-use std::{fmt::Debug, future::Future, net::SocketAddr};
-
-use crate::IncomingRequest;
+use std::fmt::Debug;
+use std::future::Future;
+use std::net::SocketAddr;
 
 use super::{HttpService, HttpServiceFactory};
+use crate::IncomingRequest;
 
 #[derive(Clone)]
 pub struct FnHttpService<F>(F);
