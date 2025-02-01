@@ -38,7 +38,7 @@ where
         let mut http_service = http_service.clone();
         async move {
             let (parts, body) = req.into_parts();
-            let body = crate::backend::body::IncomingBody::from(body);
+            let body = crate::body::IncomingBody::from(body);
             let req = http::Request::from_parts(parts, body);
             http_service.call(req).await
         }
