@@ -135,7 +135,7 @@ pub mod opentelemetry;
 ///
 /// # HTTP Server
 ///
-/// This service provides a http server which will bind to the address provided
+/// This service provides an http server which will bind to the address provided
 /// by the config. (See [`TelemetryConfig`])
 ///
 /// ## Endpoints

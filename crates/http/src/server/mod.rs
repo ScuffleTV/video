@@ -13,7 +13,7 @@ pub mod builder;
 
 /// The HTTP server.
 ///
-/// This struct is the main entry point for creating and running a HTTP server.
+/// This struct is the main entry point for creating and running an HTTP server.
 ///
 /// Create a new server using the [`ServerBuilder`](builder::ServerBuilder) struct.
 #[derive(Debug, Clone)]
