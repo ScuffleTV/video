@@ -265,14 +265,13 @@ where
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
-    use std::{convert::Infallible, fs, io::BufReader};
-
-    use crate::{
-        server::builder::ServerBuilderError,
-        service::{fn_http_service, service_clone_factory},
-    };
+    use std::convert::Infallible;
+    use std::fs;
+    use std::io::BufReader;
 
     use super::ServerBuilder;
+    use crate::server::builder::ServerBuilderError;
+    use crate::service::{fn_http_service, service_clone_factory};
 
     #[test]
     fn builder_missing_bind() {
