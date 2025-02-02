@@ -3,8 +3,8 @@ use std::net::SocketAddr;
 use super::{HttpService, HttpServiceFactory};
 use crate::IncomingRequest;
 
-/// A [`HttpServiceFactory`] that wraps a [`tower::MakeService`].
-/// The given [`tower::MakeService`] will be called to create a new service for each new connection.
+/// A [`HttpServiceFactory`] that wraps a [`tower::MakeService`](https://docs.rs/tower/latest/tower/trait.MakeService.html).
+/// The given [`tower::MakeService`](https://docs.rs/tower/latest/tower/trait.MakeService.html) will be called to create a new service for each new connection.
 ///
 /// Create by calling [`tower_make_service_factory`] or [`custom_tower_make_service_factory`].
 #[derive(Clone, Debug)]
@@ -13,7 +13,7 @@ pub struct TowerMakeServiceFactory<M, T> {
     target: T,
 }
 
-/// Create a [`TowerMakeServiceFactory`] from a given [`tower::MakeService`] and `target` value.
+/// Create a [`TowerMakeServiceFactory`] from a given [`tower::MakeService`](https://docs.rs/tower/latest/tower/trait.MakeService.html) and `target` value.
 ///
 /// `target` is the value that will be passed to the [`tower::MakeService::make_service`] method.
 /// `target` will be cloned for each new connection.
@@ -23,7 +23,7 @@ pub fn custom_tower_make_service_factory<M, T>(make_service: M, target: T) -> To
     TowerMakeServiceFactory { make_service, target }
 }
 
-/// Create a [`TowerMakeServiceFactory`] from a given [`tower::MakeService`].
+/// Create a [`TowerMakeServiceFactory`] from a given [`tower::MakeService`](https://docs.rs/tower/latest/tower/trait.MakeService.html).
 ///
 /// Can be used with [`axum::Router::into_make_service`](https://docs.rs/axum/latest/axum/struct.Router.html#method.into_make_service).
 pub fn tower_make_service_factory<M>(make_service: M) -> TowerMakeServiceFactory<M, ()> {
@@ -51,13 +51,13 @@ where
     }
 }
 
-/// A [`HttpServiceFactory`] that wraps a [`tower::MakeService`] that takes a [`SocketAddr`] as input.
+/// A [`HttpServiceFactory`] that wraps a [`tower::MakeService`](https://docs.rs/tower/latest/tower/trait.MakeService.html) that takes a [`SocketAddr`] as input.
 ///
 /// Can be used with [`axum::Router::into_make_service_with_connect_info`](https://docs.rs/axum/latest/axum/struct.Router.html#method.into_make_service_with_connect_info).
 #[derive(Clone, Debug)]
 pub struct TowerMakeServiceWithAddrFactory<M>(M);
 
-/// Create a [`TowerMakeServiceWithAddrFactory`] from a given [`tower::MakeService`].
+/// Create a [`TowerMakeServiceWithAddrFactory`] from a given [`tower::MakeService`](https://docs.rs/tower/latest/tower/trait.MakeService.html).
 ///
 /// See [`TowerMakeServiceFactory`] for details.
 pub fn tower_make_service_with_addr_factory<M>(make_service: M) -> TowerMakeServiceWithAddrFactory<M> {

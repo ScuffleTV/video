@@ -15,7 +15,7 @@ pub use tower_factory::*;
 ///
 /// This trait must be used in combination with [`HttpServiceFactory`].
 /// It is very similar to tower's service trait and implemented
-/// for all types that implement [`tower::Service<IncomingRequest>`].
+/// for all types that implement [`tower::Service<IncomingRequest>`](https://docs.rs/tower/latest/tower/trait.Service.html).
 pub trait HttpService {
     type Error;
     type ResBody: http_body::Body;
@@ -51,7 +51,7 @@ where
 /// A trait representing an HTTP service factory.
 ///
 /// This trait must be implemented by types that can create new instances of [`HttpService`].
-/// It is conceptually similar to tower's [`MakeService`](tower::MakeService) trait.
+/// It is conceptually similar to tower's [`MakeService`](https://docs.rs/tower/latest/tower/trait.MakeService.html) trait.
 ///
 /// It is intended to create a new service for each incoming connection.
 /// If you don't need to implement any custom factory logic, you can use [`ServiceCloneFactory`] to make a factory that clones the given service for each new connection.
