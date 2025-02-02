@@ -7,7 +7,7 @@
 
 ---
 
-A HTTP server with support for HTTP/1, HTTP/2 and HTTP/3.
+An HTTP server with support for HTTP/1, HTTP/2 and HTTP/3.
 
 It abstracts away [`hyper`](https://crates.io/crates/hyper) and [`h3`](https://crates.io/crates/h3) to provide a rather simple interface for creating and running a server that can handle all three protocols.
 
