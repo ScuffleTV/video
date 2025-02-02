@@ -51,6 +51,7 @@ rand = { version = "0.8", features = ["small_rng"] }
 regex = { version = "1", default-features = false, features = ["std", "unicode"] }
 regex-automata = { version = "0.4", default-features = false, features = ["meta", "std", "unicode"] }
 regex-syntax = { version = "0.8", default-features = false, features = ["std", "unicode"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 rusty_ffmpeg = { version = "0.16", default-features = false, features = ["link_system_ffmpeg", "link_vcpkg_ffmpeg"] }
 serde = { version = "1", features = ["alloc", "derive"] }
 serde_json = { version = "1", features = ["raw_value", "unbounded_depth"] }
@@ -108,6 +109,7 @@ rand = { version = "0.8", features = ["small_rng"] }
 regex = { version = "1", default-features = false, features = ["std", "unicode"] }
 regex-automata = { version = "0.4", default-features = false, features = ["meta", "std", "unicode"] }
 regex-syntax = { version = "0.8", default-features = false, features = ["std", "unicode"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 rusty_ffmpeg = { version = "0.16", default-features = false, features = ["link_system_ffmpeg", "link_vcpkg_ffmpeg"] }
 serde = { version = "1", features = ["alloc", "derive"] }
 serde_json = { version = "1", features = ["raw_value", "unbounded_depth"] }
