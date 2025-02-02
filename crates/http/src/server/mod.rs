@@ -11,6 +11,11 @@ use crate::service::{HttpService, HttpServiceFactory};
 
 pub mod builder;
 
+/// The HTTP server.
+///
+/// This struct is the main entry point for creating and running a HTTP server.
+///
+/// Create a new server using the [`ServerBuilder`](builder::ServerBuilder) struct.
 #[derive(Debug, Clone)]
 pub struct HttpServer<S> {
     ctx: scuffle_context::Context,
@@ -26,6 +31,7 @@ impl<F> HttpServer<F>
 where
     F: HttpServiceFactory,
 {
+    /// Entry point for creating a new HTTP server.
     pub fn builder() -> builder::ServerBuilder<F> {
         builder::ServerBuilder::default()
     }
@@ -41,6 +47,13 @@ where
     <<S::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
     <<S::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
 {
+    /// Run the server.
+    ///
+    /// This will:
+    ///
+    /// - Start listening on all configured interfaces for incoming connections.
+    /// - Accept all incoming connections.
+    /// - Handle incoming requests by passing them to the configured service factory.
     pub async fn run(self) -> Result<(), Error<S>> {
         let start_tcp_backend = self.enable_http1 || self.enable_http2;
 

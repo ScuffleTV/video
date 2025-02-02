@@ -5,6 +5,12 @@ use std::net::SocketAddr;
 use super::{HttpService, HttpServiceFactory};
 use crate::IncomingRequest;
 
+/// A [`HttpService`] that is created from a function.
+///
+/// The given function will be called for each incoming request.
+/// This is useful for creating simple services without needing to implement the [`HttpService`] trait.
+///
+/// Create by calling [`fn_http_service`].
 #[derive(Clone)]
 pub struct FnHttpService<F>(F);
 
@@ -14,6 +20,9 @@ impl<F> Debug for FnHttpService<F> {
     }
 }
 
+/// Create a [`FnHttpService`] from a given function.
+///
+/// See [`FnHttpService`] for details.
 pub fn fn_http_service<F, Fut, E, B>(f: F) -> FnHttpService<F>
 where
     F: Fn(IncomingRequest) -> Fut,
@@ -42,6 +51,12 @@ where
     }
 }
 
+/// A [`HttpServiceFactory`] that creates a [`FnHttpService`] from a function.
+///
+/// The given function will be called for each new connection.
+/// This is useful for creating simple factories without needing to implement the [`HttpServiceFactory`] trait.
+///
+/// Create by calling [`fn_http_service_factory`].
 #[derive(Clone)]
 pub struct FnHttpServiceFactory<F>(F);
 
@@ -53,6 +68,9 @@ impl<F> Debug for FnHttpServiceFactory<F> {
     }
 }
 
+/// Create a [`FnHttpServiceFactory`] from a given function.
+///
+/// See [`FnHttpServiceFactory`] for details.
 pub fn fn_http_service_factory<F, Fut, E, S>(f: F) -> FnHttpServiceFactory<F>
 where
     F: Fn(SocketAddr) -> Fut,
