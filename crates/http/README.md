@@ -7,15 +7,27 @@
 
 ---
 
-A http server with support for http/1, http/2, http/3 & webtransport.
+A http server with support for HTTP/1, HTTP/2 and HTTP/3.
+
+It abstracts away [`hyper`](https://crates.io/crates/hyper) and [`h3`](https://crates.io/crates/h3) to provide a rather simple interface for creating and running a server that can handle all three protocols.
+
+See the [examples](./examples) directory for usage examples.
 
 ## Why do we need this?
 
-TODO(troy): Add more details about why we need this.
+This crate is designed to be a simple and easy to use HTTP server that supports HTTP/1, HTTP/2 and HTTP/3.
+
+Currently, there are simply no other crates that provide support for all three protocols with a unified API.
+This crate aims to fill that gap.
 
 ## Status
 
 This crate is currently under development and is not yet stable.
+
+### Missing Features
+
+- HTTP/3 webtransport support
+- Upgrading to websocket connections from HTTP/3 connections (this is usually done via HTTP/1.1 anyway)
 
 Unit tests are not yet fully implemented. Use at your own risk.
 

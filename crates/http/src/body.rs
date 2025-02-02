@@ -4,6 +4,7 @@ use bytes::Bytes;
 
 use crate::backend::h3::body::QuicIncomingBody;
 
+/// An error that can occur when reading the body of an incoming request.
 #[derive(thiserror::Error, Debug)]
 pub enum IncomingBodyError {
     #[error("hyper error: {0}")]
@@ -12,6 +13,10 @@ pub enum IncomingBodyError {
     Quic(#[from] h3::Error),
 }
 
+/// The body of an incoming request.
+///
+/// This enum is used to abstract away the differences between the body types of HTTP/1, HTTP/2 and HTTP/3.
+/// It implements the [`http_body::Body`] trait.
 pub enum IncomingBody {
     Hyper(hyper::body::Incoming),
     Quic(QuicIncomingBody<h3_quinn::BidiStream<Bytes>>),

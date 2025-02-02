@@ -2,6 +2,7 @@ use std::fmt::{Debug, Display};
 
 use crate::service::{HttpService, HttpServiceFactory};
 
+/// An error that can occur when creating or running a HTTP server.
 #[derive(Debug, thiserror::Error)]
 pub enum Error<S>
 where
