@@ -3182,6 +3182,7 @@ dependencies = [
  "regex",
  "regex-automata 0.4.9",
  "regex-syntax 0.8.5",
+ "reqwest",
  "rustls",
  "serde",
  "serde_json",
