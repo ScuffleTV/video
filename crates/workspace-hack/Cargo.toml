@@ -51,7 +51,7 @@ rand = { version = "0.8", features = ["small_rng"] }
 regex = { version = "1", default-features = false, features = ["std", "unicode"] }
 regex-automata = { version = "0.4", default-features = false, features = ["meta", "std", "unicode"] }
 regex-syntax = { version = "0.8", default-features = false, features = ["std", "unicode"] }
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["http2", "http3", "rustls-tls"] }
 rusty_ffmpeg = { version = "0.16", default-features = false, features = ["link_system_ffmpeg", "link_vcpkg_ffmpeg"] }
 serde = { version = "1", features = ["alloc", "derive"] }
 serde_json = { version = "1", features = ["raw_value", "unbounded_depth"] }
@@ -109,7 +109,7 @@ rand = { version = "0.8", features = ["small_rng"] }
 regex = { version = "1", default-features = false, features = ["std", "unicode"] }
 regex-automata = { version = "0.4", default-features = false, features = ["meta", "std", "unicode"] }
 regex-syntax = { version = "0.8", default-features = false, features = ["std", "unicode"] }
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["http2", "http3", "rustls-tls"] }
 rusty_ffmpeg = { version = "0.16", default-features = false, features = ["link_system_ffmpeg", "link_vcpkg_ffmpeg"] }
 serde = { version = "1", features = ["alloc", "derive"] }
 serde_json = { version = "1", features = ["raw_value", "unbounded_depth"] }
@@ -129,38 +129,46 @@ zerocopy = { version = "0.7", features = ["derive", "simd"] }
 
 [target.x86_64-unknown-linux-gnu.dependencies]
 bitflags = { version = "2", default-features = false, features = ["std"] }
+h3-quinn = { version = "0.0.7", default-features = false, features = ["tracing"] }
 hyper = { version = "1", features = ["client", "http1", "http2", "server"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 once_cell = { version = "1" }
+quinn = { version = "0.11", features = ["aws-lc-rs", "futures-io", "rustls"] }
 rustls = { version = "0.23", features = ["ring"] }
 tokio-rustls = { version = "0.26", features = ["ring"] }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
 
 [target.x86_64-unknown-linux-gnu.build-dependencies]
 bitflags = { version = "2", default-features = false, features = ["std"] }
+h3-quinn = { version = "0.0.7", default-features = false, features = ["tracing"] }
 hyper = { version = "1", features = ["client", "http1", "http2", "server"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 once_cell = { version = "1" }
+quinn = { version = "0.11", features = ["aws-lc-rs", "futures-io", "rustls"] }
 rustls = { version = "0.23", features = ["ring"] }
 tokio-rustls = { version = "0.26", features = ["ring"] }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
 
 [target.x86_64-apple-darwin.dependencies]
 bitflags = { version = "2", default-features = false, features = ["std"] }
+h3-quinn = { version = "0.0.7", default-features = false, features = ["tracing"] }
 hyper = { version = "1", features = ["client", "http1", "http2", "server"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 num-traits = { version = "0.2", default-features = false, features = ["i128"] }
 once_cell = { version = "1" }
+quinn = { version = "0.11", features = ["aws-lc-rs", "futures-io", "rustls"] }
 rustls = { version = "0.23", features = ["ring"] }
 tokio-rustls = { version = "0.26", features = ["ring"] }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
 
 [target.x86_64-apple-darwin.build-dependencies]
 bitflags = { version = "2", default-features = false, features = ["std"] }
+h3-quinn = { version = "0.0.7", default-features = false, features = ["tracing"] }
 hyper = { version = "1", features = ["client", "http1", "http2", "server"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 num-traits = { version = "0.2", default-features = false, features = ["i128"] }
 once_cell = { version = "1" }
+quinn = { version = "0.11", features = ["aws-lc-rs", "futures-io", "rustls"] }
 rustls = { version = "0.23", features = ["ring"] }
 tokio-rustls = { version = "0.26", features = ["ring"] }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
