@@ -2972,6 +2972,7 @@ dependencies = [
  "rustls",
  "rustls-pemfile",
  "scuffle-context",
+ "scuffle-future-ext",
  "scuffle-workspace-hack",
  "thiserror 2.0.11",
  "tokio",

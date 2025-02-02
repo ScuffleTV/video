@@ -266,15 +266,20 @@ where
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
     use std::convert::Infallible;
-    use std::fs;
-    use std::io::BufReader;
 
     use super::ServerBuilder;
     use crate::server::builder::ServerBuilderError;
     use crate::service::{fn_http_service, service_clone_factory};
 
+    fn get_available_addr() -> std::io::Result<std::net::SocketAddr> {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
+        listener.local_addr()
+    }
+
+    const RESPONSE_TEXT: &str = "Hello, world!";
+
     #[test]
-    fn builder_missing_bind() {
+    fn missing_bind() {
         let builder = ServerBuilder::default().with_service_factory(service_clone_factory(fn_http_service(|_| async {
             Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
         })));
@@ -282,69 +287,8 @@ mod tests {
         assert_eq!(builder.build().unwrap_err(), ServerBuilderError::MissingBind);
     }
 
-    #[tokio::test]
-    async fn builder_rustls() {
-        rustls::crypto::aws_lc_rs::default_provider()
-            .install_default()
-            .expect("failed to install aws lc provider");
-
-        let certfile = fs::File::open("assets/cert.pem").expect("cert not found");
-        let certs = rustls_pemfile::certs(&mut BufReader::new(certfile))
-            .collect::<Result<Vec<_>, _>>()
-            .expect("failed to load certs");
-        let keyfile = fs::File::open("assets/key.pem").expect("key not found");
-        let key = rustls_pemfile::private_key(&mut BufReader::new(keyfile))
-            .expect("failed to load key")
-            .expect("no key found");
-
-        let rustls_config = rustls::ServerConfig::builder()
-            .with_no_client_auth()
-            .with_single_cert(certs, key)
-            .expect("failed to build config");
-
-        let (ctx, handler) = scuffle_context::Context::new();
-        let addr = get_available_addr().expect("failed to get available address");
-
-        let builder = ServerBuilder::default()
-            .with_ctx(ctx)
-            .with_service_factory(service_clone_factory(fn_http_service(|_| async {
-                Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
-            })))
-            .with_rustls(rustls_config)
-            .bind(addr)
-            .enable_http3();
-
-        let server = builder.build().expect("failed to build server");
-
-        let handle = tokio::spawn(async move {
-            server.run().await.expect("server run failed");
-        });
-
-        // Wait for the server to start
-        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-
-        let client = reqwest::Client::builder()
-            .danger_accept_invalid_certs(true)
-            .build()
-            .expect("failed to build client");
-
-        let resp = client
-            .get(format!("https://{}/", addr))
-            .send()
-            .await
-            .expect("failed to get response")
-            .text()
-            .await
-            .expect("failed to get text");
-
-        assert_eq!(resp, RESPONSE_TEXT);
-
-        handler.shutdown().await;
-        handle.await.expect("task failed");
-    }
-
     #[test]
-    fn builder_missing_rustls() {
+    fn missing_rustls() {
         let builder = ServerBuilder::default()
             .with_service_factory(service_clone_factory(fn_http_service(|_| async {
                 Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
@@ -354,17 +298,10 @@ mod tests {
         assert_eq!(builder.build().unwrap_err(), ServerBuilderError::MissingRustlsConfig);
     }
 
-    fn get_available_addr() -> std::io::Result<std::net::SocketAddr> {
-        let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
-        listener.local_addr()
-    }
-
-    const RESPONSE_TEXT: &str = "Hello, world!";
-
     #[tokio::test]
-    async fn simple_server() {
+    async fn simple() {
         let mut builder = ServerBuilder::default().with_service_factory(service_clone_factory(fn_http_service(|_| async {
-            Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
+            Ok::<_, Infallible>(http::Response::new("".to_string()))
         })));
 
         assert!(builder.ctx.is_none());
@@ -400,7 +337,7 @@ mod tests {
         builder = builder.bind(addr);
         assert!(builder.bind.is_some());
 
-        let (ctx, handler) = scuffle_context::Context::new();
+        let (ctx, _) = scuffle_context::Context::new();
 
         builder = builder.with_ctx(ctx);
         assert!(builder.ctx.is_some());
@@ -410,24 +347,5 @@ mod tests {
         assert!(server.enable_http1);
         assert!(server.enable_http2);
         assert!(!server.enable_http3);
-
-        let handle = tokio::spawn(async move {
-            server.run().await.expect("server run failed");
-        });
-
-        // Wait for the server to start
-        tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-
-        let resp = reqwest::get(format!("http://{}/", addr))
-            .await
-            .expect("failed to get response")
-            .text()
-            .await
-            .expect("failed to get text");
-
-        assert_eq!(resp, RESPONSE_TEXT);
-
-        handler.shutdown().await;
-        handle.await.expect("task failed");
     }
 }

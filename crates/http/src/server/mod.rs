@@ -37,15 +37,15 @@ where
     }
 }
 
-impl<S> HttpServer<S>
+impl<F> HttpServer<F>
 where
-    S: HttpServiceFactory + Clone + Send + 'static,
-    S::Error: Debug + Display,
-    S::Service: Clone + Send + 'static,
-    <S::Service as HttpService>::Error: std::error::Error + Debug + Display + Send + Sync,
-    <S::Service as HttpService>::ResBody: Send,
-    <<S::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
-    <<S::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
+    F: HttpServiceFactory + Clone + Send + 'static,
+    F::Error: Debug + Display,
+    F::Service: Clone + Send + 'static,
+    <F::Service as HttpService>::Error: std::error::Error + Debug + Display + Send + Sync,
+    <F::Service as HttpService>::ResBody: Send,
+    <<F::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
+    <<F::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
 {
     /// Run the server.
     ///
@@ -54,7 +54,7 @@ where
     /// - Start listening on all configured interfaces for incoming connections.
     /// - Accept all incoming connections.
     /// - Handle incoming requests by passing them to the configured service factory.
-    pub async fn run(self) -> Result<(), Error<S>> {
+    pub async fn run(self) -> Result<(), Error<F>> {
         let start_tcp_backend = self.enable_http1 || self.enable_http2;
 
         if let Some(rustls_config) = self.rustls_config {
