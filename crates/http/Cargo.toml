@@ -10,6 +10,9 @@ license = "MIT OR Apache-2.0"
 description = "A high-performance HTTP server supporting HTTP/1.1, HTTP/2, and HTTP/3."
 keywords = ["http", "server", "http1", "http2", "http3"]
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
+
 [dependencies]
 tokio = { version = "1.43.0" }
 tower = { version = "0.5.2", features = ["make"] }
@@ -40,3 +43,7 @@ rustls = "0.23.21"
 futures = "0.3.31"
 
 scuffle-workspace-hack.workspace = true
+
+[dev-dependencies]
+reqwest = { version = "0.12.12", default-features = false, features = ["rustls-tls"] }
+rustls-pemfile = "2.2.0"
