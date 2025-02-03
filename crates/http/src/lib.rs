@@ -50,6 +50,7 @@ mod tests {
     use std::fmt::{Debug, Display};
     use std::fs;
     use std::io::BufReader;
+    use std::net::SocketAddr;
     use std::time::Duration;
 
     use scuffle_future_ext::FutureExt;
@@ -218,6 +219,28 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn no_backend() {
+        let addr = get_available_addr().expect("failed to get available address");
+
+        let builder = ServerBuilder::default()
+            .with_service_factory(service_clone_factory(fn_http_service(|_| async {
+                Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
+            })))
+            .bind(addr)
+            .disable_http1()
+            .disable_http2();
+
+        builder
+            .build()
+            .unwrap()
+            .run()
+            .with_timeout(Duration::from_millis(100))
+            .await
+            .expect("server timed out")
+            .expect("server failed");
+    }
+
+    #[tokio::test]
     async fn rustls_no_backend() {
         let addr = get_available_addr().expect("failed to get available address");
 
@@ -246,6 +269,41 @@ mod tests {
 
         let builder = ServerBuilder::default()
             .with_tower_make_service(tower::service_fn(|_| async {
+                Ok::<_, Infallible>(tower::service_fn(|_| async move {
+                    Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
+                }))
+            }))
+            .bind(addr);
+
+        test_server(builder, false, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
+    }
+
+    #[tokio::test]
+    async fn tower_custom_make_service() {
+        let addr = get_available_addr().expect("failed to get available address");
+
+        let builder = ServerBuilder::default()
+            .with_custom_tower_make_service(
+                tower::service_fn(|target| async move {
+                    assert_eq!(target, 42);
+                    Ok::<_, Infallible>(tower::service_fn(|_| async move {
+                        Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
+                    }))
+                }),
+                42,
+            )
+            .bind(addr);
+
+        test_server(builder, false, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
+    }
+
+    #[tokio::test]
+    async fn tower_make_service_with_addr() {
+        let addr = get_available_addr().expect("failed to get available address");
+
+        let builder = ServerBuilder::default()
+            .with_tower_make_service_with_addr(tower::service_fn(|addr: SocketAddr| async move {
+                assert!(addr.ip().is_loopback());
                 Ok::<_, Infallible>(tower::service_fn(|_| async move {
                     Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
                 }))
