@@ -14,6 +14,7 @@ license = "MIT OR Apache-2.0"
 
 ### BEGIN HAKARI SECTION
 [dependencies]
+axum = { version = "0.8", features = ["macros", "ws"] }
 bitflags = { version = "2", default-features = false, features = ["serde"] }
 byteorder = { version = "1" }
 bytes = { version = "1" }
@@ -70,6 +71,7 @@ uuid = { version = "1", features = ["v4"] }
 zerocopy = { version = "0.7", features = ["derive", "simd"] }
 
 [build-dependencies]
+axum = { version = "0.8", features = ["macros", "ws"] }
 bitflags = { version = "2", default-features = false, features = ["serde"] }
 byteorder = { version = "1" }
 bytes = { version = "1" }
