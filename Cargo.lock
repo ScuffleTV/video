@@ -3149,6 +3149,7 @@ dependencies = [
 name = "scuffle-workspace-hack"
 version = "0.1.0"
 dependencies = [
+ "axum",
  "bitflags 2.6.0",
  "byteorder",
  "bytes",
