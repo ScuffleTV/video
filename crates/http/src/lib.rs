@@ -104,6 +104,7 @@ mod tests {
             let request = client
                 .request(reqwest::Method::GET, &url)
                 .version(*version)
+                .body(RESPONSE_TEXT.to_string())
                 .build()
                 .expect("failed to build request");
 
@@ -217,7 +218,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn rustls_no_server() {
+    async fn rustls_no_backend() {
         let addr = get_available_addr().expect("failed to get available address");
 
         let builder = ServerBuilder::default()
@@ -237,5 +238,39 @@ mod tests {
             .await
             .expect("server timed out")
             .expect("server failed");
+    }
+
+    #[tokio::test]
+    async fn tower_make_service() {
+        let addr = get_available_addr().expect("failed to get available address");
+
+        let builder = ServerBuilder::default()
+            .with_tower_make_service(tower::service_fn(|_| async {
+                Ok::<_, Infallible>(tower::service_fn(|_| async move {
+                    Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
+                }))
+            }))
+            .bind(addr);
+
+        test_server(builder, false, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
+    }
+
+    #[tokio::test]
+    async fn axum_service() {
+        let router = axum::Router::new().route(
+            "/",
+            axum::routing::get(|req: String| async move {
+                assert_eq!(req, RESPONSE_TEXT);
+                http::Response::new(RESPONSE_TEXT.to_string())
+            }),
+        );
+
+        let addr = get_available_addr().expect("failed to get available address");
+
+        let builder = ServerBuilder::default()
+            .with_tower_make_service(router.into_make_service())
+            .bind(addr);
+
+        test_server(builder, false, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
     }
 }
