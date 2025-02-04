@@ -28,6 +28,7 @@ impl Http3Backend {
         <<S::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
         <<S::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
     {
+        #[cfg(feature = "tracing")]
         tracing::debug!("starting server");
 
         // not quite sure why this is necessary but it is
@@ -42,7 +43,7 @@ impl Http3Backend {
             let mut service_factory = service_factory.clone();
 
             tokio::spawn(async move {
-                let res: Result<_, Error<S>> = async move {
+                let _res: Result<_, Error<S>> = async move {
                     let conn = new_conn.await?;
                     let addr = conn.remote_address();
 
@@ -55,7 +56,7 @@ impl Http3Backend {
 
                                 let size_hint = req
                                     .headers()
-                                    .get(hyper::http::header::CONTENT_LENGTH)
+                                    .get(http::header::CONTENT_LENGTH)
                                     .and_then(|len| len.to_str().ok().and_then(|x| x.parse().ok()));
                                 let body: QuicIncomingBody<BidiStream<_>> = QuicIncomingBody::new(recv, size_hint);
                                 let req =
@@ -68,14 +69,11 @@ impl Http3Backend {
                                     .map_err(|e| Error::ServiceFactoryError(e))?;
 
                                 tokio::spawn(async move {
-                                    let res: Result<_, Error<S>> = async move {
-                                        // let resp = tower::Service::call(&mut tower_service, req)
-                                        //     .await
-                                        //     .map_err(|e| Error::ServiceError(e))?;
+                                    let _res: Result<_, Error<S>> = async move {
                                         let resp = http_service.call(req).await.map_err(|e| Error::ServiceError(e))?;
                                         let (parts, body) = resp.into_parts();
 
-                                        send.send_response(hyper::Response::from_parts(parts, ())).await?;
+                                        send.send_response(http::Response::from_parts(parts, ())).await?;
 
                                         copy_response_body(send, body).await;
 
@@ -83,7 +81,8 @@ impl Http3Backend {
                                     }
                                     .await;
 
-                                    if let Err(err) = res {
+                                    #[cfg(feature = "tracing")]
+                                    if let Err(err) = _res {
                                         tracing::warn!("error: {}", err);
                                     }
                                 });
@@ -95,6 +94,7 @@ impl Http3Backend {
                             Err(err) => match err.get_error_level() {
                                 h3::error::ErrorLevel::ConnectionError => return Err(err.into()),
                                 h3::error::ErrorLevel::StreamError => {
+                                    #[cfg(feature = "tracing")]
                                     tracing::warn!("error on accept: {}", err);
                                     continue;
                                 }
@@ -106,7 +106,8 @@ impl Http3Backend {
                 }
                 .await;
 
-                if let Err(err) = res {
+                #[cfg(feature = "tracing")]
+                if let Err(err) = _res {
                     tracing::warn!("error: {}", err);
                 }
             });

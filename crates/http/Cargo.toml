@@ -17,6 +17,7 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 tokio = { version = "1.43.0" }
 tower = { version = "0.5.2", features = ["make"] }
 thiserror = "2.0.11"
+futures = { version = "0.3.31", default-features = false }
 scuffle-context.workspace = true
 
 # HTTP parsing
@@ -25,22 +26,20 @@ http-body = "1.0.1"
 bytes = "1.9.0"
 
 # Tracing
-tracing = "0.1.41"
+tracing = { version = "0.1.41", optional = true }
 
 # HTTP/1.1, HTTP/2
-# hyper = { version = "1.6.0", features = ["http1", "http2", "server", "tracing"] }
-hyper = { version = "1.6.0", features = ["http1", "http2", "server"] }
-hyper-util = { version = "0.1.10", features = ["server-auto", "tokio"] }
+hyper = { version = "1.6.0", default-features = false, features = ["server"], optional = true }
+hyper-util = { version = "0.1.10", default-features = false, features = ["server", "tokio"], optional = true }
 
 # QUIC + HTTP/3
-quinn = { version = "0.11.6", features = ["aws-lc-rs"] }
-h3-quinn = { version = "0.0.7", features = ["tracing"] }
-h3 = { version = "0.0.6", features = ["tracing"] }
+quinn = { version = "0.11.6", default-features = false, features = ["platform-verifier", "runtime-tokio", "rustls-ring", "aws-lc-rs"], optional = true }
+h3-quinn = { version = "0.0.7", default-features = false, optional = true }
+h3 = { version = "0.0.6", default-features = false, optional = true }
 
 # TLS
-tokio-rustls = "0.26.1"
-rustls = "0.23.21"
-futures = "0.3.31"
+tokio-rustls = { version = "0.26.1", default-features = false, features = ["aws_lc_rs", "tls12"], optional = true }
+rustls = { version = "0.23.21", default-features = false, features = ["aws_lc_rs", "std", "tls12"], optional = true }
 
 scuffle-workspace-hack.workspace = true
 
@@ -49,3 +48,26 @@ reqwest = { version = "0.12.12", default-features = false, features = ["rustls-t
 axum = { version = "0.8.1" }
 rustls-pemfile = "2.2.0"
 scuffle-future-ext.workspace = true
+
+# https://doc.rust-lang.org/cargo/reference/features.html#dependency-features
+[features]
+default = ["http1", "http2"]
+tracing = ["dep:tracing", "hyper?/tracing", "quinn?/log", "h3-quinn?/tracing", "h3?/tracing", "tokio-rustls?/logging", "rustls?/logging"]
+http1 = ["dep:hyper", "dep:hyper-util", "hyper/http1"]
+http2 = ["dep:hyper", "dep:hyper-util", "hyper/http2"]
+http3 = ["dep:quinn", "dep:h3-quinn", "dep:h3", "tls-rustls"]
+tls-rustls = ["dep:tokio-rustls", "dep:rustls"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[package.metadata.xtask]
+additive-features = [
+    "default",
+    "tracing",
+    "http1",
+    "http2",
+    "http3",
+    "tls-rustls",
+]

@@ -8,7 +8,11 @@ use crate::service::{HttpService, HttpServiceFactory};
 #[derive(Debug, Clone)]
 pub struct SecureBackend {
     pub bind: SocketAddr,
+    #[cfg(feature = "http1")]
+    #[cfg_attr(docsrs, doc(feature = "http1"))]
     pub http1_enabled: bool,
+    #[cfg(feature = "http2")]
+    #[cfg_attr(docsrs, doc(feature = "http2"))]
     pub http2_enabled: bool,
 }
 
@@ -23,6 +27,7 @@ impl SecureBackend {
         <<S::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
         <<S::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
     {
+        #[cfg(feature = "tracing")]
         tracing::debug!("starting server");
 
         // reset it back to 0 because everything explodes if it's not
@@ -33,16 +38,27 @@ impl SecureBackend {
         let tls_acceptor = tokio_rustls::TlsAcceptor::from(Arc::new(rustls_config));
 
         loop {
-            let res: Result<_, Error<S>> = async {
+            let _res: Result<_, Error<S>> = async {
                 let (tcp_stream, addr) = listener.accept().await?;
                 let stream = tls_acceptor.accept(tcp_stream).await?;
-                super::handle_connection(&mut service_factory, addr, stream, self.http1_enabled, self.http2_enabled).await?;
+
+                #[allow(unused_variables)]
+                let http1_enabled = false;
+                #[cfg(feature = "http1")]
+                let http1_enabled = self.http1_enabled;
+                #[allow(unused_variables)]
+                let http2_enabled = false;
+                #[cfg(feature = "http2")]
+                let http2_enabled = self.http2_enabled;
+
+                super::handle_connection(&mut service_factory, addr, stream, http1_enabled, http2_enabled).await?;
 
                 Ok(())
             }
             .await;
 
-            if let Err(err) = res {
+            #[cfg(feature = "tracing")]
+            if let Err(err) = _res {
                 tracing::warn!("error: {}", err);
             }
         }

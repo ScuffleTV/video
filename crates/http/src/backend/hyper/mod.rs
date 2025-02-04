@@ -9,6 +9,8 @@ use crate::error::Error;
 use crate::service::{HttpService, HttpServiceFactory};
 
 pub mod insecure;
+#[cfg(feature = "tls-rustls")]
+#[cfg_attr(docsrs, doc(feature = "tls-rustls"))]
 pub mod secure;
 
 /// Helper function used by both secure and insecure servers to handle incoming connections.
@@ -47,7 +49,7 @@ where
     tokio::spawn(async move {
         let mut builder = auto::Builder::new(TokioExecutor::new());
 
-        let res = if http1 && http2 {
+        let _res = if http1 && http2 {
             builder
                 .http1()
                 .timer(TokioTimer::new())
@@ -66,11 +68,13 @@ where
                 .serve_connection_with_upgrades(io, hyper_proxy_service)
                 .await
         } else {
+            #[cfg(feature = "tracing")]
             tracing::warn!("both http1 and http2 are disabled, closing connection");
             return;
         };
 
-        tracing::info!("connection closed: {:?}", res);
+        #[cfg(feature = "tracing")]
+        tracing::info!("connection closed: {:?}", _res);
     });
 
     Ok(())
