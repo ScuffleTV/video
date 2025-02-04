@@ -2,11 +2,7 @@ use std::fmt::Debug;
 use std::net::SocketAddr;
 
 use super::HttpServer;
-use crate::service::{
-    custom_tower_make_service_factory, tower_make_service_factory, tower_make_service_with_addr_factory, HttpService,
-    HttpServiceFactory, TowerMakeServiceFactory, TowerMakeServiceWithAddrFactory,
-};
-use crate::IncomingRequest;
+use crate::service::HttpServiceFactory;
 
 /// An error that can occur when building an [`HttpServer`](crate::HttpServer).
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -67,47 +63,53 @@ where
     }
 }
 
-impl<M> ServerBuilder<TowerMakeServiceFactory<M, ()>>
+#[cfg(feature = "tower")]
+#[cfg_attr(docsrs, doc(cfg(feature = "tower")))]
+impl<M> ServerBuilder<crate::service::TowerMakeServiceFactory<M, ()>>
 where
-    M: tower::MakeService<(), IncomingRequest> + Send,
+    M: tower::MakeService<(), crate::IncomingRequest> + Send,
     M::Future: Send,
-    M::Service: HttpService,
+    M::Service: crate::service::HttpService,
 {
     /// Same as calling `with_service_factory(tower_make_service_factory(tower_make_service))`.
     ///
     /// # See Also
     ///
     /// - [`with_service_factory`](ServerBuilder::with_service_factory)
-    /// - [`tower_make_service_factory`]
+    /// - [`tower_make_service_factory`](crate::service::tower_make_service_factory)
     pub fn with_tower_make_service(mut self, tower_make_service: M) -> Self {
-        self.service_factory = Some(tower_make_service_factory(tower_make_service));
+        self.service_factory = Some(crate::service::tower_make_service_factory(tower_make_service));
         self
     }
 }
 
-impl<M> ServerBuilder<TowerMakeServiceWithAddrFactory<M>>
+#[cfg(feature = "tower")]
+#[cfg_attr(docsrs, doc(cfg(feature = "tower")))]
+impl<M> ServerBuilder<crate::service::TowerMakeServiceWithAddrFactory<M>>
 where
-    M: tower::MakeService<SocketAddr, IncomingRequest> + Send,
+    M: tower::MakeService<SocketAddr, crate::IncomingRequest> + Send,
     M::Future: Send,
-    M::Service: HttpService,
+    M::Service: crate::service::HttpService,
 {
     /// Same as calling `with_service_factory(tower_make_service_with_addr_factory(tower_make_service))`.
     ///
     /// # See Also
     ///
     /// - [`with_service_factory`](ServerBuilder::with_service_factory)
-    /// - [`tower_make_service_with_addr_factory`]
+    /// - [`tower_make_service_with_addr_factory`](crate::service::tower_make_service_with_addr_factory)
     pub fn with_tower_make_service_with_addr(mut self, tower_make_service: M) -> Self {
-        self.service_factory = Some(tower_make_service_with_addr_factory(tower_make_service));
+        self.service_factory = Some(crate::service::tower_make_service_with_addr_factory(tower_make_service));
         self
     }
 }
 
-impl<M, T> ServerBuilder<TowerMakeServiceFactory<M, T>>
+#[cfg(feature = "tower")]
+#[cfg_attr(docsrs, doc(cfg(feature = "tower")))]
+impl<M, T> ServerBuilder<crate::service::TowerMakeServiceFactory<M, T>>
 where
-    M: tower::MakeService<T, IncomingRequest> + Send,
+    M: tower::MakeService<T, crate::IncomingRequest> + Send,
     M::Future: Send,
-    M::Service: HttpService,
+    M::Service: crate::service::HttpService,
     T: Clone + Send,
 {
     /// Same as calling `with_service_factory(custom_tower_make_service_factory(tower_make_service, target))`.
@@ -115,9 +117,9 @@ where
     /// # See Also
     ///
     /// - [`with_service_factory`](ServerBuilder::with_service_factory)
-    /// - [`custom_tower_make_service_factory`]
+    /// - [`custom_tower_make_service_factory`](crate::service::custom_tower_make_service_factory)
     pub fn with_custom_tower_make_service(mut self, tower_make_service: M, target: T) -> Self {
-        self.service_factory = Some(custom_tower_make_service_factory(tower_make_service, target));
+        self.service_factory = Some(crate::service::custom_tower_make_service_factory(tower_make_service, target));
         self
     }
 }

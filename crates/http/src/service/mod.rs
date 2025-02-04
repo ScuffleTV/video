@@ -5,10 +5,14 @@ use crate::IncomingRequest;
 
 mod clone_factory;
 mod function;
+#[cfg(feature = "tower")]
+#[cfg_attr(docsrs, doc(cfg(feature = "tower")))]
 mod tower_factory;
 
 pub use clone_factory::*;
 pub use function::*;
+#[cfg(feature = "tower")]
+#[cfg_attr(docsrs, doc(cfg(feature = "tower")))]
 pub use tower_factory::*;
 
 /// A trait representing an HTTP service.
@@ -31,6 +35,8 @@ pub trait HttpService {
 }
 
 // Implement for tower services
+#[cfg(feature = "tower")]
+#[cfg_attr(docsrs, doc(cfg(feature = "tower")))]
 impl<T, B> HttpService for T
 where
     T: tower::Service<IncomingRequest, Response = http::Response<B>> + Send,
