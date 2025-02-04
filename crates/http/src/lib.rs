@@ -11,6 +11,15 @@
 //! Currently, there are simply no other crates that provide support for all three protocols with a unified API.
 //! This crate aims to fill that gap.
 //!
+//! ## Feature Flags
+//!
+//! - `tower`: Enables support for [`tower`](https://crates.io/crates/tower) services. Enabled by default.
+//! - `http1`: Enables support for HTTP/1. Enabled by default.
+//! - `http2`: Enables support for HTTP/2. Enabled by default.
+//! - `http3`: Enables support for HTTP/3. Disabled by default.
+//! - `tracing`: Enables logging with [`tracing`](https://crates.io/crates/tracing). Disabled by default.
+//! - `tls-rustls`: Enables support for TLS with [`rustls`](https://crates.io/crates/rustls). Disabled by default.
+//!
 //! ## Status
 //!
 //! This crate is currently under development and is not yet stable.
