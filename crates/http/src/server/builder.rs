@@ -14,6 +14,7 @@ pub enum ServerBuilderError {
     MissingServiceFactory,
 }
 
+/// The state for the rustls builder.
 #[cfg(feature = "tls-rustls")]
 #[cfg_attr(docsrs, doc(cfg(feature = "tls-rustls")))]
 pub struct RustlsBuilderState {
@@ -39,6 +40,7 @@ where
     #[cfg(feature = "http2")]
     #[cfg_attr(docsrs, doc(cfg(feature = "http2")))]
     enable_http2: bool,
+    #[allow(dead_code)]
     state: S,
 }
 
@@ -241,6 +243,7 @@ where
             enable_http2: self.enable_http2,
             state: RustlsBuilderState {
                 rustls_config: config,
+                #[cfg(feature = "http3")]
                 enable_http3: false,
             },
         }
@@ -306,38 +309,42 @@ where
     ///
     /// Make sure to set the bind address and service factory before calling this method.
     /// If HTTP/3 support is enabled, the rustls configuration must be set as well.
-    pub fn build(mut self) -> Result<HttpServer<F>, ServerBuilderError> {
+    pub fn build(self) -> Result<HttpServer<F>, ServerBuilderError> {
+        let this = self;
+        #[cfg(any(feature = "http1", feature = "http2", feature = "http3"))]
+        let mut this = this;
+
         // https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml#alpn-protocol-ids
-        if self.state.rustls_config.alpn_protocols.is_empty() {
+        if this.state.rustls_config.alpn_protocols.is_empty() {
             #[cfg(feature = "http1")]
-            if self.enable_http1 {
-                self.state.rustls_config.alpn_protocols.push(b"http/1.0".to_vec());
-                self.state.rustls_config.alpn_protocols.push(b"http/1.1".to_vec());
+            if this.enable_http1 {
+                this.state.rustls_config.alpn_protocols.push(b"http/1.0".to_vec());
+                this.state.rustls_config.alpn_protocols.push(b"http/1.1".to_vec());
             }
 
             #[cfg(feature = "http2")]
-            if self.enable_http2 {
-                self.state.rustls_config.alpn_protocols.push(b"h2".to_vec());
-                self.state.rustls_config.alpn_protocols.push(b"h2c".to_vec());
+            if this.enable_http2 {
+                this.state.rustls_config.alpn_protocols.push(b"h2".to_vec());
+                this.state.rustls_config.alpn_protocols.push(b"h2c".to_vec());
             }
 
             #[cfg(feature = "http3")]
-            if self.state.enable_http3 {
-                self.state.rustls_config.alpn_protocols.push(b"h3".to_vec());
+            if this.state.enable_http3 {
+                this.state.rustls_config.alpn_protocols.push(b"h3".to_vec());
             }
         }
 
         Ok(HttpServer {
-            ctx: self.ctx.unwrap_or_else(scuffle_context::Context::global),
-            service_factory: self.service_factory.ok_or(ServerBuilderError::MissingServiceFactory)?,
-            bind: self.bind.ok_or(ServerBuilderError::MissingBind)?,
-            rustls_config: Some(self.state.rustls_config),
+            ctx: this.ctx.unwrap_or_else(scuffle_context::Context::global),
+            service_factory: this.service_factory.ok_or(ServerBuilderError::MissingServiceFactory)?,
+            bind: this.bind.ok_or(ServerBuilderError::MissingBind)?,
+            rustls_config: Some(this.state.rustls_config),
             #[cfg(feature = "http1")]
-            enable_http1: self.enable_http1,
+            enable_http1: this.enable_http1,
             #[cfg(feature = "http2")]
-            enable_http2: self.enable_http2,
+            enable_http2: this.enable_http2,
             #[cfg(feature = "http3")]
-            enable_http3: self.state.enable_http3,
+            enable_http3: this.state.enable_http3,
         })
     }
 }

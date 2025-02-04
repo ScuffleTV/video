@@ -60,6 +60,9 @@ where
     /// - Handle incoming requests by passing them to the configured service factory.
     pub async fn run(self) -> Result<(), Error<F>> {
         #[allow(unused_variables)]
+        #[cfg(not(any(feature = "http1", feature = "http2")))]
+        let start_tcp_backend = false;
+        #[allow(unused_variables)]
         #[cfg(feature = "http1")]
         let start_tcp_backend = self.enable_http1;
         #[allow(unused_variables)]
@@ -70,9 +73,6 @@ where
 
         #[cfg(feature = "tls-rustls")]
         if let Some(_rustls_config) = self.rustls_config {
-            #[cfg(not(any(feature = "http1", feature = "http2")))]
-            let start_tcp_backend = false;
-
             #[allow(unused_variables)]
             let enable_http3 = false;
             #[cfg(feature = "http3")]
@@ -134,27 +134,29 @@ where
                 }
                 _ => return Ok(()),
             }
+
+            // This line must be unreachable
         }
 
-        if self.rustls_config.is_none() {
+        // At this point we know that we are not using TLS either
+        // - because the feature is disabled
+        // - or because it's enabled but the config is None.
+
+        #[cfg(any(feature = "http1", feature = "http2"))]
+        if start_tcp_backend {
             use scuffle_context::ContextFutExt;
 
-            #[cfg(not(any(feature = "http1", feature = "http2")))]
-            let start_tcp_backend = false;
+            let backend = crate::backend::hyper::insecure::InsecureBackend {
+                bind: self.bind,
+                #[cfg(feature = "http1")]
+                http1_enabled: self.enable_http1,
+                #[cfg(feature = "http2")]
+                http2_enabled: self.enable_http2,
+            };
 
-            if start_tcp_backend {
-                let backend = crate::backend::hyper::insecure::InsecureBackend {
-                    bind: self.bind,
-                    #[cfg(feature = "http1")]
-                    http1_enabled: self.enable_http1,
-                    #[cfg(feature = "http2")]
-                    http2_enabled: self.enable_http2,
-                };
-
-                match backend.run(self.service_factory).with_context(self.ctx).await {
-                    Some(res) => return res,
-                    None => return Ok(()),
-                }
+            match backend.run(self.service_factory).with_context(self.ctx).await {
+                Some(res) => return res,
+                None => return Ok(()),
             }
         }
 
