@@ -75,7 +75,7 @@ impl Http3Backend {
 
                                         send.send_response(http::Response::from_parts(parts, ())).await?;
 
-                                        copy_response_body(send, body).await;
+                                        copy_response_body(send, body).await?;
 
                                         Ok(())
                                     }
