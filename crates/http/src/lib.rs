@@ -57,6 +57,7 @@ mod tests {
     use scuffle_future_ext::FutureExt;
 
     use super::ServerBuilder;
+    use crate::server::builder::ServerWithRustlsBuilder;
     use crate::service::{fn_http_service, service_clone_factory, HttpService, HttpServiceFactory};
 
     fn get_available_addr() -> std::io::Result<std::net::SocketAddr> {
@@ -66,7 +67,7 @@ mod tests {
 
     const RESPONSE_TEXT: &str = "Hello, world!";
 
-    async fn test_server<F>(builder: ServerBuilder<F>, tls: bool, versions: &[reqwest::Version])
+    async fn test_server<F>(builder: ServerBuilder<F>, versions: &[reqwest::Version])
     where
         F: HttpServiceFactory + Debug + Clone + Send + 'static,
         F::Error: Debug + Display,
@@ -88,10 +89,69 @@ mod tests {
         // Wait for the server to start
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 
-        let url = format!("{}://{}/", if tls { "https" } else { "http" }, addr);
+        let url = format!("http://{}/", addr);
 
         for version in versions {
-            let mut builder = reqwest::Client::builder().danger_accept_invalid_certs(true).https_only(tls);
+            let mut builder = reqwest::Client::builder().danger_accept_invalid_certs(true);
+
+            if *version == reqwest::Version::HTTP_3 {
+                builder = builder.http3_prior_knowledge();
+            } else if *version == reqwest::Version::HTTP_2 {
+                builder = builder.http2_prior_knowledge();
+            } else {
+                builder = builder.http1_only();
+            }
+
+            let client = builder.build().expect("failed to build client");
+
+            let request = client
+                .request(reqwest::Method::GET, &url)
+                .version(*version)
+                .body(RESPONSE_TEXT.to_string())
+                .build()
+                .expect("failed to build request");
+
+            let resp = client
+                .execute(request)
+                .await
+                .expect("failed to get response")
+                .text()
+                .await
+                .expect("failed to get text");
+
+            assert_eq!(resp, RESPONSE_TEXT);
+        }
+
+        handler.shutdown().await;
+        handle.await.expect("task failed");
+    }
+
+    async fn test_tls_server<F>(builder: ServerWithRustlsBuilder<F>, versions: &[reqwest::Version])
+    where
+        F: HttpServiceFactory + Debug + Clone + Send + 'static,
+        F::Error: Debug + Display,
+        F::Service: Clone + Debug + Send + 'static,
+        <F::Service as HttpService>::Error: std::error::Error + Debug + Display + Send + Sync,
+        <F::Service as HttpService>::ResBody: Send,
+        <<F::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
+        <<F::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
+    {
+        let addr = get_available_addr().expect("failed to get available address");
+        let (ctx, handler) = scuffle_context::Context::new();
+
+        let server = builder.bind(addr).with_ctx(ctx).build().unwrap();
+
+        let handle = tokio::spawn(async move {
+            server.run().await.expect("server run failed");
+        });
+
+        // Wait for the server to start
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+
+        let url = format!("https://{}/", addr);
+
+        for version in versions {
+            let mut builder = reqwest::Client::builder().danger_accept_invalid_certs(true).https_only(true);
 
             if *version == reqwest::Version::HTTP_3 {
                 builder = builder.http3_prior_knowledge();
@@ -133,7 +193,7 @@ mod tests {
             })))
             .disable_http1();
 
-        test_server(builder, false, &[reqwest::Version::HTTP_2]).await;
+        test_server(builder, &[reqwest::Version::HTTP_2]).await;
     }
 
     #[tokio::test]
@@ -142,7 +202,7 @@ mod tests {
             Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
         })));
 
-        test_server(server, false, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
+        test_server(server, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
     }
 
     fn rustls_config() -> rustls::ServerConfig {
@@ -174,7 +234,7 @@ mod tests {
             .with_rustls(rustls_config())
             .disable_http2();
 
-        test_server(builder, true, &[reqwest::Version::HTTP_11]).await;
+        test_tls_server(builder, &[reqwest::Version::HTTP_11]).await;
     }
 
     #[tokio::test]
@@ -188,7 +248,7 @@ mod tests {
             .disable_http2()
             .enable_http3();
 
-        test_server(builder, true, &[reqwest::Version::HTTP_3]).await;
+        test_tls_server(builder, &[reqwest::Version::HTTP_3]).await;
     }
 
     #[tokio::test]
@@ -199,7 +259,7 @@ mod tests {
             })))
             .with_rustls(rustls_config());
 
-        test_server(builder, true, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
+        test_tls_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
     }
 
     #[tokio::test]
@@ -211,9 +271,8 @@ mod tests {
             .with_rustls(rustls_config())
             .enable_http3();
 
-        test_server(
+        test_tls_server(
             builder,
-            true,
             &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2, reqwest::Version::HTTP_3],
         )
         .await;
@@ -276,7 +335,7 @@ mod tests {
             }))
             .bind(addr);
 
-        test_server(builder, false, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
+        test_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
     }
 
     #[tokio::test]
@@ -295,7 +354,7 @@ mod tests {
             )
             .bind(addr);
 
-        test_server(builder, false, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
+        test_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
     }
 
     #[tokio::test]
@@ -311,7 +370,7 @@ mod tests {
             }))
             .bind(addr);
 
-        test_server(builder, false, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
+        test_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
     }
 
     #[tokio::test]
@@ -330,6 +389,6 @@ mod tests {
             .with_tower_make_service(router.into_make_service())
             .bind(addr);
 
-        test_server(builder, false, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
+        test_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
     }
 }
