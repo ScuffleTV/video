@@ -1,5 +1,3 @@
-//! # scuffle-http
-//!
 //! An HTTP server with support for HTTP/1, HTTP/2 and HTTP/3.
 //!
 //! It abstracts away [`hyper`](https://crates.io/crates/hyper) and [`h3`](https://crates.io/crates/h3) to provide a rather simple interface for creating and running a server that can handle all three protocols.
@@ -32,6 +30,8 @@
 //! `SPDX-License-Identifier: MIT OR Apache-2.0`
 #![cfg_attr(all(coverage_nightly, test), feature(coverage_attribute))]
 
+#[cfg(any(feature = "http1", feature = "http2", feature = "http3"))]
+#[cfg_attr(docsrs, doc(any(feature = "http1", feature = "http2", feature = "http3")))]
 pub mod backend;
 pub mod body;
 pub mod error;

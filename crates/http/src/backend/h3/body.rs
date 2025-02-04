@@ -79,6 +79,7 @@ impl<B: h3::quic::BidiStream<Bytes>> http_body::Body for QuicIncomingBody<B> {
                 Poll::Ready(Ok(Some(trailers))) => Poll::Ready(Some(Ok(http_body::Frame::trailers(trailers)))),
                 // We will only poll the recv_trailers once so if pending is returned we are done.
                 Poll::Pending => {
+                    #[cfg(feature = "tracing")]
                     tracing::warn!("recv_trailers is pending");
                     Poll::Ready(None)
                 }

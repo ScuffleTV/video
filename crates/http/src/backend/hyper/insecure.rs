@@ -7,7 +7,11 @@ use crate::service::{HttpService, HttpServiceFactory};
 #[derive(Debug, Clone)]
 pub struct InsecureBackend {
     pub bind: SocketAddr,
+    #[cfg(feature = "http1")]
+    #[cfg_attr(docsrs, doc(feature = "http1"))]
     pub http1_enabled: bool,
+    #[cfg(feature = "http2")]
+    #[cfg_attr(docsrs, doc(feature = "http2"))]
     pub http2_enabled: bool,
 }
 
@@ -22,21 +26,32 @@ impl InsecureBackend {
         <<S::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
         <<S::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
     {
+        #[cfg(feature = "tracing")]
         tracing::debug!("starting server");
 
         let listener = tokio::net::TcpListener::bind(self.bind).await?;
 
         loop {
-            let res: Result<_, Error<S>> = async {
+            let _res: Result<_, Error<S>> = async {
                 let (tcp_stream, addr) = listener.accept().await?;
-                super::handle_connection(&mut service_factory, addr, tcp_stream, self.http1_enabled, self.http2_enabled)
-                    .await?;
+
+                #[allow(unused_variables)]
+                let http1_enabled = false;
+                #[cfg(feature = "http1")]
+                let http1_enabled = self.http1_enabled;
+                #[allow(unused_variables)]
+                let http2_enabled = false;
+                #[cfg(feature = "http2")]
+                let http2_enabled = self.http2_enabled;
+
+                super::handle_connection(&mut service_factory, addr, tcp_stream, http1_enabled, http2_enabled).await?;
 
                 Ok(())
             }
             .await;
 
-            if let Err(e) = res {
+            #[cfg(feature = "tracing")]
+            if let Err(e) = _res {
                 tracing::warn!("error: {}", e);
             }
         }

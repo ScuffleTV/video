@@ -17,6 +17,8 @@ pub enum ServerBuilderError {
     #[error("missing service")]
     MissingServiceFactory,
     #[error("missing rustls configuration")]
+    #[cfg(feature = "tls-rustls")]
+    #[cfg_attr(docsrs, doc(feature = "tls-rustls"))]
     MissingRustlsConfig,
 }
 
@@ -30,9 +32,17 @@ where
     ctx: Option<scuffle_context::Context>,
     bind: Option<SocketAddr>,
     service_factory: Option<F>,
+    #[cfg(feature = "tls-rustls")]
+    #[cfg_attr(docsrs, doc(feature = "tls-rustls"))]
     rustls_config: Option<rustls::ServerConfig>,
+    #[cfg(feature = "http1")]
+    #[cfg_attr(docsrs, doc(feature = "http1"))]
     enable_http1: bool,
+    #[cfg(feature = "http2")]
+    #[cfg_attr(docsrs, doc(feature = "http2"))]
     enable_http2: bool,
+    #[cfg(feature = "http3")]
+    #[cfg_attr(docsrs, doc(feature = "http3"))]
     enable_http3: bool,
 }
 
@@ -45,9 +55,13 @@ where
             ctx: None,
             bind: None,
             service_factory: None,
+            #[cfg(feature = "tls-rustls")]
             rustls_config: None,
+            #[cfg(feature = "http1")]
             enable_http1: true,
+            #[cfg(feature = "http2")]
             enable_http2: true,
+            #[cfg(feature = "http3")]
             enable_http3: false,
         }
     }
@@ -150,6 +164,8 @@ where
     /// Enable or disable HTTP/1 support based on the given bool.
     ///
     /// Enabled by default.
+    #[cfg(feature = "http1")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http1")))]
     pub fn http1(mut self, enable: bool) -> Self {
         self.enable_http1 = enable;
         self
@@ -158,6 +174,8 @@ where
     /// Enable HTTP/1 support.
     ///
     /// Enabled by default.
+    #[cfg(feature = "http1")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http1")))]
     pub fn enable_http1(self) -> Self {
         self.http1(true)
     }
@@ -165,6 +183,8 @@ where
     /// Disable HTTP/1 support.
     ///
     /// Enabled by default.
+    #[cfg(feature = "http1")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http1")))]
     pub fn disable_http1(self) -> Self {
         self.http1(false)
     }
@@ -172,6 +192,8 @@ where
     /// Enable or disable HTTP/2 support based on the given bool.
     ///
     /// Enabled by default.
+    #[cfg(feature = "http2")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http2")))]
     pub fn http2(mut self, enable: bool) -> Self {
         self.enable_http2 = enable;
         self
@@ -180,6 +202,8 @@ where
     /// Enable HTTP/2 support.
     ///
     /// Enabled by default.
+    #[cfg(feature = "http2")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http2")))]
     pub fn enable_http2(self) -> Self {
         self.http2(true)
     }
@@ -187,6 +211,8 @@ where
     /// Disable HTTP/2 support.
     ///
     /// Enabled by default.
+    #[cfg(feature = "http2")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http2")))]
     pub fn disable_http2(self) -> Self {
         self.http2(false)
     }
@@ -194,6 +220,8 @@ where
     /// Enable or disable HTTP/3 support based on the given bool.
     ///
     /// Disabled by default.
+    #[cfg(feature = "http3")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
     pub fn http3(mut self, enable: bool) -> Self {
         self.enable_http3 = enable;
         self
@@ -202,6 +230,8 @@ where
     /// Enable HTTP/3 support.
     ///
     /// Disabled by default.
+    #[cfg(feature = "http3")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
     pub fn enable_http3(self) -> Self {
         self.http3(true)
     }
@@ -209,6 +239,8 @@ where
     /// Disable HTTP/3 support.
     ///
     /// Disabled by default.
+    #[cfg(feature = "http3")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
     pub fn disable_http3(self) -> Self {
         self.http3(false)
     }
@@ -218,6 +250,8 @@ where
     /// This enables TLS support for the server.
     ///
     /// Required for HTTP/3 support.
+    #[cfg(feature = "tls-rustls")]
+    #[cfg_attr(docsrs, doc(feature = "tls-rustls"))]
     pub fn with_rustls(mut self, config: rustls::ServerConfig) -> Self {
         self.rustls_config = Some(config);
         self
@@ -227,37 +261,52 @@ where
     ///
     /// Make sure to set the bind address and service factory before calling this method.
     /// If HTTP/3 support is enabled, the rustls configuration must be set as well.
-    pub fn build(mut self) -> Result<HttpServer<F>, ServerBuilderError> {
+    pub fn build(self) -> Result<HttpServer<F>, ServerBuilderError> {
+        let this = self;
+        #[cfg(feature = "tls-rustls")]
+        let mut this = this;
+
         // https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml#alpn-protocol-ids
-        if let Some(rustlsconfig) = &mut self.rustls_config {
+        #[cfg(feature = "tls-rustls")]
+        if let Some(rustlsconfig) = &mut this.rustls_config {
             rustlsconfig.alpn_protocols.clear();
 
-            if self.enable_http1 {
+            #[cfg(feature = "http1")]
+            if this.enable_http1 {
                 rustlsconfig.alpn_protocols.push(b"http/1.0".to_vec());
                 rustlsconfig.alpn_protocols.push(b"http/1.1".to_vec());
             }
 
-            if self.enable_http2 {
+            #[cfg(feature = "http2")]
+            if this.enable_http2 {
                 rustlsconfig.alpn_protocols.push(b"h2".to_vec());
                 rustlsconfig.alpn_protocols.push(b"h2c".to_vec());
             }
 
-            if self.enable_http3 {
+            #[cfg(feature = "http3")]
+            if this.enable_http3 {
                 rustlsconfig.alpn_protocols.push(b"h3".to_vec());
             }
-        } else if self.enable_http3 {
+        }
+
+        #[cfg(all(feature = "tls-rustls", feature = "http3"))]
+        if this.rustls_config.is_none() && this.enable_http3 {
             // HTTP/3 doesn't work without TLS
             return Err(ServerBuilderError::MissingRustlsConfig);
         }
 
         Ok(HttpServer {
-            ctx: self.ctx.unwrap_or_else(scuffle_context::Context::global),
-            service_factory: self.service_factory.ok_or(ServerBuilderError::MissingServiceFactory)?,
-            bind: self.bind.ok_or(ServerBuilderError::MissingBind)?,
-            rustls_config: self.rustls_config,
-            enable_http1: self.enable_http1,
-            enable_http2: self.enable_http2,
-            enable_http3: self.enable_http3,
+            ctx: this.ctx.unwrap_or_else(scuffle_context::Context::global),
+            service_factory: this.service_factory.ok_or(ServerBuilderError::MissingServiceFactory)?,
+            bind: this.bind.ok_or(ServerBuilderError::MissingBind)?,
+            #[cfg(feature = "tls-rustls")]
+            rustls_config: this.rustls_config,
+            #[cfg(feature = "http1")]
+            enable_http1: this.enable_http1,
+            #[cfg(feature = "http2")]
+            enable_http2: this.enable_http2,
+            #[cfg(feature = "http3")]
+            enable_http3: this.enable_http3,
         })
     }
 }
