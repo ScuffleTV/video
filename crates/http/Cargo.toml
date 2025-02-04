@@ -15,7 +15,6 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 
 [dependencies]
 tokio = { version = "1.43.0" }
-tower = { version = "0.5.2", features = ["make"] }
 thiserror = "2.0.11"
 futures = { version = "0.3.31", default-features = false }
 scuffle-context.workspace = true
@@ -41,6 +40,9 @@ h3 = { version = "0.0.6", default-features = false, optional = true }
 tokio-rustls = { version = "0.26.1", default-features = false, features = ["aws_lc_rs", "tls12"], optional = true }
 rustls = { version = "0.23.21", default-features = false, features = ["aws_lc_rs", "std", "tls12"], optional = true }
 
+# Tower Services
+tower = { version = "0.5.2", default-features = false, features = ["make"], optional = true }
+
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
@@ -51,12 +53,13 @@ scuffle-future-ext.workspace = true
 
 # https://doc.rust-lang.org/cargo/reference/features.html#dependency-features
 [features]
-default = ["http1", "http2"]
+default = ["http1", "http2", "tower"]
 tracing = ["dep:tracing", "hyper?/tracing", "quinn?/log", "h3-quinn?/tracing", "h3?/tracing", "tokio-rustls?/logging", "rustls?/logging"]
 http1 = ["dep:hyper", "dep:hyper-util", "hyper/http1"]
 http2 = ["dep:hyper", "dep:hyper-util", "hyper/http2"]
 http3 = ["dep:quinn", "dep:h3-quinn", "dep:h3", "tls-rustls"]
 tls-rustls = ["dep:tokio-rustls", "dep:rustls"]
+tower = ["dep:tower"]
 
 [package.metadata.docs.rs]
 all-features = true
