@@ -268,26 +268,26 @@ where
         #[cfg(feature = "tls-rustls")]
         let mut this = this;
 
-        // https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml#alpn-protocol-ids
         #[cfg(feature = "tls-rustls")]
         if let Some(rustlsconfig) = &mut this.rustls_config {
-            rustlsconfig.alpn_protocols.clear();
+            // https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml#alpn-protocol-ids
+            if rustlsconfig.alpn_protocols.is_empty() {
+                #[cfg(feature = "http1")]
+                if this.enable_http1 {
+                    rustlsconfig.alpn_protocols.push(b"http/1.0".to_vec());
+                    rustlsconfig.alpn_protocols.push(b"http/1.1".to_vec());
+                }
 
-            #[cfg(feature = "http1")]
-            if this.enable_http1 {
-                rustlsconfig.alpn_protocols.push(b"http/1.0".to_vec());
-                rustlsconfig.alpn_protocols.push(b"http/1.1".to_vec());
-            }
+                #[cfg(feature = "http2")]
+                if this.enable_http2 {
+                    rustlsconfig.alpn_protocols.push(b"h2".to_vec());
+                    rustlsconfig.alpn_protocols.push(b"h2c".to_vec());
+                }
 
-            #[cfg(feature = "http2")]
-            if this.enable_http2 {
-                rustlsconfig.alpn_protocols.push(b"h2".to_vec());
-                rustlsconfig.alpn_protocols.push(b"h2c".to_vec());
-            }
-
-            #[cfg(feature = "http3")]
-            if this.enable_http3 {
-                rustlsconfig.alpn_protocols.push(b"h3".to_vec());
+                #[cfg(feature = "http3")]
+                if this.enable_http3 {
+                    rustlsconfig.alpn_protocols.push(b"h3".to_vec());
+                }
             }
         }
 
