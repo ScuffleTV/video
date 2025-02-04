@@ -136,8 +136,7 @@ where
             }
         }
 
-        #[cfg(all(any(feature = "http1", feature = "http2"), not(feature = "tls-rustls")))]
-        {
+        if self.rustls_config.is_none() {
             use scuffle_context::ContextFutExt;
 
             #[cfg(not(any(feature = "http1", feature = "http2")))]
