@@ -36,7 +36,7 @@ where
     F: HttpServiceFactory,
 {
     /// Entry point for creating a new HTTP server.
-    pub fn builder() -> builder::ServerBuilder<F> {
+    pub fn builder() -> builder::ServerBuilder<(), F> {
         builder::ServerBuilder::default()
     }
 }

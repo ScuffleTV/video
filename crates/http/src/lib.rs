@@ -57,7 +57,7 @@ mod tests {
     use scuffle_future_ext::FutureExt;
 
     use super::ServerBuilder;
-    use crate::server::builder::ServerWithRustlsBuilder;
+    use crate::server::builder::RustlsBuilderState;
     use crate::service::{fn_http_service, service_clone_factory, HttpService, HttpServiceFactory};
 
     fn get_available_addr() -> std::io::Result<std::net::SocketAddr> {
@@ -67,7 +67,7 @@ mod tests {
 
     const RESPONSE_TEXT: &str = "Hello, world!";
 
-    async fn test_server<F>(builder: ServerBuilder<F>, versions: &[reqwest::Version])
+    async fn test_server<F>(builder: ServerBuilder<(), F>, versions: &[reqwest::Version])
     where
         F: HttpServiceFactory + Debug + Clone + Send + 'static,
         F::Error: Debug + Display,
@@ -126,7 +126,7 @@ mod tests {
         handle.await.expect("task failed");
     }
 
-    async fn test_tls_server<F>(builder: ServerWithRustlsBuilder<F>, versions: &[reqwest::Version])
+    async fn test_tls_server<F>(builder: ServerBuilder<RustlsBuilderState, F>, versions: &[reqwest::Version])
     where
         F: HttpServiceFactory + Debug + Clone + Send + 'static,
         F::Error: Debug + Display,
