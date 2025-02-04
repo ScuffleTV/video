@@ -5,11 +5,11 @@ use bytes::Bytes;
 pub enum IncomingBodyError {
     #[error("hyper error: {0}")]
     #[cfg(any(feature = "http1", feature = "http2"))]
-    #[cfg_attr(docsrs, doc(any(feature = "http1", feature = "http2")))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "http1", feature = "http2"))))]
     Hyper(#[from] hyper::Error),
     #[error("quic error: {0}")]
     #[cfg(feature = "http3")]
-    #[cfg_attr(docsrs, doc(feature = "http3"))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
     Quic(#[from] h3::Error),
 }
 
@@ -19,15 +19,15 @@ pub enum IncomingBodyError {
 /// It implements the [`http_body::Body`] trait.
 pub enum IncomingBody {
     #[cfg(any(feature = "http1", feature = "http2"))]
-    #[cfg_attr(docsrs, doc(any(feature = "http1", feature = "http2")))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "http1", feature = "http2"))))]
     Hyper(hyper::body::Incoming),
     #[cfg(feature = "http3")]
-    #[cfg_attr(docsrs, doc(feature = "http3"))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
     Quic(crate::backend::h3::body::QuicIncomingBody<h3_quinn::BidiStream<Bytes>>),
 }
 
 #[cfg(any(feature = "http1", feature = "http2"))]
-#[cfg_attr(docsrs, doc(any(feature = "http1", feature = "http2")))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "http1", feature = "http2"))))]
 impl From<hyper::body::Incoming> for IncomingBody {
     fn from(body: hyper::body::Incoming) -> Self {
         IncomingBody::Hyper(body)
@@ -35,7 +35,7 @@ impl From<hyper::body::Incoming> for IncomingBody {
 }
 
 #[cfg(feature = "http3")]
-#[cfg_attr(docsrs, doc(feature = "http3"))]
+#[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
 impl From<crate::backend::h3::body::QuicIncomingBody<h3_quinn::BidiStream<Bytes>>> for IncomingBody {
     fn from(body: crate::backend::h3::body::QuicIncomingBody<h3_quinn::BidiStream<Bytes>>) -> Self {
         IncomingBody::Quic(body)

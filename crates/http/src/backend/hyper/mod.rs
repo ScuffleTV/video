@@ -10,7 +10,7 @@ use crate::service::{HttpService, HttpServiceFactory};
 
 pub mod insecure;
 #[cfg(feature = "tls-rustls")]
-#[cfg_attr(docsrs, doc(feature = "tls-rustls"))]
+#[cfg_attr(docsrs, doc(cfg(feature = "tls-rustls")))]
 pub mod secure;
 
 /// Helper function used by both secure and insecure servers to handle incoming connections.

@@ -28,10 +28,11 @@
 //! You can choose between one of them if you use this work.
 //!
 //! `SPDX-License-Identifier: MIT OR Apache-2.0`
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![cfg_attr(all(coverage_nightly, test), feature(coverage_attribute))]
 
 #[cfg(any(feature = "http1", feature = "http2", feature = "http3"))]
-#[cfg_attr(docsrs, doc(any(feature = "http1", feature = "http2", feature = "http3")))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "http1", feature = "http2", feature = "http3"))))]
 pub mod backend;
 pub mod body;
 pub mod error;

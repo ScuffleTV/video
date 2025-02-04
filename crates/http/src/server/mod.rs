@@ -18,16 +18,16 @@ pub struct HttpServer<S> {
     service_factory: S,
     bind: SocketAddr,
     #[cfg(feature = "http1")]
-    #[cfg_attr(docsrs, doc(feature = "http1"))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http1")))]
     enable_http1: bool,
     #[cfg(feature = "http2")]
-    #[cfg_attr(docsrs, doc(feature = "http2"))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http2")))]
     enable_http2: bool,
     #[cfg(feature = "http3")]
-    #[cfg_attr(docsrs, doc(feature = "http3"))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
     enable_http3: bool,
     #[cfg(feature = "tls-rustls")]
-    #[cfg_attr(docsrs, doc(feature = "tls-rustls"))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "tls-rustls")))]
     rustls_config: Option<rustls::ServerConfig>,
 }
 

@@ -8,10 +8,10 @@ use crate::service::{HttpService, HttpServiceFactory};
 pub struct InsecureBackend {
     pub bind: SocketAddr,
     #[cfg(feature = "http1")]
-    #[cfg_attr(docsrs, doc(feature = "http1"))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http1")))]
     pub http1_enabled: bool,
     #[cfg(feature = "http2")]
-    #[cfg_attr(docsrs, doc(feature = "http2"))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http2")))]
     pub http2_enabled: bool,
 }
 

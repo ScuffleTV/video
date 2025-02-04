@@ -14,7 +14,7 @@ pub enum ServerBuilderError {
     MissingServiceFactory,
     #[error("missing rustls configuration")]
     #[cfg(feature = "tls-rustls")]
-    #[cfg_attr(docsrs, doc(feature = "tls-rustls"))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "tls-rustls")))]
     MissingRustlsConfig,
 }
 
@@ -29,16 +29,16 @@ where
     bind: Option<SocketAddr>,
     service_factory: Option<F>,
     #[cfg(feature = "tls-rustls")]
-    #[cfg_attr(docsrs, doc(feature = "tls-rustls"))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "tls-rustls")))]
     rustls_config: Option<rustls::ServerConfig>,
     #[cfg(feature = "http1")]
-    #[cfg_attr(docsrs, doc(feature = "http1"))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http1")))]
     enable_http1: bool,
     #[cfg(feature = "http2")]
-    #[cfg_attr(docsrs, doc(feature = "http2"))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http2")))]
     enable_http2: bool,
     #[cfg(feature = "http3")]
-    #[cfg_attr(docsrs, doc(feature = "http3"))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
     enable_http3: bool,
 }
 
@@ -253,7 +253,7 @@ where
     ///
     /// Required for HTTP/3 support.
     #[cfg(feature = "tls-rustls")]
-    #[cfg_attr(docsrs, doc(feature = "tls-rustls"))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "tls-rustls")))]
     pub fn with_rustls(mut self, config: rustls::ServerConfig) -> Self {
         self.rustls_config = Some(config);
         self
