@@ -14,6 +14,10 @@ keywords = ["http", "server", "http1", "http2", "http3"]
 name = "scuffle-http-axum"
 path = "src/axum.rs"
 
+[[example]]
+name = "scuffle-http-simple-service"
+path = "src/simple_service.rs"
+
 [dev-dependencies]
 axum = { version = "0.8.1", features = ["macros", "ws"] }
 tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
