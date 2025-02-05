@@ -7,7 +7,7 @@ async fn main() {
     let service = scuffle_http::service::fn_http_service(|req| async move {
         scuffle_http::http::Response::builder()
             .status(scuffle_http::http::StatusCode::OK)
-            .header("content-type", "text/plain")
+            .header(scuffle_http::http::header::CONTENT_TYPE, "text/plain")
             .body(format!("Hello, world!\nURL: {:?}", req.uri()))
     });
     let service_factory = scuffle_http::service::service_clone_factory(service);
