@@ -7,7 +7,4 @@ rustflags = [
     # Required for http3 support in reqwest in scuffle-http
     "--cfg",
     "reqwest_unstable",
-    # Required for tracing support in hyper in scuffle-http
-    "--cfg",
-    "hyper_unstable_tracing",
 ]
