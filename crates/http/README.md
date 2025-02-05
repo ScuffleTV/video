@@ -29,6 +29,35 @@ This crate aims to fill that gap.
 - `tracing`: Enables logging with [`tracing`](https://crates.io/crates/tracing). Disabled by default.
 - `tls-rustls`: Enables support for TLS with [`rustls`](https://crates.io/crates/rustls). Disabled by default.
 
+## Example
+
+The following example demonstrates how to create a simple HTTP server (without TLS) that responds with "Hello, world!" to all requests on port 3000.
+
+```rust
+# use scuffle_future_ext::FutureExt;
+# tokio_test::block_on(async {
+# let run = async {
+let service = scuffle_http::service::fn_http_service(|req| async move {
+    scuffle_http::http::Response::builder()
+    .status(scuffle_http::http::StatusCode::OK)
+    .header(scuffle_http::http::header::CONTENT_TYPE, "text/plain")
+    .body("Hello, world!".to_string())
+});
+let service_factory = scuffle_http::service::service_clone_factory(service);
+
+scuffle_http::HttpServer::builder()
+    .with_service_factory(service_factory)
+    .bind("[::]:3000".parse().unwrap())
+    .build()
+    .expect("failed to build server")
+    .run()
+    .await
+    .expect("server failed");
+# };
+# run.with_timeout(std::time::Duration::from_secs(1)).await.expect_err("test should have timed out");
+# });
+```
+
 ## Status
 
 This crate is currently under development and is not yet stable.
