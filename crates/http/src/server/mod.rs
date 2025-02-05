@@ -59,21 +59,18 @@ where
     /// - Accept all incoming connections.
     /// - Handle incoming requests by passing them to the configured service factory.
     pub async fn run(self) -> Result<(), Error<F>> {
-        #[allow(unused_variables)]
         #[cfg(not(any(feature = "http1", feature = "http2")))]
         let start_tcp_backend = false;
-        #[allow(unused_variables)]
-        #[cfg(feature = "http1")]
+        #[cfg(all(feature = "http1", not(feature = "http2")))]
         let start_tcp_backend = self.enable_http1;
-        #[allow(unused_variables)]
-        #[cfg(feature = "http2")]
+        #[cfg(all(not(feature = "http1"), feature = "http2"))]
         let start_tcp_backend = self.enable_http2;
         #[cfg(all(feature = "http1", feature = "http2"))]
         let start_tcp_backend = self.enable_http1 || self.enable_http2;
 
         #[cfg(feature = "tls-rustls")]
         if let Some(_rustls_config) = self.rustls_config {
-            #[allow(unused_variables)]
+            #[cfg(not(feature = "http3"))]
             let enable_http3 = false;
             #[cfg(feature = "http3")]
             let enable_http3 = self.enable_http3;

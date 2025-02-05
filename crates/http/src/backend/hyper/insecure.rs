@@ -35,11 +35,12 @@ impl InsecureBackend {
             let _res: Result<_, Error<S>> = async {
                 let (tcp_stream, addr) = listener.accept().await?;
 
-                #[allow(unused_variables)]
+                #[cfg(not(feature = "http1"))]
                 let http1_enabled = false;
                 #[cfg(feature = "http1")]
                 let http1_enabled = self.http1_enabled;
-                #[allow(unused_variables)]
+
+                #[cfg(not(feature = "http2"))]
                 let http2_enabled = false;
                 #[cfg(feature = "http2")]
                 let http2_enabled = self.http2_enabled;
