@@ -18,8 +18,8 @@ async fn handle_connection<S, I>(
     service_factory: &mut S,
     addr: SocketAddr,
     io: I,
-    http1: bool,
-    http2: bool,
+    #[cfg(feature = "http1")] http1: bool,
+    #[cfg(feature = "http2")] http2: bool,
 ) -> Result<(), Error<S>>
 where
     S: HttpServiceFactory,
@@ -31,6 +31,11 @@ where
     <<S::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
     I: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
+    #[cfg(not(feature = "http1"))]
+    let http1 = false;
+    #[cfg(not(feature = "http2"))]
+    let http2 = false;
+
     let io = TokioIo::new(io);
 
     // make a new service
@@ -50,13 +55,13 @@ where
         let mut builder = auto::Builder::new(TokioExecutor::new());
 
         let _res = if http1 && http2 {
-            builder
-                .http1()
-                .timer(TokioTimer::new())
-                .http2()
-                .timer(TokioTimer::new())
-                .serve_connection_with_upgrades(io, hyper_proxy_service)
-                .await
+            #[cfg(feature = "http1")]
+            builder.http1().timer(TokioTimer::new());
+
+            #[cfg(feature = "http2")]
+            builder.http2().timer(TokioTimer::new());
+
+            builder.serve_connection_with_upgrades(io, hyper_proxy_service).await
         } else if http1 {
             builder
                 .http1_only()
