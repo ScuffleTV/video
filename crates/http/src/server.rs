@@ -25,13 +25,26 @@ pub struct HttpServer<F> {
     #[cfg(feature = "http2")]
     #[cfg_attr(docsrs, doc(cfg(feature = "http2")))]
     enable_http2: bool,
-    #[builder(default = false)]
+    #[builder(default = false, setters(vis = "", name = enable_http3_internal))]
     #[cfg(feature = "http3")]
     #[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
     enable_http3: bool,
     #[cfg(feature = "tls-rustls")]
     #[cfg_attr(docsrs, doc(cfg(feature = "tls-rustls")))]
     rustls_config: Option<rustls::ServerConfig>,
+}
+
+#[cfg(feature = "http3")]
+#[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
+impl<F, S> HttpServerBuilder<F, S>
+where
+    S: http_server_builder::State,
+    S::EnableHttp3: http_server_builder::IsUnset,
+    S::RustlsConfig: http_server_builder::IsSet,
+{
+    pub fn enable_http3(self, enable_http3: bool) -> HttpServerBuilder<F, http_server_builder::SetEnableHttp3<S>> {
+        self.enable_http3_internal(enable_http3)
+    }
 }
 
 #[cfg(feature = "tower")]
