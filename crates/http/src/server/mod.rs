@@ -80,7 +80,10 @@ where
                 (false, true) => {
                     use scuffle_context::ContextFutExt;
 
-                    let backend = crate::backend::h3::Http3Backend { bind: self.bind };
+                    let backend = crate::backend::h3::Http3Backend {
+                        ctx: self.ctx.clone(),
+                        bind: self.bind,
+                    };
 
                     match backend.run(self.service_factory, _rustls_config).with_context(self.ctx).await {
                         Some(res) => return res,
@@ -92,6 +95,7 @@ where
                     use scuffle_context::ContextFutExt;
 
                     let backend = crate::backend::hyper::secure::SecureBackend {
+                        ctx: self.ctx.clone(),
                         bind: self.bind,
                         #[cfg(feature = "http1")]
                         http1_enabled: self.enable_http1,
@@ -109,6 +113,7 @@ where
                     use scuffle_context::ContextFutExt;
 
                     let hyper = crate::backend::hyper::secure::SecureBackend {
+                        ctx: self.ctx.clone(),
                         bind: self.bind,
                         #[cfg(feature = "http1")]
                         http1_enabled: self.enable_http1,
@@ -118,8 +123,11 @@ where
                     .run(self.service_factory.clone(), _rustls_config.clone());
                     let hyper = std::pin::pin!(hyper);
 
-                    let mut http3 =
-                        crate::backend::h3::Http3Backend { bind: self.bind }.run(self.service_factory, _rustls_config);
+                    let mut http3 = crate::backend::h3::Http3Backend {
+                        ctx: self.ctx.clone(),
+                        bind: self.bind,
+                    }
+                    .run(self.service_factory, _rustls_config);
                     let http3 = std::pin::pin!(http3);
 
                     let res = futures::future::select(hyper, http3).with_context(self.ctx).await;
@@ -144,6 +152,7 @@ where
             use scuffle_context::ContextFutExt;
 
             let backend = crate::backend::hyper::insecure::InsecureBackend {
+                ctx: self.ctx.clone(),
                 bind: self.bind,
                 #[cfg(feature = "http1")]
                 http1_enabled: self.enable_http1,
