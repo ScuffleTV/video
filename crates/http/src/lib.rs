@@ -37,10 +37,9 @@
 //! let service_factory = scuffle_http::service::service_clone_factory(service);
 //!
 //! scuffle_http::HttpServer::builder()
-//!     .with_service_factory(service_factory)
+//!     .service_factory(service_factory)
 //!     .bind("[::]:3000".parse().unwrap())
 //!     .build()
-//!     .expect("failed to build server")
 //!     .run()
 //!     .await
 //!     .expect("server failed");
@@ -78,7 +77,7 @@ mod server;
 pub mod service;
 
 pub use http;
-pub use server::builder::ServerBuilder;
+// pub use server::builder::ServerBuilder;
 pub use server::HttpServer;
 
 pub type IncomingRequest = http::Request<body::IncomingBody>;
@@ -95,9 +94,9 @@ mod tests {
 
     use scuffle_future_ext::FutureExt;
 
-    use super::ServerBuilder;
-    use crate::server::builder::RustlsBuilderState;
+    use crate::server::HttpServerBuilder;
     use crate::service::{fn_http_service, service_clone_factory, HttpService, HttpServiceFactory};
+    use crate::HttpServer;
 
     fn get_available_addr() -> std::io::Result<std::net::SocketAddr> {
         let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
@@ -106,7 +105,7 @@ mod tests {
 
     const RESPONSE_TEXT: &str = "Hello, world!";
 
-    async fn test_server<F>(builder: ServerBuilder<(), F>, versions: &[reqwest::Version])
+    async fn test_server<F, S>(builder: HttpServerBuilder<F, S>, versions: &[reqwest::Version])
     where
         F: HttpServiceFactory + Debug + Clone + Send + 'static,
         F::Error: Debug + Display,
@@ -115,11 +114,15 @@ mod tests {
         <F::Service as HttpService>::ResBody: Send,
         <<F::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
         <<F::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
+        S: crate::server::http_server_builder::State,
+        S::ServiceFactory: crate::server::http_server_builder::IsSet,
+        S::Bind: crate::server::http_server_builder::IsUnset,
+        S::Ctx: crate::server::http_server_builder::IsUnset,
     {
         let addr = get_available_addr().expect("failed to get available address");
         let (ctx, handler) = scuffle_context::Context::new();
 
-        let server = builder.bind(addr).with_ctx(ctx).build().unwrap();
+        let server = builder.bind(addr).ctx(ctx).build();
 
         let handle = tokio::spawn(async move {
             server.run().await.expect("server run failed");
@@ -165,7 +168,7 @@ mod tests {
         handle.await.expect("task failed");
     }
 
-    async fn test_tls_server<F>(builder: ServerBuilder<RustlsBuilderState, F>, versions: &[reqwest::Version])
+    async fn test_tls_server<F, S>(builder: HttpServerBuilder<F, S>, versions: &[reqwest::Version])
     where
         F: HttpServiceFactory + Debug + Clone + Send + 'static,
         F::Error: Debug + Display,
@@ -174,11 +177,15 @@ mod tests {
         <F::Service as HttpService>::ResBody: Send,
         <<F::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
         <<F::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
+        S: crate::server::http_server_builder::State,
+        S::ServiceFactory: crate::server::http_server_builder::IsSet,
+        S::Bind: crate::server::http_server_builder::IsUnset,
+        S::Ctx: crate::server::http_server_builder::IsUnset,
     {
         let addr = get_available_addr().expect("failed to get available address");
         let (ctx, handler) = scuffle_context::Context::new();
 
-        let server = builder.bind(addr).with_ctx(ctx).build().unwrap();
+        let server = builder.bind(addr).ctx(ctx).build();
 
         let handle = tokio::spawn(async move {
             server.run().await.expect("server run failed");
@@ -212,7 +219,7 @@ mod tests {
             let resp = client
                 .execute(request)
                 .await
-                .expect("failed to get response")
+                .unwrap_or_else(|_| panic!("failed to get response version {:?}", version))
                 .text()
                 .await
                 .expect("failed to get text");
@@ -226,18 +233,18 @@ mod tests {
 
     #[tokio::test]
     async fn http2_server() {
-        let builder = ServerBuilder::default()
-            .with_service_factory(service_clone_factory(fn_http_service(|_| async {
+        let builder = HttpServer::builder()
+            .service_factory(service_clone_factory(fn_http_service(|_| async {
                 Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
             })))
-            .disable_http1();
+            .enable_http1(false);
 
         test_server(builder, &[reqwest::Version::HTTP_2]).await;
     }
 
     #[tokio::test]
     async fn http12_server() {
-        let server = ServerBuilder::default().with_service_factory(service_clone_factory(fn_http_service(|_| async {
+        let server = HttpServer::builder().service_factory(service_clone_factory(fn_http_service(|_| async {
             Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
         })));
 
@@ -266,49 +273,49 @@ mod tests {
 
     #[tokio::test]
     async fn rustls_http1_server() {
-        let builder = ServerBuilder::default()
-            .with_service_factory(service_clone_factory(fn_http_service(|_| async {
+        let builder = HttpServer::builder()
+            .service_factory(service_clone_factory(fn_http_service(|_| async {
                 Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
             })))
-            .with_rustls(rustls_config())
-            .disable_http2();
+            .rustls_config(rustls_config())
+            .enable_http2(false);
 
         test_tls_server(builder, &[reqwest::Version::HTTP_11]).await;
     }
 
     #[tokio::test]
     async fn rustls_http3_server() {
-        let builder = ServerBuilder::default()
-            .with_service_factory(service_clone_factory(fn_http_service(|_| async {
+        let builder = HttpServer::builder()
+            .service_factory(service_clone_factory(fn_http_service(|_| async {
                 Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
             })))
-            .with_rustls(rustls_config())
-            .disable_http1()
-            .disable_http2()
-            .enable_http3();
+            .rustls_config(rustls_config())
+            .enable_http1(false)
+            .enable_http2(false)
+            .enable_http3(true);
 
         test_tls_server(builder, &[reqwest::Version::HTTP_3]).await;
     }
 
     #[tokio::test]
     async fn rustls_http12_server() {
-        let builder = ServerBuilder::default()
-            .with_service_factory(service_clone_factory(fn_http_service(|_| async {
+        let builder = HttpServer::builder()
+            .service_factory(service_clone_factory(fn_http_service(|_| async {
                 Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
             })))
-            .with_rustls(rustls_config());
+            .rustls_config(rustls_config());
 
         test_tls_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
     }
 
     #[tokio::test]
     async fn rustls_http123_server() {
-        let builder = ServerBuilder::default()
-            .with_service_factory(service_clone_factory(fn_http_service(|_| async {
+        let builder = HttpServer::builder()
+            .service_factory(service_clone_factory(fn_http_service(|_| async {
                 Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
             })))
-            .with_rustls(rustls_config())
-            .enable_http3();
+            .rustls_config(rustls_config())
+            .enable_http3(true);
 
         test_tls_server(
             builder,
@@ -321,17 +328,16 @@ mod tests {
     async fn no_backend() {
         let addr = get_available_addr().expect("failed to get available address");
 
-        let builder = ServerBuilder::default()
-            .with_service_factory(service_clone_factory(fn_http_service(|_| async {
+        let builder = HttpServer::builder()
+            .service_factory(service_clone_factory(fn_http_service(|_| async {
                 Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
             })))
             .bind(addr)
-            .disable_http1()
-            .disable_http2();
+            .enable_http1(false)
+            .enable_http2(false);
 
         builder
             .build()
-            .unwrap()
             .run()
             .with_timeout(Duration::from_millis(100))
             .await
@@ -343,18 +349,17 @@ mod tests {
     async fn rustls_no_backend() {
         let addr = get_available_addr().expect("failed to get available address");
 
-        let builder = ServerBuilder::default()
-            .with_service_factory(service_clone_factory(fn_http_service(|_| async {
+        let builder = HttpServer::builder()
+            .service_factory(service_clone_factory(fn_http_service(|_| async {
                 Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
             })))
-            .with_rustls(rustls_config())
+            .rustls_config(rustls_config())
             .bind(addr)
-            .disable_http1()
-            .disable_http2();
+            .enable_http1(false)
+            .enable_http2(false);
 
         builder
             .build()
-            .unwrap()
             .run()
             .with_timeout(Duration::from_millis(100))
             .await
@@ -364,50 +369,38 @@ mod tests {
 
     #[tokio::test]
     async fn tower_make_service() {
-        let addr = get_available_addr().expect("failed to get available address");
-
-        let builder = ServerBuilder::default()
-            .with_tower_make_service(tower::service_fn(|_| async {
-                Ok::<_, Infallible>(tower::service_fn(|_| async move {
-                    Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
-                }))
+        let builder = HttpServer::builder().tower_make_service_factory(tower::service_fn(|_| async {
+            Ok::<_, Infallible>(tower::service_fn(|_| async move {
+                Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
             }))
-            .bind(addr);
+        }));
 
         test_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
     }
 
     #[tokio::test]
     async fn tower_custom_make_service() {
-        let addr = get_available_addr().expect("failed to get available address");
-
-        let builder = ServerBuilder::default()
-            .with_custom_tower_make_service(
-                tower::service_fn(|target| async move {
-                    assert_eq!(target, 42);
-                    Ok::<_, Infallible>(tower::service_fn(|_| async move {
-                        Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
-                    }))
-                }),
-                42,
-            )
-            .bind(addr);
+        let builder = HttpServer::builder().custom_tower_make_service_factory(
+            tower::service_fn(|target| async move {
+                assert_eq!(target, 42);
+                Ok::<_, Infallible>(tower::service_fn(|_| async move {
+                    Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
+                }))
+            }),
+            42,
+        );
 
         test_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
     }
 
     #[tokio::test]
     async fn tower_make_service_with_addr() {
-        let addr = get_available_addr().expect("failed to get available address");
-
-        let builder = ServerBuilder::default()
-            .with_tower_make_service_with_addr(tower::service_fn(|addr: SocketAddr| async move {
-                assert!(addr.ip().is_loopback());
-                Ok::<_, Infallible>(tower::service_fn(|_| async move {
-                    Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
-                }))
+        let builder = HttpServer::builder().tower_make_service_with_addr(tower::service_fn(|addr: SocketAddr| async move {
+            assert!(addr.ip().is_loopback());
+            Ok::<_, Infallible>(tower::service_fn(|_| async move {
+                Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
             }))
-            .bind(addr);
+        }));
 
         test_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
     }
@@ -422,11 +415,7 @@ mod tests {
             }),
         );
 
-        let addr = get_available_addr().expect("failed to get available address");
-
-        let builder = ServerBuilder::default()
-            .with_tower_make_service(router.into_make_service())
-            .bind(addr);
+        let builder = HttpServer::builder().tower_make_service_factory(router.into_make_service());
 
         test_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
     }

@@ -47,12 +47,11 @@ async fn main() {
         .into_make_service();
 
     scuffle_http::HttpServer::builder()
-        .with_rustls(get_tls_config().expect("failed to load tls config"))
-        .with_tower_make_service(make_service)
+        .rustls_config(get_tls_config().expect("failed to load tls config"))
+        .tower_make_service_factory(make_service)
         .bind("[::]:443".parse().unwrap())
-        .enable_http3()
+        .enable_http3(true)
         .build()
-        .expect("failed to build server")
         .run()
         .await
         .expect("server failed");

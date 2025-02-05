@@ -256,13 +256,9 @@ impl<Global: TelemetryConfig> Service<Global> for TelemetrySvc {
 
             scuffle_http::HttpServer::builder()
                 .bind(bind_addr)
-                .with_ctx(ctx)
-                .with_service_factory(scuffle_http::service::fn_http_service_factory(move |_addr| {
-                    let service = service.clone();
-                    async move { Ok::<_, std::convert::Infallible>(service) }
-                }))
+                .ctx(ctx)
+                .service_factory(scuffle_http::service::service_clone_factory(service))
                 .build()
-                .context("server builder")?
                 .run()
                 .await
                 .context("server run")?;
