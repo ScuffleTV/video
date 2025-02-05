@@ -1,5 +1,4 @@
 use std::fmt::{Debug, Display};
-use std::net::SocketAddr;
 
 use hyper_util::rt::{TokioExecutor, TokioIo, TokioTimer};
 use hyper_util::server::conn::auto;
@@ -14,21 +13,20 @@ pub mod insecure;
 pub mod secure;
 
 /// Helper function used by both secure and insecure servers to handle incoming connections.
-async fn handle_connection<S, I>(
-    service_factory: &mut S,
-    addr: SocketAddr,
+async fn handle_connection<F, S, I>(
+    service: S,
     io: I,
     #[cfg(feature = "http1")] http1: bool,
     #[cfg(feature = "http2")] http2: bool,
-) -> Result<(), Error<S>>
+) -> Result<(), Error<F>>
 where
-    S: HttpServiceFactory,
-    S::Error: Debug + Display,
-    S::Service: Clone + Send + 'static,
-    <S::Service as HttpService>::Error: std::error::Error + Debug + Display + Send + Sync,
-    <S::Service as HttpService>::ResBody: Send,
-    <<S::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
-    <<S::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
+    F: HttpServiceFactory<Service = S>,
+    F::Error: Debug + Display,
+    S: HttpService + Clone + Send + 'static,
+    S::Error: std::error::Error + Debug + Display + Send + Sync,
+    S::ResBody: Send,
+    <S::ResBody as http_body::Body>::Data: Send,
+    <S::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
     I: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
     #[cfg(not(feature = "http1"))]
@@ -38,16 +36,13 @@ where
 
     let io = TokioIo::new(io);
 
-    // make a new service
-    let http_service = service_factory.new_service(addr).await.map_err(Error::ServiceFactoryError)?;
-
     let hyper_proxy_service = hyper::service::service_fn(move |req: http::Request<hyper::body::Incoming>| {
-        let mut http_service = http_service.clone();
+        let mut service = service.clone();
         async move {
             let (parts, body) = req.into_parts();
             let body = crate::body::IncomingBody::from(body);
             let req = http::Request::from_parts(parts, body);
-            http_service.call(req).await
+            service.call(req).await
         }
     });
 
