@@ -1,4 +1,8 @@
-use bytes::Bytes;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+
+use bytes::{Buf, Bytes};
+use http_body::Frame;
 
 /// An error that can occur when reading the body of an incoming request.
 #[derive(thiserror::Error, Debug)]
@@ -83,5 +87,74 @@ impl http_body::Body for IncomingBody {
             #[cfg(not(any(feature = "http1", feature = "http2", feature = "http3")))]
             _ => http_body::SizeHint::default(),
         }
+    }
+}
+
+pin_project_lite::pin_project! {
+    pub struct TrackedBody<B, T> {
+        #[pin]
+        body: B,
+        tracker: T,
+    }
+}
+
+impl<B, T> TrackedBody<B, T> {
+    pub fn new(body: B, tracker: T) -> Self {
+        Self { body, tracker }
+    }
+}
+
+pub enum TrackedBodyError<B, T>
+where
+    B: http_body::Body,
+    T: Tracker,
+{
+    Body(B::Error),
+    Tracker(T::Error),
+}
+
+pub trait Tracker: Send + Sync + 'static {
+    type Error;
+
+    fn on_data(&self, size: usize) -> Result<(), Self::Error> {
+        let _ = size;
+        Ok(())
+    }
+
+    fn on_close(&self) {}
+}
+
+impl<B, T> http_body::Body for TrackedBody<B, T>
+where
+    B: http_body::Body,
+    T: Tracker,
+{
+    type Data = B::Data;
+    type Error = TrackedBodyError<B, T>;
+
+    fn poll_frame(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Result<Frame<Self::Data>, Self::Error>>> {
+        let this = self.project();
+        match this.body.poll_frame(cx) {
+            Poll::Pending => Poll::Pending,
+            Poll::Ready(frame) => {
+                if let Some(Ok(frame)) = &frame {
+                    if let Some(data) = frame.data_ref() {
+                        if let Err(err) = this.tracker.on_data(data.remaining()) {
+                            return Poll::Ready(Some(Err(TrackedBodyError::Tracker(err))));
+                        }
+                    }
+                }
+
+                Poll::Ready(frame.transpose().map_err(TrackedBodyError::Body).transpose())
+            }
+        }
+    }
+
+    fn is_end_stream(&self) -> bool {
+        self.body.is_end_stream()
+    }
+
+    fn size_hint(&self) -> http_body::SizeHint {
+        self.body.size_hint()
     }
 }
