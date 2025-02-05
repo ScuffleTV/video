@@ -1372,7 +1372,6 @@ dependencies = [
  "pin-project-lite",
  "smallvec",
  "tokio",
- "tracing",
  "want",
 ]
 
