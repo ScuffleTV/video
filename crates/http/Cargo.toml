@@ -55,8 +55,7 @@ scuffle-future-ext.workspace = true
 # https://doc.rust-lang.org/cargo/reference/features.html#dependency-features
 [features]
 default = ["http1", "http2", "tower"]
-# The hyper/tracing feature requires a custom build flag (see .cargo/config.toml)
-tracing = ["dep:tracing", "hyper?/tracing", "quinn?/log", "h3-quinn?/tracing", "h3?/tracing", "tokio-rustls?/logging", "rustls?/logging"]
+tracing = ["dep:tracing", "quinn?/log", "h3-quinn?/tracing", "h3?/tracing", "tokio-rustls?/logging", "rustls?/logging"]
 http1 = ["dep:hyper", "dep:hyper-util", "hyper/http1"]
 http2 = ["dep:hyper", "dep:hyper-util", "hyper/http2"]
 http3 = ["dep:quinn", "dep:h3-quinn", "dep:h3", "tls-rustls"]
