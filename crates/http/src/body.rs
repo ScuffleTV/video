@@ -91,6 +91,7 @@ impl http_body::Body for IncomingBody {
 }
 
 pin_project_lite::pin_project! {
+    /// A wrapper around an HTTP body that tracks the size of the data that is read from it.
     pub struct TrackedBody<B, T> {
         #[pin]
         body: B,
@@ -104,6 +105,7 @@ impl<B, T> TrackedBody<B, T> {
     }
 }
 
+/// An error that can occur when tracking the body of an incoming request.
 pub enum TrackedBodyError<B, T>
 where
     B: http_body::Body,
@@ -113,15 +115,17 @@ where
     Tracker(T::Error),
 }
 
+/// A trait for tracking the size of the data that is read from an HTTP body.
 pub trait Tracker: Send + Sync + 'static {
     type Error;
 
+    /// Called when data is read from the body.
+    ///
+    /// The `size` parameter is the size of the data that is remaining to be read from the body.
     fn on_data(&self, size: usize) -> Result<(), Self::Error> {
         let _ = size;
         Ok(())
     }
-
-    fn on_close(&self) {}
 }
 
 impl<B, T> http_body::Body for TrackedBody<B, T>
