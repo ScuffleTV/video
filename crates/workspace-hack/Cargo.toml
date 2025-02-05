@@ -38,7 +38,7 @@ futures-util = { version = "0.3", default-features = false, features = ["async-a
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
 h3 = { version = "0.0.6", default-features = false, features = ["i-implement-a-third-party-backend-and-opt-into-breaking-changes", "tracing"] }
 h3-quinn = { version = "0.0.7", default-features = false, features = ["tracing"] }
-hyper = { version = "1", features = ["http1", "http2", "server", "tracing"] }
+hyper = { version = "1", features = ["http1", "http2", "server"] }
 hyper-util = { version = "0.1", features = ["http1", "server", "service", "tokio"] }
 insta = { version = "1", features = ["filters"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -105,7 +105,7 @@ futures-util = { version = "0.3", default-features = false, features = ["async-a
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
 h3 = { version = "0.0.6", default-features = false, features = ["i-implement-a-third-party-backend-and-opt-into-breaking-changes", "tracing"] }
 h3-quinn = { version = "0.0.7", default-features = false, features = ["tracing"] }
-hyper = { version = "1", features = ["http1", "http2", "server", "tracing"] }
+hyper = { version = "1", features = ["http1", "http2", "server"] }
 hyper-util = { version = "0.1", features = ["http1", "server", "service", "tokio"] }
 insta = { version = "1", features = ["filters"] }
 itertools = { version = "0.12", default-features = false, features = ["use_alloc"] }
