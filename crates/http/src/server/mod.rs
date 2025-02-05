@@ -59,7 +59,7 @@ where
     /// - Accept all incoming connections.
     /// - Handle incoming requests by passing them to the configured service factory.
     pub async fn run(self) -> Result<(), Error<F>> {
-        #[cfg(not(any(feature = "http1", feature = "http2")))]
+        #[cfg(all(not(any(feature = "http1", feature = "http2")), feature = "tls-rustls"))]
         let start_tcp_backend = false;
         #[cfg(all(feature = "http1", not(feature = "http2")))]
         let start_tcp_backend = self.enable_http1;

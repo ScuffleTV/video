@@ -35,17 +35,15 @@ impl InsecureBackend {
             let _res: Result<_, Error<S>> = async {
                 let (tcp_stream, addr) = listener.accept().await?;
 
-                #[cfg(not(feature = "http1"))]
-                let http1_enabled = false;
-                #[cfg(feature = "http1")]
-                let http1_enabled = self.http1_enabled;
+                #[cfg(all(feature = "http1", not(feature = "http2")))]
+                super::handle_connection(&mut service_factory, addr, tcp_stream, self.http1_enabled).await?;
 
-                #[cfg(not(feature = "http2"))]
-                let http2_enabled = false;
-                #[cfg(feature = "http2")]
-                let http2_enabled = self.http2_enabled;
+                #[cfg(all(not(feature = "http1"), feature = "http2"))]
+                super::handle_connection(&mut service_factory, addr, tcp_stream, self.http2_enabled).await?;
 
-                super::handle_connection(&mut service_factory, addr, tcp_stream, http1_enabled, http2_enabled).await?;
+                #[cfg(all(feature = "http1", feature = "http2"))]
+                super::handle_connection(&mut service_factory, addr, tcp_stream, self.http1_enabled, self.http2_enabled)
+                    .await?;
 
                 Ok(())
             }

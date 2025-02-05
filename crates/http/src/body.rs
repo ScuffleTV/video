@@ -53,6 +53,7 @@ impl http_body::Body for IncomingBody {
             IncomingBody::Hyper(body) => body.is_end_stream(),
             #[cfg(feature = "http3")]
             IncomingBody::Quic(body) => body.is_end_stream(),
+            #[cfg(not(any(feature = "http1", feature = "http2", feature = "http3")))]
             _ => false,
         }
     }
@@ -67,6 +68,7 @@ impl http_body::Body for IncomingBody {
             IncomingBody::Hyper(body) => std::pin::Pin::new(body).poll_frame(_cx).map_err(Into::into),
             #[cfg(feature = "http3")]
             IncomingBody::Quic(body) => std::pin::Pin::new(body).poll_frame(_cx).map_err(Into::into),
+            #[cfg(not(any(feature = "http1", feature = "http2", feature = "http3")))]
             _ => std::task::Poll::Ready(None),
         }
     }
@@ -78,6 +80,7 @@ impl http_body::Body for IncomingBody {
             IncomingBody::Hyper(body) => body.size_hint(),
             #[cfg(feature = "http3")]
             IncomingBody::Quic(body) => body.size_hint(),
+            #[cfg(not(any(feature = "http1", feature = "http2", feature = "http3")))]
             _ => http_body::SizeHint::default(),
         }
     }
