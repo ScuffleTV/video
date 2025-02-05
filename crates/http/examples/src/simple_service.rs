@@ -13,12 +13,11 @@ async fn main() {
     let service_factory = scuffle_http::service::service_clone_factory(service);
 
     scuffle_http::HttpServer::builder()
-        .with_rustls(get_tls_config().expect("failed to load tls config"))
-        .with_service_factory(service_factory)
+        .rustls_config(get_tls_config().expect("failed to load tls config"))
+        .service_factory(service_factory)
         .bind("[::]:443".parse().unwrap())
-        .enable_http3()
+        .enable_http3(true)
         .build()
-        .expect("failed to build server")
         .run()
         .await
         .expect("server failed");
