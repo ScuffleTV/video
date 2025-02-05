@@ -4,13 +4,11 @@ use std::net::SocketAddr;
 use crate::error::Error;
 use crate::service::{HttpService, HttpServiceFactory};
 
-// pub mod builder;
-
 /// The HTTP server.
 ///
 /// This struct is the main entry point for creating and running an HTTP server.
 ///
-/// Create a new server using the [`ServerBuilder`](builder::ServerBuilder) struct.
+/// Start creating a new server by calling [`HttpServer::builder`].
 #[derive(Debug, Clone, bon::Builder)]
 #[builder(state_mod(vis = "pub(crate)"))]
 #[allow(dead_code)]

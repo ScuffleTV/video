@@ -77,8 +77,7 @@ mod server;
 pub mod service;
 
 pub use http;
-// pub use server::builder::ServerBuilder;
-pub use server::HttpServer;
+pub use server::{HttpServer, HttpServerBuilder};
 
 pub type IncomingRequest = http::Request<body::IncomingBody>;
 
