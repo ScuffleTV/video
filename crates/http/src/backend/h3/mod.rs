@@ -12,6 +12,11 @@ use crate::service::{HttpService, HttpServiceFactory};
 pub mod body;
 mod utils;
 
+/// A backend that handles incoming HTTP3 connections.
+///
+/// This is used internally by the [`HttpServer`](crate::server::HttpServer) but can be used directly if preferred.
+///
+/// Call [`run`](Http3Backend::run) to start the server.
 #[derive(Debug, Clone)]
 pub struct Http3Backend {
     pub ctx: scuffle_context::Context,
@@ -19,6 +24,9 @@ pub struct Http3Backend {
 }
 
 impl Http3Backend {
+    /// Run the HTTP3 server
+    ///
+    /// This function will bind to the address specified in `bind`, listen for incoming connections and handle requests.
     #[tracing::instrument(skip_all, fields(bind = %self.bind))]
     pub async fn run<F>(self, service_factory: F, mut rustls_config: rustls::ServerConfig) -> Result<(), Error<F>>
     where
