@@ -51,7 +51,6 @@ impl http_body::Body for IncomingBody {
     type Error = IncomingBodyError;
 
     fn is_end_stream(&self) -> bool {
-        #[allow(unreachable_patterns)]
         match self {
             #[cfg(any(feature = "http1", feature = "http2"))]
             IncomingBody::Hyper(body) => body.is_end_stream(),
@@ -66,7 +65,6 @@ impl http_body::Body for IncomingBody {
         self: std::pin::Pin<&mut Self>,
         _cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Option<Result<http_body::Frame<Self::Data>, Self::Error>>> {
-        #[allow(unreachable_patterns)]
         match self.get_mut() {
             #[cfg(any(feature = "http1", feature = "http2"))]
             IncomingBody::Hyper(body) => std::pin::Pin::new(body).poll_frame(_cx).map_err(Into::into),
@@ -78,7 +76,6 @@ impl http_body::Body for IncomingBody {
     }
 
     fn size_hint(&self) -> http_body::SizeHint {
-        #[allow(unreachable_patterns)]
         match self {
             #[cfg(any(feature = "http1", feature = "http2"))]
             IncomingBody::Hyper(body) => body.size_hint(),
