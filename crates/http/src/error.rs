@@ -1,14 +1,15 @@
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 
 use crate::service::{HttpService, HttpServiceFactory};
 
 /// An error that can occur when creating or running an HTTP server.
 #[derive(Debug, thiserror::Error)]
-pub enum Error<S>
+pub enum Error<F>
 where
-    S: HttpServiceFactory,
-    S::Error: Debug + Display,
-    <S::Service as HttpService>::Error: Debug + Display,
+    F: HttpServiceFactory,
+    F::Error: Debug,
+    <F::Service as HttpService>::Error: Debug,
+    <<F::Service as HttpService>::ResBody as http_body::Body>::Error: Debug,
 {
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
@@ -25,7 +26,9 @@ where
     #[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
     QuinnConnection(#[from] h3_quinn::quinn::ConnectionError),
     #[error("make service error: {0}")]
-    ServiceFactoryError(S::Error),
+    ServiceFactoryError(F::Error),
     #[error("service error: {0}")]
-    ServiceError(<S::Service as HttpService>::Error),
+    ServiceError(<F::Service as HttpService>::Error),
+    #[error("response body error: {0}")]
+    ResBodyError(<<F::Service as HttpService>::ResBody as http_body::Body>::Error),
 }
