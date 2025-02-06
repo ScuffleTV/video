@@ -44,14 +44,14 @@ pub struct ChunkBasicHeader {
 /// A chunk message header.
 pub struct ChunkMessageHeader {
     /// The timestamp of the message.
-    pub timestamp: u32,             /* 3 bytes (when writing the header, if the timestamp is >= 0xFFFFFF,
-                                     * write 0xFFFFFF) */
+    pub timestamp: u32, /* 3 bytes (when writing the header, if the timestamp is >= 0xFFFFFF,
+                         * write 0xFFFFFF) */
     /// The length of the message.
-    pub msg_length: u32,            // 3 bytes
+    pub msg_length: u32, // 3 bytes
     /// The type of the message.
     pub msg_type_id: MessageTypeID, // 1 byte
     /// The stream id of the message.
-    pub msg_stream_id: u32,         // 4 bytes
+    pub msg_stream_id: u32, // 4 bytes
     /// Whether the timestamp is extended.
     pub(super) was_extended_timestamp: bool, // used for reading the header only
 }
