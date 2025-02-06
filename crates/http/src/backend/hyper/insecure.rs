@@ -19,6 +19,7 @@ pub struct InsecureBackend {
 }
 
 impl InsecureBackend {
+    #[tracing::instrument(skip_all, fields(bind = %self.bind))]
     pub async fn run<F>(self, service_factory: F) -> Result<(), Error<F>>
     where
         F: HttpServiceFactory + Clone + Send + 'static,

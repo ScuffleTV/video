@@ -20,6 +20,7 @@ pub struct SecureBackend {
 }
 
 impl SecureBackend {
+    #[tracing::instrument(skip_all, fields(bind = %self.bind))]
     pub async fn run<F>(self, service_factory: F, mut rustls_config: rustls::ServerConfig) -> Result<(), Error<F>>
     where
         F: HttpServiceFactory + Clone + Send + 'static,
@@ -32,16 +33,6 @@ impl SecureBackend {
     {
         #[cfg(feature = "tracing")]
         tracing::debug!("starting server");
-
-        // #[cfg(not(feature = "http1"))]
-        // let http1_enabled = false;
-        // #[cfg(feature = "http1")]
-        // let http1_enabled = self.http1_enabled;
-
-        // #[cfg(not(feature = "http2"))]
-        // let http2_enabled = false;
-        // #[cfg(feature = "http2")]
-        // let http2_enabled = self.http2_enabled;
 
         // reset it back to 0 because everything explodes if it's not
         // https://github.com/hyperium/hyper/issues/3841
