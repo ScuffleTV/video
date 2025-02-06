@@ -68,6 +68,9 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![cfg_attr(all(coverage_nightly, test), feature(coverage_attribute))]
 
+#[cfg(all(feature = "http3", not(feature = "tls-rustls")))]
+compile_error!("feature \"tls-rustls\" must be enabled when \"http3\" is enabled.");
+
 #[cfg(any(feature = "http1", feature = "http2", feature = "http3"))]
 #[cfg_attr(docsrs, doc(cfg(any(feature = "http1", feature = "http2", feature = "http3"))))]
 pub mod backend;

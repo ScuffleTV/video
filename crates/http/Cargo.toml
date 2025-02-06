@@ -61,7 +61,7 @@ default = ["http1", "http2", "tower"]
 tracing = ["dep:tracing", "quinn?/log", "h3-quinn?/tracing", "h3?/tracing", "tokio-rustls?/logging", "rustls?/logging"]
 http1 = ["dep:hyper", "dep:hyper-util", "hyper/http1", "hyper-util/http1"]
 http2 = ["dep:hyper", "dep:hyper-util", "hyper/http2", "hyper-util/http2"]
-http3 = ["dep:quinn", "dep:h3-quinn", "dep:h3", "tls-rustls"]
+http3 = ["dep:quinn", "dep:h3-quinn", "dep:h3"]
 tls-rustls = ["dep:tokio-rustls", "dep:rustls"]
 tower = ["dep:tower"]
 
