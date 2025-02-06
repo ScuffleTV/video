@@ -258,11 +258,11 @@ mod tests {
             .install_default()
             .expect("failed to install aws lc provider");
 
-        let certfile = fs::File::open("assets/cert.pem").expect("cert not found");
+        let certfile = fs::File::open("../../assets/cert.pem").expect("cert not found");
         let certs = rustls_pemfile::certs(&mut BufReader::new(certfile))
             .collect::<Result<Vec<_>, _>>()
             .expect("failed to load certs");
-        let keyfile = fs::File::open("assets/key.pem").expect("key not found");
+        let keyfile = fs::File::open("../../assets/key.pem").expect("key not found");
         let key = rustls_pemfile::private_key(&mut BufReader::new(keyfile))
             .expect("failed to load key")
             .expect("no key found");
