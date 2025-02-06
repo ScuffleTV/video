@@ -32,6 +32,7 @@ pub enum ChunkType {
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
+/// A chunk basic header.
 pub struct ChunkBasicHeader {
     /// Used for decoding the header only.
     pub(super) format: ChunkType, // 2 bits
@@ -40,30 +41,39 @@ pub struct ChunkBasicHeader {
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
+/// A chunk message header.
 pub struct ChunkMessageHeader {
-    pub timestamp: u32,             /* 3 bytes (when writing the header, if the timestamp is >= 0xFFFFFF,
-                                     * write 0xFFFFFF) */
-    pub msg_length: u32,            // 3 bytes
+    /// The timestamp of the message.
+    pub timestamp: u32, /* 3 bytes (when writing the header, if the timestamp is >= 0xFFFFFF,
+                         * write 0xFFFFFF) */
+    /// The length of the message.
+    pub msg_length: u32, // 3 bytes
+    /// The type of the message.
     pub msg_type_id: MessageTypeID, // 1 byte
-    pub msg_stream_id: u32,         // 4 bytes
-
+    /// The stream id of the message.
+    pub msg_stream_id: u32, // 4 bytes
+    /// Whether the timestamp is extended.
     pub(super) was_extended_timestamp: bool, // used for reading the header only
 }
 
 impl ChunkMessageHeader {
-    #[inline]
     /// is_extended_timestamp returns true if the timestamp is >= 0xFFFFFF.
     /// This means that the timestamp is extended and is written in the extended
     /// timestamp field.
+    #[inline]
     pub fn is_extended_timestamp(&self) -> bool {
         self.timestamp >= 0xFFFFFF
     }
 }
 
+/// A chunk.
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub struct Chunk {
+    /// The basic header of the chunk.
     pub basic_header: ChunkBasicHeader,
+    /// The message header of the chunk.
     pub message_header: ChunkMessageHeader,
+    /// The payload of the chunk.
     pub payload: Bytes,
 }
 

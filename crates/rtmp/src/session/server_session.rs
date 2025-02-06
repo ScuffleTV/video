@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::sync::Arc;
 use std::time::Duration;
 
 use bytes::BytesMut;
@@ -10,7 +11,7 @@ use tokio::sync::oneshot;
 
 use super::define::RtmpCommand;
 use super::errors::SessionError;
-use crate::channels::{ChannelData, DataProducer, PublishRequest, UniqueID};
+use crate::channels::{ChannelData, DataProducer, PublishRequest};
 use crate::chunk::{ChunkDecoder, ChunkEncoder, CHUNK_SIZE};
 use crate::handshake::{HandshakeServer, ServerHandshakeState};
 use crate::messages::{MessageParser, RtmpMessageData};
@@ -30,11 +31,7 @@ pub struct Session<S> {
     /// RTMP connection, However we can publish multiple streams per RTMP
     /// connection (using different stream keys) and or play multiple streams
     /// per RTMP connection (using different stream keys) as per the RTMP spec.
-    app_name: Option<String>,
-
-    /// This is a unique id for this session
-    /// This is issued when the client connects to the server
-    uid: Option<UniqueID>,
+    app_name: Option<Arc<str>>,
 
     /// Used to read and write data
     io: S,
@@ -70,9 +67,9 @@ pub struct Session<S> {
 }
 
 impl<S> Session<S> {
+    /// Create a new session.
     pub fn new(io: S, data_producer: DataProducer, publish_request_producer: PublishProducer) -> Self {
         Self {
-            uid: None,
             app_name: None,
             io,
             skip_read: false,
@@ -85,10 +82,6 @@ impl<S> Session<S> {
             is_publishing: false,
             publish_request_producer,
         }
-    }
-
-    pub fn uid(&self) -> Option<UniqueID> {
-        self.uid
     }
 }
 
@@ -245,7 +238,7 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin> Session<S> {
             RtmpMessageData::VideoData { data } => {
                 self.on_data(stream_id, ChannelData::Video { timestamp, data }).await?;
             }
-            RtmpMessageData::AmfData { data } => {
+            RtmpMessageData::Amf0Data { data } => {
                 self.on_data(stream_id, ChannelData::Metadata { timestamp, data }).await?;
             }
         }
@@ -371,7 +364,7 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin> Session<S> {
             }
         };
 
-        self.app_name = Some(app_name.to_string());
+        self.app_name = Some(Arc::from(app_name.as_ref()));
 
         // The only AMF encoding supported by this server is AMF0
         // So we ignore the objectEncoding value sent by the client
@@ -470,24 +463,18 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin> Session<S> {
 
         let (response, waiter) = oneshot::channel();
 
-        if self
-            .publish_request_producer
+        self.publish_request_producer
             .send(PublishRequest {
                 app_name: app_name.clone(),
-                stream_name: stream_name.to_string(),
+                stream_name: Arc::from(stream_name.as_ref()),
                 response,
             })
             .await
-            .is_err()
-        {
+            .map_err(|_| SessionError::PublishRequestDenied)?;
+
+        if !waiter.await.map_err(|_| SessionError::PublishRequestDenied)? {
             return Err(SessionError::PublishRequestDenied);
         }
-
-        let Ok(uid) = waiter.await else {
-            return Err(SessionError::PublishRequestDenied);
-        };
-
-        self.uid = Some(uid);
 
         self.is_publishing = true;
         self.stream_id = stream_id;

@@ -13,3 +13,16 @@ impl ProtocolControlMessageReader {
         Ok(chunk_size)
     }
 }
+
+#[cfg(test)]
+#[cfg_attr(all(test, coverage_nightly), coverage(off))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_reader_read_set_chunk_size() {
+        let data = vec![0x00, 0x00, 0x00, 0x01];
+        let chunk_size = ProtocolControlMessageReader::read_set_chunk_size(&data).unwrap();
+        assert_eq!(chunk_size, 1);
+    }
+}

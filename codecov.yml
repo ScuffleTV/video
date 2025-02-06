@@ -101,10 +101,10 @@ component_management:
       name: scuffle-pprof
       paths:
         - crates/pprof/**
-    # - component_id: scuffle-rtmp
-    #   name: scuffle-rtmp
-    #   paths:
-    #     - crates/rtmp/**
+    - component_id: scuffle-rtmp
+      name: scuffle-rtmp
+      paths:
+        - crates/rtmp/**
     - component_id: scuffle-settings
       name: scuffle-settings
       paths:

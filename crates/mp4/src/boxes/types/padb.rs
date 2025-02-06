@@ -22,7 +22,7 @@ impl BoxType for Padb {
 
         let header = FullBoxHeader::demux(header, &mut reader)?;
 
-        let sample_count = (reader.read_u32::<BigEndian>()? + 1) / 2;
+        let sample_count = reader.read_u32::<BigEndian>()?.div_ceil(2);
         let mut samples = Vec::with_capacity(sample_count as usize);
 
         for _ in 0..sample_count {

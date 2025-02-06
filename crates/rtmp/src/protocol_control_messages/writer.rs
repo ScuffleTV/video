@@ -75,3 +75,60 @@ impl ProtocolControlMessagesWriter {
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[cfg_attr(all(test, coverage_nightly), coverage(off))]
+mod tests {
+    use bytes::{BufMut, BytesMut};
+
+    use super::*;
+    use crate::chunk::ChunkDecoder;
+
+    #[test]
+    fn test_writer_write_set_chunk_size() {
+        let encoder = ChunkEncoder::default();
+        let mut buf = BytesMut::new();
+
+        ProtocolControlMessagesWriter::write_set_chunk_size(&encoder, &mut (&mut buf).writer(), 1).unwrap();
+
+        let mut decoder = ChunkDecoder::default();
+
+        let chunk = decoder.read_chunk(&mut buf).expect("read chunk").expect("chunk");
+        assert_eq!(chunk.basic_header.chunk_stream_id, 0x02);
+        assert_eq!(chunk.message_header.msg_type_id as u8, 0x01);
+        assert_eq!(chunk.message_header.msg_stream_id, 0);
+        assert_eq!(chunk.payload, vec![0x00, 0x00, 0x00, 0x01]);
+    }
+
+    #[test]
+    fn test_writer_window_acknowledgement_size() {
+        let encoder = ChunkEncoder::default();
+        let mut buf = BytesMut::new();
+
+        ProtocolControlMessagesWriter::write_window_acknowledgement_size(&encoder, &mut (&mut buf).writer(), 1).unwrap();
+
+        let mut decoder = ChunkDecoder::default();
+
+        let chunk = decoder.read_chunk(&mut buf).expect("read chunk").expect("chunk");
+        assert_eq!(chunk.basic_header.chunk_stream_id, 0x02);
+        assert_eq!(chunk.message_header.msg_type_id as u8, 0x05);
+        assert_eq!(chunk.message_header.msg_stream_id, 0);
+        assert_eq!(chunk.payload, vec![0x00, 0x00, 0x00, 0x01]);
+    }
+
+    #[test]
+    fn test_writer_set_peer_bandwidth() {
+        let encoder = ChunkEncoder::default();
+        let mut buf = BytesMut::new();
+
+        ProtocolControlMessagesWriter::write_set_peer_bandwidth(&encoder, &mut (&mut buf).writer(), 1, 2).unwrap();
+
+        let mut decoder = ChunkDecoder::default();
+
+        let chunk = decoder.read_chunk(&mut buf).expect("read chunk").expect("chunk");
+        assert_eq!(chunk.basic_header.chunk_stream_id, 0x02);
+        assert_eq!(chunk.message_header.msg_type_id as u8, 0x06);
+        assert_eq!(chunk.message_header.msg_stream_id, 0);
+        assert_eq!(chunk.payload, vec![0x00, 0x00, 0x00, 0x01, 0x02]);
+    }
+}
