@@ -1,7 +1,7 @@
+use std::sync::Arc;
+
 use bytes::Bytes;
 use tokio::sync::{mpsc, oneshot};
-
-pub type UniqueID = uuid::Uuid;
 
 #[derive(Clone, Debug)]
 pub enum ChannelData {
@@ -28,11 +28,15 @@ impl ChannelData {
     }
 }
 
+/// A request to publish a stream.
 #[derive(Debug)]
 pub struct PublishRequest {
-    pub app_name: String,
-    pub stream_name: String,
-    pub response: oneshot::Sender<UniqueID>,
+    /// The app name to publish to.
+    pub app_name: Arc<str>,
+    /// The stream name to publish to.
+    pub stream_name: Arc<str>,
+    /// Respond to the request with a boolean indicating success.
+    pub response: oneshot::Sender<bool>,
 }
 
 pub type PublishProducer = mpsc::Sender<PublishRequest>;

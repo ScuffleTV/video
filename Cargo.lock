@@ -2551,30 +2551,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rtmp"
-version = "0.0.1"
-dependencies = [
- "async-trait",
- "byteorder",
- "bytes",
- "chrono",
- "futures",
- "hmac",
- "num-derive",
- "num-traits",
- "rand",
- "scuffle-amf0",
- "scuffle-bytes-util",
- "scuffle-future-ext",
- "scuffle-workspace-hack",
- "serde_json",
- "sha2",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
 name = "rust-ini"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3065,6 +3041,31 @@ dependencies = [
  "rand",
  "scuffle-pprof",
  "scuffle-workspace-hack",
+]
+
+[[package]]
+name = "scuffle-rtmp"
+version = "0.0.1"
+dependencies = [
+ "async-trait",
+ "byteorder",
+ "bytes",
+ "chrono",
+ "futures",
+ "hmac",
+ "num-derive",
+ "num-traits",
+ "rand",
+ "scuffle-amf0",
+ "scuffle-bytes-util",
+ "scuffle-future-ext",
+ "scuffle-workspace-hack",
+ "serde_json",
+ "sha2",
+ "thiserror 2.0.7",
+ "tokio",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]

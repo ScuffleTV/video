@@ -10,7 +10,7 @@ pub enum RtmpMessageData<'a> {
         command_object: Amf0Value<'a>,
         others: Vec<Amf0Value<'a>>,
     },
-    AmfData {
+    Amf0Data {
         data: Bytes,
     },
     SetChunkSize {

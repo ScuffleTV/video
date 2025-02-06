@@ -1,8 +1,17 @@
 [package]
-name = "rtmp"
+name = "scuffle-rtmp"
 version = "0.0.1"
 edition = "2021"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/scuffle-rtmp"
 license = "MIT OR Apache-2.0"
+description = "RTMP server implementation."
+keywords = ["rtmp", "server", "streaming"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 
 [dependencies]
 byteorder = "1.5"
@@ -18,6 +27,7 @@ tokio = "1.36"
 futures = "0.3"
 async-trait = "0.1"
 tracing = "0.1"
+thiserror = "2.0"
 
 scuffle-amf0.workspace = true
 scuffle-workspace-hack.workspace = true

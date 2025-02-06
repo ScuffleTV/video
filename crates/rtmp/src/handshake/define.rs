@@ -28,7 +28,6 @@ pub enum RtmpVersion {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ServerHandshakeState {
     ReadC0C1,
-    WriteS0S1S2,
     ReadC2,
     Finish,
 }

@@ -1,57 +1,29 @@
-use std::{fmt, io};
+use std::io;
 
-use crate::macros::from_error;
-
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum ChunkDecodeError {
-    IO(io::Error),
+    #[error("io error: {0}")]
+    Io(#[from] io::Error),
+    #[error("invalid chunk type: {0}")]
     InvalidChunkType(u8),
+    #[error("invalid message type id: {0}")]
     InvalidMessageTypeID(u8),
+    #[error("missing previous chunk header: {0}")]
     MissingPreviousChunkHeader(u32),
+    #[error("too many partial chunks")]
     TooManyPartialChunks,
+    #[error("too many previous chunk headers")]
     TooManyPreviousChunkHeaders,
+    #[error("partial chunk too large: {0}")]
     PartialChunkTooLarge(usize),
+    #[error("timestamp overflow: timestamp: {0}, delta: {1}")]
     TimestampOverflow(u32, u32),
 }
 
-from_error!(ChunkDecodeError, Self::IO, io::Error);
-
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum ChunkEncodeError {
+    #[error("unknown read state")]
     UnknownReadState,
-    IO(io::Error),
-}
-
-from_error!(ChunkEncodeError, Self::IO, io::Error);
-
-impl fmt::Display for ChunkEncodeError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::UnknownReadState => write!(f, "unknown read state"),
-            Self::IO(err) => write!(f, "io error: {}", err),
-        }
-    }
-}
-
-impl fmt::Display for ChunkDecodeError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::IO(err) => write!(f, "io error: {}", err),
-            Self::TooManyPartialChunks => write!(f, "too many partial chunks"),
-            Self::TooManyPreviousChunkHeaders => write!(f, "too many previous chunk headers"),
-            Self::PartialChunkTooLarge(size) => write!(f, "partial chunk too large: {}", size),
-            Self::MissingPreviousChunkHeader(chunk_stream_id) => {
-                write!(f, "missing previous chunk header: {}", chunk_stream_id)
-            }
-            Self::InvalidMessageTypeID(message_type_id) => {
-                write!(f, "invalid message type id: {}", message_type_id)
-            }
-            Self::InvalidChunkType(chunk_type) => {
-                write!(f, "invalid chunk type: {}", chunk_type)
-            }
-            Self::TimestampOverflow(timestamp, delta) => {
-                write!(f, "timestamp overflow: timestamp: {}, delta: {}", timestamp, delta)
-            }
-        }
-    }
+    #[error("io error: {0}")]
+    Io(#[from] io::Error),
 }
