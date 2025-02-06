@@ -19,6 +19,7 @@ pub struct Http3Backend {
 }
 
 impl Http3Backend {
+    #[tracing::instrument(skip_all, fields(bind = %self.bind))]
     pub async fn run<F>(self, service_factory: F, mut rustls_config: rustls::ServerConfig) -> Result<(), Error<F>>
     where
         F: HttpServiceFactory + Clone + Send + 'static,
