@@ -27,7 +27,7 @@ pub enum IncomingBody {
     Hyper(hyper::body::Incoming),
     #[cfg(feature = "http3")]
     #[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
-    Quic(crate::backend::h3::body::QuicIncomingBody<h3_quinn::BidiStream<Bytes>>),
+    Quic(crate::backend::h3::body::QuicIncomingBody<h3_quinn::RecvStream>),
 }
 
 #[cfg(any(feature = "http1", feature = "http2"))]
@@ -40,8 +40,8 @@ impl From<hyper::body::Incoming> for IncomingBody {
 
 #[cfg(feature = "http3")]
 #[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
-impl From<crate::backend::h3::body::QuicIncomingBody<h3_quinn::BidiStream<Bytes>>> for IncomingBody {
-    fn from(body: crate::backend::h3::body::QuicIncomingBody<h3_quinn::BidiStream<Bytes>>) -> Self {
+impl From<crate::backend::h3::body::QuicIncomingBody<h3_quinn::RecvStream>> for IncomingBody {
+    fn from(body: crate::backend::h3::body::QuicIncomingBody<h3_quinn::RecvStream>) -> Self {
         IncomingBody::Quic(body)
     }
 }

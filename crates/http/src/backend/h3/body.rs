@@ -12,13 +12,13 @@ enum State {
     Done,
 }
 
-pub struct QuicIncomingBody<B: h3::quic::BidiStream<Bytes>> {
-    stream: RequestStream<B::RecvStream, Bytes>,
+pub struct QuicIncomingBody<S: h3::quic::RecvStream> {
+    stream: RequestStream<S, Bytes>,
     state: State,
 }
 
-impl<B: h3::quic::BidiStream<Bytes>> QuicIncomingBody<B> {
-    pub fn new(stream: RequestStream<B::RecvStream, Bytes>, size_hint: Option<u64>) -> Self {
+impl<S: h3::quic::RecvStream> QuicIncomingBody<S> {
+    pub fn new(stream: RequestStream<S, Bytes>, size_hint: Option<u64>) -> Self {
         Self {
             stream,
             state: State::Data(size_hint),
@@ -26,7 +26,7 @@ impl<B: h3::quic::BidiStream<Bytes>> QuicIncomingBody<B> {
     }
 }
 
-impl<B: h3::quic::BidiStream<Bytes>> http_body::Body for QuicIncomingBody<B> {
+impl<S: h3::quic::RecvStream> http_body::Body for QuicIncomingBody<S> {
     type Data = Bytes;
     type Error = h3::Error;
 
