@@ -3,7 +3,6 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use body::QuicIncomingBody;
-use h3_quinn::BidiStream;
 use scuffle_context::ContextFutExt;
 use utils::copy_response_body;
 
@@ -63,9 +62,8 @@ impl Http3Backend {
                                         .headers()
                                         .get(http::header::CONTENT_LENGTH)
                                         .and_then(|len| len.to_str().ok().and_then(|x| x.parse().ok()));
-                                    let body: QuicIncomingBody<BidiStream<_>> = QuicIncomingBody::new(recv, size_hint);
-                                    let req =
-                                        http::Request::from_parts(req.into_parts().0, crate::body::IncomingBody::from(body));
+                                    let body = QuicIncomingBody::new(recv, size_hint);
+                                    let req = req.map(|_| crate::body::IncomingBody::from(body));
 
                                     // make a new service
                                     let mut http_service = service_factory
