@@ -110,7 +110,7 @@ mod tests {
     async fn test_server<F, S>(builder: HttpServerBuilder<F, S>, versions: &[reqwest::Version])
     where
         F: HttpServiceFactory + Debug + Clone + Send + 'static,
-        F::Error: Debug + Display,
+        F::Error: Debug + Display + Send,
         F::Service: Clone + Debug + Send + 'static,
         <F::Service as HttpService>::Error: std::error::Error + Debug + Display + Send + Sync,
         <F::Service as HttpService>::ResBody: Send,
@@ -173,7 +173,7 @@ mod tests {
     async fn test_tls_server<F, S>(builder: HttpServerBuilder<F, S>, versions: &[reqwest::Version])
     where
         F: HttpServiceFactory + Debug + Clone + Send + 'static,
-        F::Error: Debug + Display,
+        F::Error: Debug + Display + Send,
         F::Service: Clone + Debug + Send + 'static,
         <F::Service as HttpService>::Error: std::error::Error + Debug + Display + Send + Sync,
         <F::Service as HttpService>::ResBody: Send,

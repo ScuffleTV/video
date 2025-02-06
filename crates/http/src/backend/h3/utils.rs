@@ -1,23 +1,38 @@
+use std::fmt::Debug;
+
 use bytes::{Buf, Bytes};
 use h3::quic::SendStream;
 use h3::server::RequestStream;
+use http_body::Body;
 
-pub async fn copy_response_body(
-    mut send: RequestStream<impl SendStream<Bytes>, Bytes>,
-    body: impl http_body::Body,
-) -> Result<(), h3::Error> {
+use crate::service::{HttpService, HttpServiceFactory};
+
+pub async fn copy_response_body<S, F>(
+    mut send: RequestStream<S, Bytes>,
+    body: <F::Service as HttpService>::ResBody,
+) -> Result<(), crate::error::Error<F>>
+where
+    F: HttpServiceFactory,
+    F::Error: Debug,
+    <F::Service as HttpService>::Error: Debug,
+    S: SendStream<Bytes>,
+    <F::Service as HttpService>::ResBody: http_body::Body,
+    <<F::Service as HttpService>::ResBody as http_body::Body>::Error: Debug,
+{
     let mut body = std::pin::pin!(body);
+
     while let Some(frame) = std::future::poll_fn(|cx| body.as_mut().poll_frame(cx)).await {
-        match frame {
-            Ok(frame) => match frame.into_data().map_err(|f| f.into_trailers()) {
-                Ok(mut data) => send.send_data(data.copy_to_bytes(data.remaining())).await?,
-                Err(Ok(trailers)) => {
-                    send.send_trailers(trailers).await?;
-                    return Ok(());
-                }
-                Err(Err(_)) => continue,
-            },
-            Err(_) => return Ok(()),
+        match frame
+            .map_err(crate::error::Error::ResBodyError)?
+            .into_data()
+            .map_err(|f| f.into_trailers())
+        {
+            Ok(mut data) => send.send_data(data.copy_to_bytes(data.remaining())).await?,
+            Err(Ok(trailers)) => {
+                send.send_trailers(trailers).await?;
+                return Ok(());
+            }
+            Err(Err(_)) => continue,
         }
     }
 

@@ -19,15 +19,15 @@ pub struct Http3Backend {
 }
 
 impl Http3Backend {
-    pub async fn run<S>(self, service_factory: S, mut rustls_config: rustls::ServerConfig) -> Result<(), Error<S>>
+    pub async fn run<F>(self, service_factory: F, mut rustls_config: rustls::ServerConfig) -> Result<(), Error<F>>
     where
-        S: HttpServiceFactory + Clone + Send + 'static,
-        S::Error: Debug + Display,
-        S::Service: Clone + Send + 'static,
-        <S::Service as HttpService>::Error: std::error::Error + Debug + Display + Send + Sync,
-        <S::Service as HttpService>::ResBody: Send,
-        <<S::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
-        <<S::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
+        F: HttpServiceFactory + Clone + Send + 'static,
+        F::Error: Display + Debug + Send,
+        F::Service: Clone + Send + 'static,
+        <F::Service as HttpService>::Error: std::error::Error + Debug + Send + Sync,
+        <F::Service as HttpService>::ResBody: Send,
+        <<F::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
+        <<F::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Debug + Send + Sync,
     {
         #[cfg(feature = "tracing")]
         tracing::debug!("starting server");
@@ -47,7 +47,7 @@ impl Http3Backend {
 
             tokio::spawn(
                 async move {
-                    let _res: Result<_, Error<S>> = async move {
+                    let _res: Result<_, Error<F>> = async move {
                         let conn = new_conn.await?;
                         let addr = conn.remote_address();
 
@@ -73,7 +73,7 @@ impl Http3Backend {
 
                                     tokio::spawn(
                                         async move {
-                                            let _res: Result<_, Error<S>> = async move {
+                                            let _res: Result<_, Error<F>> = async move {
                                                 let resp =
                                                     http_service.call(req).await.map_err(|e| Error::ServiceError(e))?;
                                                 let (parts, body) = resp.into_parts();

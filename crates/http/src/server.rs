@@ -125,9 +125,9 @@ where
 impl<F> HttpServer<F>
 where
     F: HttpServiceFactory + Clone + Send + 'static,
-    F::Error: Debug + Display,
+    F::Error: Debug + Display + Send,
     F::Service: Clone + Send + 'static,
-    <F::Service as HttpService>::Error: std::error::Error + Debug + Display + Send + Sync,
+    <F::Service as HttpService>::Error: std::error::Error + Debug + Send + Sync,
     <F::Service as HttpService>::ResBody: Send,
     <<F::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
     <<F::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
