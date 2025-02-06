@@ -30,9 +30,9 @@
 //! # let run = async {
 //! let service = scuffle_http::service::fn_http_service(|req| async move {
 //!     scuffle_http::http::Response::builder()
-//!     .status(scuffle_http::http::StatusCode::OK)
-//!     .header(scuffle_http::http::header::CONTENT_TYPE, "text/plain")
-//!     .body("Hello, world!".to_string())
+//!         .status(scuffle_http::http::StatusCode::OK)
+//!         .header(scuffle_http::http::header::CONTENT_TYPE, "text/plain")
+//!         .body("Hello, world!".to_string())
 //! });
 //! let service_factory = scuffle_http::service::service_clone_factory(service);
 //!
