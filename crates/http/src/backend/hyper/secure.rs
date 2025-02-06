@@ -7,6 +7,11 @@ use scuffle_context::ContextFutExt;
 use crate::error::Error;
 use crate::service::{HttpService, HttpServiceFactory};
 
+/// A backend that handles incoming HTTPS connections.
+///
+/// This is used internally by the [`HttpServer`](crate::server::HttpServer) but can be used directly if preferred.
+///
+/// Call [`run`](SecureBackend::run) to start the server.
 #[derive(Debug, Clone)]
 pub struct SecureBackend {
     pub ctx: scuffle_context::Context,
@@ -20,6 +25,9 @@ pub struct SecureBackend {
 }
 
 impl SecureBackend {
+    /// Run the HTTPS server
+    ///
+    /// This function will bind to the address specified in `bind`, listen for incoming connections and handle requests.
     #[tracing::instrument(skip_all, fields(bind = %self.bind))]
     pub async fn run<F>(self, service_factory: F, mut rustls_config: rustls::ServerConfig) -> Result<(), Error<F>>
     where
