@@ -221,8 +221,6 @@ where
                 }
                 #[cfg(all(any(feature = "http1", feature = "http2"), feature = "http3"))]
                 (true, true) => {
-                    use scuffle_context::ContextFutExt;
-
                     let hyper = crate::backend::hyper::secure::SecureBackend {
                         ctx: self.ctx.clone(),
                         bind: self.bind,
@@ -241,11 +239,10 @@ where
                     .run(self.service_factory, _rustls_config);
                     let http3 = std::pin::pin!(http3);
 
-                    let res = futures::future::select(hyper, http3).with_context(self.ctx).await;
+                    let res = futures::future::select(hyper, http3).await;
                     match res {
-                        Some(futures::future::Either::Left((res, _))) => return res,
-                        Some(futures::future::Either::Right((res, _))) => return res,
-                        None => return Ok(()),
+                        futures::future::Either::Left((res, _)) => return res,
+                        futures::future::Either::Right((res, _)) => return res,
                     }
                 }
                 _ => return Ok(()),

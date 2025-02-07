@@ -50,15 +50,16 @@ impl SecureBackend {
         let tls_acceptor = tokio_rustls::TlsAcceptor::from(Arc::new(rustls_config));
 
         loop {
-            let (tcp_stream, addr) = match listener.accept().await {
-                Ok(conn) => conn,
+            let (tcp_stream, addr) = match listener.accept().with_context(&self.ctx).await {
+                Some(Ok(conn)) => conn,
                 #[cfg(feature = "tracing")]
-                Err(e) => {
+                Some(Err(e)) => {
                     tracing::warn!(err = %e, "failed to accept tcp connection");
                     continue;
                 }
                 #[cfg(not(feature = "tracing"))]
-                Err(_) => continue,
+                Some(Err(_)) => continue,
+                None => break,
             };
 
             let tls_acceptor = tls_acceptor.clone();
@@ -107,5 +108,7 @@ impl SecureBackend {
                 .with_context(self.ctx.clone()),
             );
         }
+
+        Ok(())
     }
 }
