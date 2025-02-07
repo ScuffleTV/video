@@ -30,7 +30,6 @@ where
             Ok(mut data) => send.send_data(data.copy_to_bytes(data.remaining())).await?,
             Err(Ok(trailers)) => {
                 send.send_trailers(trailers).await?;
-                send.finish().await?;
                 return Ok(());
             }
             Err(Err(_)) => continue,
