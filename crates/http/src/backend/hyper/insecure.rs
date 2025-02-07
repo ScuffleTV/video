@@ -44,15 +44,16 @@ impl InsecureBackend {
         let listener = tokio::net::TcpListener::bind(self.bind).await?;
 
         loop {
-            let (tcp_stream, addr) = match listener.accept().await {
-                Ok(conn) => conn,
+            let (tcp_stream, addr) = match listener.accept().with_context(&self.ctx).await {
+                Some(Ok(conn)) => conn,
                 #[cfg(feature = "tracing")]
-                Err(e) => {
+                Some(Err(e)) => {
                     tracing::warn!(err = %e, "failed to accept tcp connection");
                     continue;
                 }
                 #[cfg(not(feature = "tracing"))]
-                Err(_) => continue,
+                Some(Err(_)) => continue,
+                None => break,
             };
 
             let mut service_factory = service_factory.clone();
@@ -93,5 +94,7 @@ impl InsecureBackend {
                 .with_context(self.ctx.clone()),
             );
         }
+
+        Ok(())
     }
 }

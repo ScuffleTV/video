@@ -49,7 +49,7 @@ impl Http3Backend {
         let endpoint = h3_quinn::quinn::Endpoint::server(server_config, self.bind)?;
 
         // handle incoming connections and requests
-        while let Some(new_conn) = endpoint.accept().await {
+        while let Some(Some(new_conn)) = endpoint.accept().with_context(&self.ctx).await {
             let mut service_factory = service_factory.clone();
 
             let ctx = self.ctx.clone();
