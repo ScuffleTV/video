@@ -27,7 +27,7 @@ impl InsecureBackend {
     /// Run the HTTP server
     ///
     /// This function will bind to the address specified in `bind`, listen for incoming connections and handle requests.
-    #[tracing::instrument(skip_all, fields(bind = %self.bind))]
+    #[cfg_attr(feature = "tracing", tracing::instrument(skip_all, fields(bind = %self.bind)))]
     pub async fn run<F>(self, service_factory: F) -> Result<(), Error<F>>
     where
         F: HttpServiceFactory + Clone + Send + 'static,
