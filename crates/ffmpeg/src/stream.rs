@@ -1,40 +1,128 @@
+use std::marker::PhantomData;
+
 use ffmpeg_sys_next::*;
 
 use crate::consts::{Const, Mut};
 use crate::dict::Dictionary;
 use crate::utils::check_i64;
 
-#[derive(Debug)]
+/// A collection of streams. Streams implements [`IntoIterator`] to iterate over the streams.
 pub struct Streams<'a> {
-    input: &'a AVFormatContext,
+    input: *mut AVFormatContext,
+    _marker: PhantomData<&'a mut AVFormatContext>,
+}
+
+impl std::fmt::Debug for Streams<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut streams = Vec::new();
+        for stream in self.iter() {
+            streams.push(stream);
+        }
+
+        f.debug_struct("Streams")
+            .field("input", &self.input)
+            .field("streams", &streams)
+            .finish()
+    }
 }
 
 /// Safety: `Streams` is safe to send between threads.
 unsafe impl Send for Streams<'_> {}
 
 impl<'a> Streams<'a> {
-    pub(crate) fn new(input: &'a AVFormatContext) -> Self {
-        Self { input }
+    /// Creates a new `Streams` instance.
+    ///
+    /// # Safety
+    /// This function is unsafe because the caller must ensure that the lifetime & the mutablity
+    /// of the `AVFormatContext` matches the lifetime & mutability of the `Streams`.
+    pub const unsafe fn new(input: *mut AVFormatContext) -> Self {
+        Self {
+            input,
+            _marker: PhantomData,
+        }
     }
 
-    pub fn best(&self, media_type: AVMediaType) -> Option<Const<'a, Stream<'a>>> {
+    /// Returns the index of the best stream of the given media type.
+    pub fn best_index(&self, media_type: AVMediaType) -> Option<usize> {
         // Safety: av_find_best_stream is safe to call, 'input' is a valid pointer
         // We upcast the pointer to a mutable pointer because the function signature
         // requires it, but it does not mutate the pointer.
-        let stream =
-            unsafe { av_find_best_stream(self.input as *const _ as *mut _, media_type, -1, -1, std::ptr::null_mut(), 0) };
+        let stream = unsafe { av_find_best_stream(self.input, media_type, -1, -1, std::ptr::null_mut(), 0) };
         if stream < 0 {
             return None;
         }
 
-        // Safety: if we get back an index, it's valid
-        let stream = unsafe { &mut *(*self.input.streams.add(stream as usize)) };
-
-        Some(Const::new(Stream::new(stream, self.input)))
+        Some(stream as usize)
     }
 
-    pub fn best_mut(&mut self, media_type: AVMediaType) -> Option<Stream<'a>> {
+    /// Returns the best stream of the given media type.
+    pub fn best(&'a self, media_type: AVMediaType) -> Option<Const<'a, Stream<'a>>> {
+        let stream = self.best_index(media_type)?;
+
+        // Safety: This function is safe because we return a Const<Stream> which restricts
+        // the mutability of the stream.
+        let stream = unsafe { self.get_unchecked(stream)? };
+
+        Some(Const::new(stream))
+    }
+
+    /// Returns the best mutable stream of the given media type.
+    pub fn best_mut(&'a mut self, media_type: AVMediaType) -> Option<Stream<'a>> {
         self.best(media_type).map(|s| s.0)
+    }
+
+    /// Returns an iterator over the streams.
+    pub const fn iter(&'a self) -> StreamIter<'a> {
+        StreamIter {
+            input: Self {
+                input: self.input,
+                _marker: PhantomData,
+            },
+            index: 0,
+        }
+    }
+
+    /// Returns the length of the streams.
+    pub const fn len(&self) -> usize {
+        // Safety: The lifetime makes sure we have a valid pointer for reading and nobody has
+        // access to the pointer for writing.
+        let input = unsafe { &*self.input };
+        input.nb_streams as usize
+    }
+
+    /// Returns whether the streams are empty.
+    pub const fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// Returns the stream at the given index.
+    pub const fn get(&'a mut self, index: usize) -> Option<Stream<'a>> {
+        // Safety: this function requires mutability, therefore its safe to call the unchecked
+        // version.
+        unsafe { self.get_unchecked(index) }
+    }
+
+    /// Returns the stream at the given index.
+    ///
+    /// # Safety
+    /// This function is unsafe because it does not require mutability. The caller must
+    /// guarantee that the stream is not mutated and that multiple streams of the same index exist.
+    pub const unsafe fn get_unchecked(&self, index: usize) -> Option<Stream<'a>> {
+        if index >= self.len() {
+            return None;
+        }
+
+        // Safety: The lifetime makes sure we have a valid pointer for reading and nobody has
+        // access to the pointer for writing.
+        let input = unsafe { &*self.input };
+        // Safety: we make sure that there are enough streams to access the index.
+        let stream = unsafe { input.streams.add(index) };
+        // Safety: The pointer is valid.
+        let stream = unsafe { *stream };
+        // Safety: The pointer is valid.
+        let stream = unsafe { &mut *stream };
+
+        Some(Stream::new(stream, self.input))
     }
 }
 
@@ -43,41 +131,13 @@ impl<'a> IntoIterator for Streams<'a> {
     type Item = Const<'a, Stream<'a>>;
 
     fn into_iter(self) -> Self::IntoIter {
-        StreamIter {
-            input: self.input,
-            index: 0,
-        }
+        StreamIter { input: self, index: 0 }
     }
 }
 
-impl<'a> Streams<'a> {
-    pub fn iter(&'a self) -> StreamIter<'a> {
-        StreamIter {
-            input: self.input,
-            index: 0,
-        }
-    }
-
-    pub fn len(&self) -> usize {
-        self.input.nb_streams as usize
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    pub fn get(&mut self, index: usize) -> Option<Stream<'_>> {
-        if index >= self.len() {
-            return None;
-        }
-
-        let stream = unsafe { &mut *(*self.input.streams.add(index)) };
-        Some(Stream::new(stream, self.input))
-    }
-}
-
+/// An iterator over the streams.
 pub struct StreamIter<'a> {
-    input: &'a AVFormatContext,
+    input: Streams<'a>,
     index: usize,
 }
 
@@ -85,131 +145,164 @@ impl<'a> Iterator for StreamIter<'a> {
     type Item = Const<'a, Stream<'a>>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.index >= self.input.nb_streams as usize {
-            return None;
-        }
-
-        let stream = unsafe { &mut *(*self.input.streams.add(self.index)) };
+        // Safety: we return a Const version of the stream, so there cannot exist multiple mutable
+        // streams of the same index.
+        let stream = unsafe { self.input.get_unchecked(self.index)? };
         self.index += 1;
-
-        Some(Const::new(Stream::new(stream, self.input)))
+        Some(Const::new(stream))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let remaining = self.input.nb_streams as usize - self.index;
+        let remaining = self.input.len() - self.index;
         (remaining, Some(remaining))
     }
 }
 
 impl std::iter::ExactSizeIterator for StreamIter<'_> {}
 
-pub struct Stream<'a>(&'a mut AVStream, &'a AVFormatContext);
+/// A Stream is a wrapper around an [`AVStream`].
+pub struct Stream<'a>(&'a mut AVStream, *mut AVFormatContext);
 
 impl<'a> Stream<'a> {
-    pub(crate) fn new(stream: &'a mut AVStream, input: &'a AVFormatContext) -> Self {
+    /// Creates a new `Stream` instance.
+    pub(crate) const fn new(stream: &'a mut AVStream, input: *mut AVFormatContext) -> Self {
         Self(stream, input)
     }
 
-    pub fn as_ptr(&self) -> *const AVStream {
+    /// Returns a constant pointer to the stream.
+    pub const fn as_ptr(&self) -> *const AVStream {
         self.0
     }
 
-    pub fn as_mut_ptr(&mut self) -> *mut AVStream {
+    /// Returns a mutable pointer to the stream.
+    pub const fn as_mut_ptr(&mut self) -> *mut AVStream {
         self.0
     }
 }
 
 impl<'a> Stream<'a> {
-    pub fn index(&self) -> i32 {
+    /// Returns the index of the stream.
+    pub const fn index(&self) -> i32 {
         self.0.index
     }
 
-    pub fn id(&self) -> i32 {
+    /// Returns the ID of the stream.
+    pub const fn id(&self) -> i32 {
         self.0.id
     }
 
-    pub fn codec_parameters(&self) -> Option<&'a AVCodecParameters> {
+    /// Returns the codec parameters of the stream.
+    pub const fn codec_parameters(&self) -> Option<&'a AVCodecParameters> {
         // Safety: the pointer is valid
         unsafe { self.0.codecpar.as_ref() }
     }
 
-    pub fn time_base(&self) -> AVRational {
+    /// Returns the time base of the stream.
+    pub const fn time_base(&self) -> AVRational {
         self.0.time_base
     }
 
-    pub fn set_time_base(&mut self, time_base: AVRational) {
+    /// Sets the time base of the stream.
+    pub const fn set_time_base(&mut self, time_base: AVRational) {
         self.0.time_base = time_base;
     }
 
-    pub fn start_time(&self) -> Option<i64> {
+    /// Returns the start time of the stream.
+    pub const fn start_time(&self) -> Option<i64> {
         check_i64(self.0.start_time)
     }
 
-    pub fn set_start_time(&mut self, start_time: Option<i64>) {
-        self.0.start_time = start_time.unwrap_or(AV_NOPTS_VALUE)
+    /// Sets the start time of the stream.
+    pub const fn set_start_time(&mut self, start_time: Option<i64>) {
+        self.0.start_time = match start_time {
+            Some(start_time) => start_time,
+            None => AV_NOPTS_VALUE,
+        }
     }
 
-    pub fn duration(&self) -> Option<i64> {
+    /// Returns the duration of the stream.
+    pub const fn duration(&self) -> Option<i64> {
         check_i64(self.0.duration)
     }
 
-    pub fn set_duration(&mut self, duration: Option<i64>) {
-        self.0.duration = duration.unwrap_or(AV_NOPTS_VALUE)
+    /// Sets the duration of the stream.
+    pub const fn set_duration(&mut self, duration: Option<i64>) {
+        self.0.duration = match duration {
+            Some(duration) => duration,
+            None => AV_NOPTS_VALUE,
+        }
     }
 
-    pub fn nb_frames(&self) -> Option<i64> {
+    /// Returns the number of frames in the stream.
+    pub const fn nb_frames(&self) -> Option<i64> {
         check_i64(self.0.nb_frames)
     }
 
-    pub fn set_nb_frames(&mut self, nb_frames: i64) {
+    /// Sets the number of frames in the stream.
+    pub const fn set_nb_frames(&mut self, nb_frames: i64) {
         self.0.nb_frames = nb_frames;
     }
 
-    pub fn disposition(&self) -> i32 {
+    /// Returns the disposition of the stream.
+    pub const fn disposition(&self) -> i32 {
         self.0.disposition
     }
 
-    pub fn set_disposition(&mut self, disposition: i32) {
+    /// Sets the disposition of the stream.
+    pub const fn set_disposition(&mut self, disposition: i32) {
         self.0.disposition = disposition;
     }
 
-    pub fn discard(&self) -> AVDiscard {
+    /// Returns the discard flag of the stream.
+    pub const fn discard(&self) -> AVDiscard {
         self.0.discard
     }
 
-    pub fn set_discard(&mut self, discard: AVDiscard) {
+    /// Sets the discard flag of the stream.
+    pub const fn set_discard(&mut self, discard: AVDiscard) {
         self.0.discard = discard;
     }
 
-    pub fn sample_aspect_ratio(&self) -> AVRational {
+    /// Returns the sample aspect ratio of the stream.
+    pub const fn sample_aspect_ratio(&self) -> AVRational {
         self.0.sample_aspect_ratio
     }
 
-    pub fn set_sample_aspect_ratio(&mut self, sample_aspect_ratio: AVRational) {
+    /// Sets the sample aspect ratio of the stream.
+    pub const fn set_sample_aspect_ratio(&mut self, sample_aspect_ratio: AVRational) {
         self.0.sample_aspect_ratio = sample_aspect_ratio;
     }
 
-    pub fn metadata(&self) -> Const<'_, Dictionary> {
+    /// Returns the metadata of the stream.
+    pub const fn metadata(&self) -> Const<'_, Dictionary> {
         // Safety: the pointer metadata pointer does not live longer than this object,
         // see `Const::new`
         Const::new(unsafe { Dictionary::from_ptr_ref(self.0.metadata) })
     }
 
-    pub fn metadata_mut(&mut self) -> Mut<'_, Dictionary> {
+    /// Returns a mutable reference to the metadata of the stream.
+    pub const fn metadata_mut(&mut self) -> Mut<'_, Dictionary> {
         // Safety: the pointer metadata pointer does not live longer than this object,
         // see `Mut::new`
         Mut::new(unsafe { Dictionary::from_ptr_ref(self.0.metadata) })
     }
 
-    pub fn avg_frame_rate(&self) -> AVRational {
+    /// Returns the average frame rate of the stream.
+    pub const fn avg_frame_rate(&self) -> AVRational {
         self.0.avg_frame_rate
     }
 
-    pub fn r_frame_rate(&self) -> AVRational {
+    /// Returns the real frame rate of the stream.
+    pub const fn r_frame_rate(&self) -> AVRational {
         self.0.r_frame_rate
     }
 
-    pub fn format_context(&self) -> &'a AVFormatContext {
+    /// Returns the format context of the stream.
+    ///
+    /// # Safety
+    /// This function is unsafe because it returns a mutable pointer to the format context.
+    /// The caller must ensure that they have exclusive access to the format context.
+    pub const unsafe fn format_context(&self) -> *mut AVFormatContext {
         self.1
     }
 }
@@ -480,7 +573,9 @@ mod tests {
         let mut streams = input.streams_mut();
         let stream = streams.get(0).expect("Expected a valid stream");
 
-        let format_context = stream.format_context();
+        // Safety: We are the only ones who have access.
+        let format_context = unsafe { stream.format_context() };
+
         assert_eq!(
             format_context as *const _,
             input.as_ptr(),

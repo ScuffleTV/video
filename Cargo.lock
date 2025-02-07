@@ -1900,6 +1900,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "nutype-enum"
+version = "0.0.1"
+dependencies = [
+ "scuffle-workspace-hack",
+]
+
+[[package]]
 name = "object"
 version = "0.36.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2909,9 +2916,11 @@ dependencies = [
  "ffmpeg-sys-next",
  "insta",
  "libc",
+ "nutype-enum",
  "rand",
  "scuffle-workspace-hack",
  "tempfile",
+ "thiserror 2.0.7",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -2928,6 +2937,7 @@ dependencies = [
  "h265",
  "num-derive",
  "num-traits",
+ "nutype-enum",
  "scuffle-aac",
  "scuffle-amf0",
  "scuffle-av1",

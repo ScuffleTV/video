@@ -1,11 +1,13 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::ffi::{CStr, CString};
+use std::ptr::NonNull;
 
 use ffmpeg_sys_next::*;
 
-use crate::error::FfmpegError;
+use crate::error::{FfmpegError, FfmpegErrorCode};
 use crate::smart_object::SmartPtr;
 
+/// A dictionary of key-value pairs.
 pub struct Dictionary {
     ptr: SmartPtr<AVDictionary>,
 }
@@ -21,8 +23,13 @@ impl Default for Dictionary {
 
 impl std::fmt::Debug for Dictionary {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let dict = HashMap::<String, String>::from(self);
-        dict.fmt(f)
+        let mut map = f.debug_map();
+
+        for (key, value) in self.iter() {
+            map.entry(&key, &value);
+        }
+
+        map.finish()
     }
 }
 
@@ -37,42 +44,44 @@ impl Clone for Dictionary {
 
     fn clone_from(&mut self, source: &Self) {
         // Safety: av_dict_copy is safe to call
-        let ret = unsafe { av_dict_copy(self.as_mut_ptr_ref(), source.as_ptr(), 0) };
-        if ret < 0 {
-            panic!("failed to clone dictionary: {ret}")
-        }
+        FfmpegErrorCode::from(unsafe { av_dict_copy(self.as_mut_ptr_ref(), source.as_ptr(), 0) })
+            .result()
+            .expect("Failed to clone dictionary");
     }
 }
 
+/// A builder for the dictionary.
 pub struct DictionaryBuilder {
     dict: Dictionary,
 }
 
 impl DictionaryBuilder {
+    /// Sets a key-value pair in the dictionary.
     pub fn set(mut self, key: &str, value: &str) -> Self {
         self.dict.set(key, value).expect("Failed to set dictionary entry");
         self
     }
 
+    /// Builds the dictionary.
     pub fn build(self) -> Dictionary {
         self.dict
     }
 }
 
 impl Dictionary {
-    pub fn new() -> Self {
+    /// Creates a new dictionary.
+    pub const fn new() -> Self {
         Self {
             // Safety: A null pointer is a valid dictionary, and a valid pointer.
-            ptr: unsafe {
-                SmartPtr::wrap(std::ptr::null_mut(), |ptr| {
-                    // Safety: av_dict_free is safe to call
-                    av_dict_free(ptr)
-                })
-            },
+            ptr: SmartPtr::null(|ptr| {
+                // Safety: av_dict_free is safe to call
+                unsafe { av_dict_free(ptr) }
+            }),
         }
     }
 
-    pub fn builder() -> DictionaryBuilder {
+    /// Creates a new dictionary builder.
+    pub const fn builder() -> DictionaryBuilder {
         DictionaryBuilder { dict: Self::new() }
     }
 
@@ -80,7 +89,7 @@ impl Dictionary {
     /// `ptr` must be a valid pointer.
     /// The caller must also ensure that the dictionary is not freed while this
     /// object is alive, and that we don't use the pointer as mutable
-    pub unsafe fn from_ptr_ref(ptr: *mut AVDictionary) -> Self {
+    pub const unsafe fn from_ptr_ref(ptr: *mut AVDictionary) -> Self {
         // We don't own the dictionary, so we don't need to free it
         Self {
             ptr: SmartPtr::wrap(ptr as _, |_| {}),
@@ -89,7 +98,7 @@ impl Dictionary {
 
     /// # Safety
     /// `ptr` must be a valid pointer.
-    pub unsafe fn from_ptr_owned(ptr: *mut AVDictionary) -> Self {
+    pub const unsafe fn from_ptr_owned(ptr: *mut AVDictionary) -> Self {
         Self {
             ptr: SmartPtr::wrap(ptr, |ptr| {
                 // Safety: av_dict_free is safe to call
@@ -98,24 +107,25 @@ impl Dictionary {
         }
     }
 
+    /// Sets a key-value pair in the dictionary.
     pub fn set(&mut self, key: &str, value: &str) -> Result<(), FfmpegError> {
         if key.is_empty() {
             return Err(FfmpegError::Arguments("Keys cannot be empty"));
+        }
+
+        if value.is_empty() {
+            return Err(FfmpegError::Arguments("Values cannot be empty"));
         }
 
         let key = CString::new(key).expect("Failed to convert key to CString");
         let value = CString::new(value).expect("Failed to convert value to CString");
 
         // Safety: av_dict_set is safe to call
-        let ret = unsafe { av_dict_set(self.ptr.as_mut(), key.as_ptr(), value.as_ptr(), 0) };
-
-        if ret < 0 {
-            Err(FfmpegError::Code(ret.into()))
-        } else {
-            Ok(())
-        }
+        FfmpegErrorCode(unsafe { av_dict_set(self.ptr.as_mut(), key.as_ptr(), value.as_ptr(), 0) }).result()?;
+        Ok(())
     }
 
+    /// Returns the value associated with the given key.
     pub fn get(&self, key: &str) -> Option<String> {
         if key.is_empty() {
             return None;
@@ -123,45 +133,52 @@ impl Dictionary {
 
         let key = CString::new(key).expect("Failed to convert key to CString");
 
-        // Safety: av_dict_get is safe to call
-        let entry = unsafe { av_dict_get(self.as_ptr(), key.as_ptr(), std::ptr::null_mut(), AV_DICT_IGNORE_SUFFIX) };
-
-        if entry.is_null() {
-            None
-        } else {
+        let mut entry =
             // Safety: av_dict_get is safe to call
-            Some(unsafe { CStr::from_ptr((*entry).value) }.to_string_lossy().into_owned())
-        }
+            NonNull::new(unsafe { av_dict_get(self.as_ptr(), key.as_ptr(), std::ptr::null_mut(), AV_DICT_IGNORE_SUFFIX) })?;
+
+        // Safety: The pointer here is valid.
+        let mut_ref = unsafe { entry.as_mut() };
+
+        // Safety: The pointer here is valid.
+        Some(unsafe { CStr::from_ptr(mut_ref.value) }.to_string_lossy().into_owned())
     }
 
+    /// Returns true if the dictionary is empty.
     pub fn is_empty(&self) -> bool {
         self.iter().next().is_none()
     }
 
-    pub fn iter(&self) -> DictionaryIterator {
+    /// Returns an iterator over the dictionary.
+    pub const fn iter(&self) -> DictionaryIterator {
         DictionaryIterator::new(self)
     }
 
-    pub fn as_ptr(&self) -> *const AVDictionary {
+    /// Returns the pointer to the dictionary.
+    pub const fn as_ptr(&self) -> *const AVDictionary {
         self.ptr.as_ptr()
     }
 
-    pub fn as_mut_ptr_ref(&mut self) -> &mut *mut AVDictionary {
+    /// Returns a mutable reference to the pointer to the dictionary.
+    pub const fn as_mut_ptr_ref(&mut self) -> &mut *mut AVDictionary {
         self.ptr.as_mut()
     }
 
-    pub fn into_ptr(self) -> *mut AVDictionary {
+    /// Returns the pointer to the dictionary.
+    pub fn leak(self) -> *mut AVDictionary {
         self.ptr.into_inner()
     }
 }
 
+/// An iterator over the dictionary.
 pub struct DictionaryIterator<'a> {
     dict: &'a Dictionary,
     entry: *mut AVDictionaryEntry,
 }
 
 impl<'a> DictionaryIterator<'a> {
-    pub fn new(dict: &'a Dictionary) -> Self {
+    /// Creates a new dictionary iterator.
+    const fn new(dict: &'a Dictionary) -> Self {
         Self {
             dict,
             entry: std::ptr::null_mut(),
@@ -176,16 +193,17 @@ impl<'a> Iterator for DictionaryIterator<'a> {
         // Safety: av_dict_get is safe to call
         self.entry = unsafe { av_dict_get(self.dict.as_ptr(), &[0] as *const _ as _, self.entry, AV_DICT_IGNORE_SUFFIX) };
 
-        if self.entry.is_null() {
-            None
-        } else {
-            // Safety: av_dict_get is safe to call
-            let key = unsafe { CStr::from_ptr((*self.entry).key) };
-            // Safety: av_dict_get is safe to call
-            let value = unsafe { CStr::from_ptr((*self.entry).value) };
+        let mut entry = NonNull::new(self.entry)?;
 
-            Some((key, value))
-        }
+        // Safety: The pointer here is valid.
+        let entry_ref = unsafe { entry.as_mut() };
+
+        // Safety: The pointer here is valid.
+        let key = unsafe { CStr::from_ptr(entry_ref.key) };
+        // Safety: The pointer here is valid.
+        let value = unsafe { CStr::from_ptr(entry_ref.value) };
+
+        Some((key, value))
     }
 }
 
@@ -198,29 +216,36 @@ impl<'a> IntoIterator for &'a Dictionary {
     }
 }
 
-impl From<HashMap<String, String>> for Dictionary {
-    fn from(map: HashMap<String, String>) -> Self {
-        let mut dict = Dictionary::new();
+macro_rules! impl_map_for_dict {
+    ($map:ty) => {
+        impl From<$map> for Dictionary {
+            fn from(map: $map) -> Self {
+                let mut dict = Dictionary::new();
 
-        for (key, value) in map {
-            if key.is_empty() || value.is_empty() {
-                continue;
+                for (key, value) in map {
+                    if key.is_empty() || value.is_empty() {
+                        continue;
+                    }
+
+                    dict.set(&key, &value).expect("Failed to set dictionary entry");
+                }
+
+                dict
             }
-
-            dict.set(&key, &value).expect("Failed to set dictionary entry");
         }
 
-        dict
-    }
+        impl From<&Dictionary> for $map {
+            fn from(dict: &Dictionary) -> Self {
+                dict.into_iter()
+                    .map(|(key, value)| (key.to_string_lossy().into_owned(), value.to_string_lossy().into_owned()))
+                    .collect()
+            }
+        }
+    };
 }
 
-impl From<&Dictionary> for HashMap<String, String> {
-    fn from(dict: &Dictionary) -> Self {
-        dict.into_iter()
-            .map(|(key, value)| (key.to_string_lossy().into_owned(), value.to_string_lossy().into_owned()))
-            .collect()
-    }
-}
+impl_map_for_dict!(HashMap<String, String>);
+impl_map_for_dict!(BTreeMap<String, String>);
 
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]

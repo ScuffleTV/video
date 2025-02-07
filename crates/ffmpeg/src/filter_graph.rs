@@ -3,45 +3,60 @@ use std::ptr::NonNull;
 
 use ffmpeg_sys_next::*;
 
-use crate::error::{FfmpegError, AVERROR_EAGAIN};
+use crate::error::{FfmpegError, FfmpegErrorCode};
 use crate::frame::Frame;
 use crate::smart_object::SmartPtr;
 
+/// A filter graph. Used to chain filters together when transforming media data.
 pub struct FilterGraph(SmartPtr<AVFilterGraph>);
 
 /// Safety: `FilterGraph` is safe to send between threads.
 unsafe impl Send for FilterGraph {}
 
 impl FilterGraph {
+    /// Creates a new filter graph.
     pub fn new() -> Result<Self, FfmpegError> {
         // Safety: the pointer returned from avfilter_graph_alloc is valid
-        unsafe { Self::wrap(avfilter_graph_alloc()) }
+        let ptr = unsafe { avfilter_graph_alloc() };
+        // Safety: The pointer here is valid.
+        unsafe { Self::wrap(ptr) }.ok_or(FfmpegError::Alloc)
     }
 
     /// Safety: `ptr` must be a valid pointer to an `AVFilterGraph`.
-    unsafe fn wrap(ptr: *mut AVFilterGraph) -> Result<Self, FfmpegError> {
-        Ok(Self(
-            SmartPtr::wrap_non_null(ptr, |ptr| unsafe { avfilter_graph_free(ptr) }).ok_or(FfmpegError::Alloc)?,
-        ))
+    const unsafe fn wrap(ptr: *mut AVFilterGraph) -> Option<Self> {
+        let destructor = |ptr: &mut *mut AVFilterGraph| {
+            // Safety: The pointer here is valid.
+            unsafe { avfilter_graph_free(ptr) };
+        };
+
+        if ptr.is_null() {
+            return None;
+        }
+
+        // Safety: The pointer here is valid.
+        Some(Self(unsafe { SmartPtr::wrap(ptr, destructor) }))
     }
 
-    pub fn as_ptr(&self) -> *const AVFilterGraph {
+    /// Get the pointer to the filter graph.
+    pub const fn as_ptr(&self) -> *const AVFilterGraph {
         self.0.as_ptr()
     }
 
-    pub fn as_mut_ptr(&mut self) -> *mut AVFilterGraph {
+    /// Get the mutable pointer to the filter graph.
+    pub const fn as_mut_ptr(&mut self) -> *mut AVFilterGraph {
         self.0.as_mut_ptr()
     }
 
+    /// Add a filter to the filter graph.
     pub fn add(&mut self, filter: Filter, name: &str, args: &str) -> Result<FilterContext<'_>, FfmpegError> {
-        let name = CString::new(name).expect("failed to convert name to CString");
-        let args = CString::new(args).expect("failed to convert args to CString");
+        let name = CString::new(name).or(Err(FfmpegError::Arguments("name must be non-empty")))?;
+        let args = CString::new(args).or(Err(FfmpegError::Arguments("args must be non-empty")))?;
 
         let mut filter_context = std::ptr::null_mut();
 
         // Safety: avfilter_graph_create_filter is safe to call, 'filter_context' is a
         // valid pointer
-        let ret = unsafe {
+        FfmpegErrorCode(unsafe {
             avfilter_graph_create_filter(
                 &mut filter_context,
                 filter.as_ptr(),
@@ -50,66 +65,69 @@ impl FilterGraph {
                 std::ptr::null_mut(),
                 self.as_mut_ptr(),
             )
-        };
+        })
+        .result()?;
 
-        if ret < 0 {
-            Err(FfmpegError::Code(ret.into()))
-        } else {
-            // Safety: 'filter_context' is a valid pointer
-            Ok(FilterContext(unsafe {
-                NonNull::new(filter_context).ok_or(FfmpegError::Alloc)?.as_mut()
-            }))
-        }
+        // Safety: 'filter_context' is a valid pointer
+        Ok(FilterContext(unsafe {
+            NonNull::new(filter_context).ok_or(FfmpegError::Alloc)?.as_mut()
+        }))
     }
 
+    /// Get a filter context by name.
     pub fn get(&mut self, name: &str) -> Option<FilterContext<'_>> {
-        let name = CString::new(name).unwrap();
+        let name = CString::new(name).ok()?;
+
         // Safety: avfilter_graph_get_filter is safe to call, and the returned pointer
         // is valid
         let mut ptr = NonNull::new(unsafe { avfilter_graph_get_filter(self.as_mut_ptr(), name.as_ptr()) })?;
+        // Safety: The pointer here is valid.
         Some(FilterContext(unsafe { ptr.as_mut() }))
     }
 
+    /// Validate the filter graph.
     pub fn validate(&mut self) -> Result<(), FfmpegError> {
         // Safety: avfilter_graph_config is safe to call
-        let ret = unsafe { avfilter_graph_config(self.as_mut_ptr(), std::ptr::null_mut()) };
-
-        if ret < 0 {
-            Err(FfmpegError::Code(ret.into()))
-        } else {
-            Ok(())
-        }
+        FfmpegErrorCode(unsafe { avfilter_graph_config(self.as_mut_ptr(), std::ptr::null_mut()) }).result()?;
+        Ok(())
     }
 
+    /// Dump the filter graph to a string.
     pub fn dump(&mut self) -> Option<String> {
-        unsafe {
-            // Safety: avfilter_graph_dump is safe to call, and the returned pointer is
-            // valid
-            let c_str = SmartPtr::wrap_non_null(avfilter_graph_dump(self.as_mut_ptr(), std::ptr::null_mut()), |ptr| {
-                av_free(*ptr as *mut libc::c_void);
-                *ptr = std::ptr::null_mut();
-            })?;
+        // Safety: avfilter_graph_dump is safe to call
+        let dump = unsafe { avfilter_graph_dump(self.as_mut_ptr(), std::ptr::null_mut()) };
+        let destructor = |ptr: &mut *mut libc::c_char| {
+            // Safety: The pointer here is valid.
+            unsafe { av_free(*ptr as *mut libc::c_void) };
+            *ptr = std::ptr::null_mut();
+        };
 
-            // Safety: the lifetime of c_str does not exceed the lifetime of the the `CStr`
-            // returned by `from_ptr`
-            let c_str = std::ffi::CStr::from_ptr(c_str.as_ptr());
-            Some(c_str.to_str().ok()?.to_owned())
-        }
+        // Safety: The pointer here is valid.
+        let c_str = unsafe { SmartPtr::wrap_non_null(dump, destructor)? };
+
+        // Safety: The pointer here is valid.
+        let c_str = unsafe { std::ffi::CStr::from_ptr(c_str.as_ptr()) };
+
+        Some(c_str.to_str().ok()?.to_owned())
     }
 
-    pub fn set_thread_count(&mut self, threads: i32) {
+    /// Set the thread count for the filter graph.
+    pub const fn set_thread_count(&mut self, threads: i32) {
         self.0.as_deref_mut_except().nb_threads = threads;
     }
 
+    /// Add an input to the filter graph.
     pub fn input(&mut self, name: &str, pad: i32) -> Result<FilterGraphParser<'_>, FfmpegError> {
         FilterGraphParser::new(self).input(name, pad)
     }
 
+    /// Add an output to the filter graph.
     pub fn output(&mut self, name: &str, pad: i32) -> Result<FilterGraphParser<'_>, FfmpegError> {
         FilterGraphParser::new(self).output(name, pad)
     }
 }
 
+/// A parser for the filter graph. Allows you to create a filter graph from a string specification.
 pub struct FilterGraphParser<'a> {
     graph: &'a mut FilterGraph,
     inputs: SmartPtr<AVFilterInOut>,
@@ -120,24 +138,34 @@ pub struct FilterGraphParser<'a> {
 unsafe impl Send for FilterGraphParser<'_> {}
 
 impl<'a> FilterGraphParser<'a> {
+    /// Create a new `FilterGraphParser`.
     fn new(graph: &'a mut FilterGraph) -> Self {
         Self {
             graph,
             // Safety: 'avfilter_inout_free' is safe to call with a null pointer, and the pointer is valid
-            inputs: unsafe { SmartPtr::wrap(std::ptr::null_mut(), |ptr| avfilter_inout_free(ptr)) },
+            inputs: SmartPtr::null(|ptr| {
+                // Safety: The pointer here is valid.
+                unsafe { avfilter_inout_free(ptr) };
+            }),
             // Safety: 'avfilter_inout_free' is safe to call with a null pointer, and the pointer is valid
-            outputs: unsafe { SmartPtr::wrap(std::ptr::null_mut(), |ptr| avfilter_inout_free(ptr)) },
+            outputs: SmartPtr::null(|ptr| {
+                // Safety: The pointer here is valid.
+                unsafe { avfilter_inout_free(ptr) };
+            }),
         }
     }
 
+    /// Add an input to the filter graph.
     pub fn input(self, name: &str, pad: i32) -> Result<Self, FfmpegError> {
         self.inout_impl(name, pad, false)
     }
 
+    /// Add an output to the filter graph.
     pub fn output(self, name: &str, pad: i32) -> Result<Self, FfmpegError> {
         self.inout_impl(name, pad, true)
     }
 
+    /// Parse the filter graph specification.
     pub fn parse(mut self, spec: &str) -> Result<(), FfmpegError> {
         let spec = CString::new(spec).unwrap();
 
@@ -160,12 +188,19 @@ impl<'a> FilterGraphParser<'a> {
     fn inout_impl(mut self, name: &str, pad: i32, output: bool) -> Result<Self, FfmpegError> {
         let context = self.graph.get(name).ok_or(FfmpegError::Arguments("unknown name"))?;
 
+        let destructor = |ptr: &mut *mut AVFilterInOut| {
+            // Safety: The pointer here is valid allocated via `avfilter_inout_alloc`
+            unsafe { avfilter_inout_free(ptr) };
+        };
+
+        // Safety: `avfilter_inout_alloc` is safe to call.
+        let inout = unsafe { avfilter_inout_alloc() };
+
         // Safety: 'avfilter_inout_alloc' is safe to call, and the returned pointer is
         // valid
-        let mut inout = unsafe { SmartPtr::wrap_non_null(avfilter_inout_alloc(), |ptr| avfilter_inout_free(ptr)) }
-            .ok_or(FfmpegError::Alloc)?;
+        let mut inout = unsafe { SmartPtr::wrap_non_null(inout, destructor) }.ok_or(FfmpegError::Alloc)?;
 
-        let name = CString::new(name).unwrap();
+        let name = CString::new(name).map_err(|_| FfmpegError::Arguments("name must be non-empty"))?;
 
         inout.as_deref_mut_except().name = name.into_raw();
         inout.as_deref_mut_except().filter_ctx = context.0;
@@ -183,10 +218,12 @@ impl<'a> FilterGraphParser<'a> {
     }
 }
 
+/// A filter. Thin wrapper around [`AVFilter`].
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Filter(*const AVFilter);
 
 impl Filter {
+    /// Get a filter by name.
     pub fn get(name: &str) -> Option<Self> {
         let name = std::ffi::CString::new(name).ok()?;
 
@@ -201,13 +238,14 @@ impl Filter {
         }
     }
 
-    pub fn as_ptr(&self) -> *const AVFilter {
+    /// Get the pointer to the filter.
+    pub const fn as_ptr(&self) -> *const AVFilter {
         self.0
     }
 
     /// # Safety
     /// `ptr` must be a valid pointer.
-    pub unsafe fn wrap(ptr: *const AVFilter) -> Self {
+    pub const unsafe fn wrap(ptr: *const AVFilter) -> Self {
         Self(ptr)
     }
 }
@@ -215,67 +253,72 @@ impl Filter {
 /// Safety: `Filter` is safe to send between threads.
 unsafe impl Send for Filter {}
 
+/// A filter context. Thin wrapper around `AVFilterContext`.
 pub struct FilterContext<'a>(&'a mut AVFilterContext);
 
 /// Safety: `FilterContext` is safe to send between threads.
 unsafe impl Send for FilterContext<'_> {}
 
 impl<'a> FilterContext<'a> {
-    pub fn source(self) -> FilterContextSource<'a> {
+    /// Returns a source for the filter context.
+    pub const fn source(self) -> FilterContextSource<'a> {
         FilterContextSource(self.0)
     }
 
-    pub fn sink(self) -> FilterContextSink<'a> {
+    /// Returns a sink for the filter context.
+    pub const fn sink(self) -> FilterContextSink<'a> {
         FilterContextSink(self.0)
     }
 }
 
+/// A source for a filter context. Where this is specifically used to send frames to the filter context.
 pub struct FilterContextSource<'a>(&'a mut AVFilterContext);
 
 /// Safety: `FilterContextSource` is safe to send between threads.
 unsafe impl Send for FilterContextSource<'_> {}
 
 impl FilterContextSource<'_> {
+    /// Sends a frame to the filter context.
     pub fn send_frame(&mut self, frame: &Frame) -> Result<(), FfmpegError> {
         // Safety: `frame` is a valid pointer, and `self.0` is a valid pointer.
-        unsafe {
-            match av_buffersrc_write_frame(self.0, frame.as_ptr()) {
-                0 => Ok(()),
-                e => Err(FfmpegError::Code(e.into())),
-            }
-        }
+        FfmpegErrorCode(unsafe { av_buffersrc_write_frame(self.0, frame.as_ptr()) }).result()?;
+        Ok(())
     }
 
+    /// Sends an EOF frame to the filter context.
     pub fn send_eof(&mut self, pts: Option<i64>) -> Result<(), FfmpegError> {
         // Safety: `self.0` is a valid pointer.
-        unsafe {
-            match if let Some(pts) = pts {
-                av_buffersrc_close(self.0, pts, 0)
+        FfmpegErrorCode({
+            if let Some(pts) = pts {
+                // Safety: `av_buffersrc_close` is safe to call.
+                unsafe { av_buffersrc_close(self.0, pts, 0) }
             } else {
-                av_buffersrc_write_frame(self.0, std::ptr::null())
-            } {
-                0 => Ok(()),
-                e => Err(FfmpegError::Code(e.into())),
+                // Safety: `av_buffersrc_write_frame` is safe to call.
+                unsafe { av_buffersrc_write_frame(self.0, std::ptr::null()) }
             }
-        }
+        })
+        .result()?;
+        Ok(())
     }
 }
 
+/// A sink for a filter context. Where this is specifically used to receive frames from the filter context.
 pub struct FilterContextSink<'a>(&'a mut AVFilterContext);
 
 /// Safety: `FilterContextSink` is safe to send between threads.
 unsafe impl Send for FilterContextSink<'_> {}
 
 impl FilterContextSink<'_> {
+    /// Receives a frame from the filter context.
     pub fn receive_frame(&mut self) -> Result<Option<Frame>, FfmpegError> {
         let mut frame = Frame::new()?;
 
         // Safety: `frame` is a valid pointer, and `self.0` is a valid pointer.
         unsafe {
-            match av_buffersink_get_frame(self.0, frame.as_mut_ptr()) {
-                0 => Ok(Some(frame)),
-                AVERROR_EAGAIN | AVERROR_EOF => Ok(None),
-                e => Err(FfmpegError::Code(e.into())),
+            match FfmpegErrorCode(av_buffersink_get_frame(self.0, frame.as_mut_ptr())) {
+                code if code.is_success() => Ok(Some(frame)),
+                FfmpegErrorCode::Eagain | FfmpegErrorCode::Eof => Ok(None),
+                code => Err(FfmpegError::Code(code)),
             }
         }
     }
@@ -314,6 +357,7 @@ mod tests {
     fn test_filter_graph_add() {
         let mut filter_graph = FilterGraph::new().expect("Failed to create filter graph");
         let filter_name = "buffer";
+        // Safety: `avfilter_get_by_name` is safe to call.
         let filter_ptr = unsafe { avfilter_get_by_name(CString::new(filter_name).unwrap().as_ptr()) };
         assert!(
             !filter_ptr.is_null(),
@@ -321,6 +365,7 @@ mod tests {
             filter_name
         );
 
+        // Safety: The pointer here is valid.
         let filter = unsafe { Filter::wrap(filter_ptr) };
         let name = "buffer_filter";
         let args = "width=1920:height=1080:pix_fmt=0:time_base=1/30";
@@ -343,6 +388,7 @@ mod tests {
     fn test_filter_graph_get() {
         let mut filter_graph = FilterGraph::new().expect("Failed to create filter graph");
         let filter_name = "buffer";
+        // Safety: `avfilter_get_by_name` is safe to call.
         let filter_ptr = unsafe { avfilter_get_by_name(CString::new(filter_name).unwrap().as_ptr()) };
         assert!(
             !filter_ptr.is_null(),
@@ -350,6 +396,7 @@ mod tests {
             filter_name
         );
 
+        // Safety: The pointer here is valid.
         let filter = unsafe { Filter::wrap(filter_ptr) };
         let name = "buffer_filter";
         let args = "width=1920:height=1080:pix_fmt=0:time_base=1/30";
@@ -403,6 +450,7 @@ mod tests {
         let mut filter_graph = FilterGraph::new().expect("Failed to create filter graph");
         filter_graph.set_thread_count(4);
         assert_eq!(
+            // Safety: The pointer here is valid.
             unsafe { (*filter_graph.as_mut_ptr()).nb_threads },
             4,
             "Thread count should be set to 4"
@@ -410,6 +458,7 @@ mod tests {
 
         filter_graph.set_thread_count(8);
         assert_eq!(
+            // Safety: The pointer here is valid.
             unsafe { (*filter_graph.as_mut_ptr()).nb_threads },
             8,
             "Thread count should be set to 8"

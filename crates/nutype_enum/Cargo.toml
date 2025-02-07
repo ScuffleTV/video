@@ -1,0 +1,14 @@
+[package]
+name = "nutype-enum"
+version = "0.0.1"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/nutype-enum"
+description = "Helper macro to create a nutype that behaves like an enum."
+keywords = ["enum", "nutype"]
+
+[dependencies]
+scuffle-workspace-hack.workspace = true

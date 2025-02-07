@@ -31,8 +31,6 @@ pub mod script;
 pub mod tag;
 pub mod video;
 
-mod macros;
-
 pub use crate::file::FlvFile;
 pub use crate::header::FlvHeader;
 pub use crate::tag::{FlvTag, FlvTagData, FlvTagType};

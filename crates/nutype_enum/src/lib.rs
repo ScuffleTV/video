@@ -1,13 +1,14 @@
 /// Helper macro to create a new enum type with a single field.
 ///
-/// This macro is used to create a new enum type with a single field.
 /// The enum type is derived with the `Clone`, `Copy`, `PartialEq`, `Eq`,
-/// `PartialOrd`, `Ord`, and `Hash` traits. The enum type is also derived with
-/// the `Debug` trait to provide a human-readable representation of the enum.
+/// `PartialOrd`, `Ord`, and `Hash` traits. The nutype also impls `From` and
+/// `Into` for the underlying type. As well as a custom `Debug` impl for human
+/// readable output.
 ///
 /// # Examples
 ///
-/// ```rust,ignore
+/// ```rust
+/// # use nutype_enum::nutype_enum;
 /// nutype_enum! {
 ///     pub enum AacPacketType(u8) {
 ///         SeqHdr = 0x0,
@@ -15,6 +16,7 @@
 ///     }
 /// }
 /// ```
+#[macro_export]
 macro_rules! nutype_enum {
     (
         $(#[$attr:meta])*
@@ -62,5 +64,3 @@ macro_rules! nutype_enum {
         }
     };
 }
-
-pub(crate) use nutype_enum;

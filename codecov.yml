@@ -73,6 +73,10 @@ component_management:
       name: scuffle-h3-webtransport
       paths:
         - crates/h3-webtransport/**
+    - component_id: nutype-enum
+      name: nutype-enum
+      paths:
+        - crates/nutype_enum/**
     # - component_id: scuffle-h264
     #   name: scuffle-h264
     #   paths:

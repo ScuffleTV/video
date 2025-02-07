@@ -28,4 +28,5 @@ scuffle-aac.workspace = true
 scuffle-bytes-util.workspace = true
 scuffle-av1.workspace = true
 scuffle-amf0.workspace = true
+nutype-enum.workspace = true
 scuffle-workspace-hack.workspace = true

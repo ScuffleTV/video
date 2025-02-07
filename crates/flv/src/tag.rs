@@ -1,11 +1,11 @@
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::Bytes;
+use nutype_enum::nutype_enum;
 use scuffle_bytes_util::BytesCursorExt;
 
 use super::audio::AudioData;
 use super::script::ScriptData;
 use super::video::VideoTagHeader;
-use crate::macros::nutype_enum;
 
 /// An FLV Tag
 ///

@@ -1,9 +1,10 @@
 use ffmpeg_sys_next::*;
 
-use crate::error::FfmpegError;
+use crate::error::{FfmpegError, FfmpegErrorCode};
 use crate::frame::{Frame, VideoFrame};
 use crate::smart_object::SmartPtr;
 
+/// A scalar is a wrapper around an [`SwsContext`]. Which is used to scale or transform video frames.
 pub struct Scalar {
     ptr: SmartPtr<SwsContext>,
     frame: VideoFrame,
@@ -16,6 +17,7 @@ pub struct Scalar {
 unsafe impl Send for Scalar {}
 
 impl Scalar {
+    /// Creates a new `Scalar` instance.
     pub fn new(
         input_width: i32,
         input_height: i32,
@@ -26,44 +28,44 @@ impl Scalar {
     ) -> Result<Self, FfmpegError> {
         // Safety: `sws_getContext` is safe to call, and the pointer returned is valid.
         let ptr = unsafe {
-            SmartPtr::wrap_non_null(
-                sws_getContext(
-                    input_width,
-                    input_height,
-                    incoming_pixel_fmt,
-                    width,
-                    height,
-                    pixel_format,
-                    SWS_BILINEAR,
-                    std::ptr::null_mut(),
-                    std::ptr::null_mut(),
-                    std::ptr::null(),
-                ),
-                |ptr| {
-                    sws_freeContext(*ptr);
-                    *ptr = std::ptr::null_mut();
-                },
+            sws_getContext(
+                input_width,
+                input_height,
+                incoming_pixel_fmt,
+                width,
+                height,
+                pixel_format,
+                SWS_BILINEAR,
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+                std::ptr::null(),
             )
-        }
-        .ok_or(FfmpegError::Alloc)?;
+        };
+
+        let destructor = |ptr: &mut *mut SwsContext| {
+            // Safety: `sws_freeContext` is safe to call.
+            unsafe {
+                sws_freeContext(*ptr);
+            }
+
+            *ptr = std::ptr::null_mut();
+        };
+
+        // Safety: `ptr` is a valid pointer & `destructor` has been setup to free the context.
+        let ptr = unsafe { SmartPtr::wrap_non_null(ptr, destructor) }.ok_or(FfmpegError::Alloc)?;
 
         let mut frame = Frame::new()?;
 
-        unsafe {
-            // Safety: `frame` is a valid pointer
-            let frame_mut = frame.as_mut_ptr().as_mut().unwrap();
+        // Safety: `frame` is a valid pointer
+        let frame_mut = unsafe { &mut *frame.as_mut_ptr() };
 
-            frame_mut.width = width;
-            frame_mut.height = height;
-            frame_mut.format = pixel_format as i32;
+        frame_mut.width = width;
+        frame_mut.height = height;
+        frame_mut.format = pixel_format as i32;
 
-            // Safety: `av_frame_get_buffer` is safe to call, and the pointer returned is
-            // valid.
-            match av_frame_get_buffer(frame_mut, 32) {
-                0 => {}
-                err => return Err(FfmpegError::Code(err.into())),
-            }
-        }
+        // Safety: `av_frame_get_buffer` is safe to call, and the pointer returned is
+        // valid.
+        FfmpegErrorCode(unsafe { av_frame_get_buffer(frame_mut, 32) }).result()?;
 
         Ok(Self {
             ptr,
@@ -74,34 +76,41 @@ impl Scalar {
         })
     }
 
-    pub fn pixel_format(&self) -> AVPixelFormat {
+    /// Returns the pixel format of the scalar.
+    pub const fn pixel_format(&self) -> AVPixelFormat {
         self.pixel_format
     }
 
-    pub fn width(&self) -> i32 {
+    /// Returns the width of the scalar.
+    pub const fn width(&self) -> i32 {
         self.width
     }
 
-    pub fn height(&self) -> i32 {
+    /// Returns the height of the scalar.
+    pub const fn height(&self) -> i32 {
         self.height
     }
 
+    /// Processes a frame through the scalar.
     pub fn process<'a>(&'a mut self, frame: &Frame) -> Result<&'a VideoFrame, FfmpegError> {
         // Safety: `frame` is a valid pointer, and `self.ptr` is a valid pointer.
-        let ret = unsafe {
+        let frame_ptr = unsafe { frame.as_ptr().as_ref().unwrap() };
+        // Safety: `self.frame` is a valid pointer.
+        let self_frame_ptr = unsafe { self.frame.as_ptr().as_ref().unwrap() };
+
+        // Safety: `sws_scale` is safe to call.
+        FfmpegErrorCode(unsafe {
             sws_scale(
                 self.ptr.as_mut_ptr(),
-                frame.as_ptr().as_ref().unwrap().data.as_ptr() as *const *const u8,
-                frame.as_ptr().as_ref().unwrap().linesize.as_ptr(),
+                frame_ptr.data.as_ptr() as *const *const u8,
+                frame_ptr.linesize.as_ptr(),
                 0,
-                frame.as_ptr().as_ref().unwrap().height,
-                self.frame.as_ptr().as_ref().unwrap().data.as_ptr(),
-                self.frame.as_ptr().as_ref().unwrap().linesize.as_ptr(),
+                frame_ptr.height,
+                self_frame_ptr.data.as_ptr(),
+                self_frame_ptr.linesize.as_ptr(),
             )
-        };
-        if ret < 0 {
-            return Err(FfmpegError::Code(ret.into()));
-        }
+        })
+        .result()?;
 
         // Copy the other fields from the input frame to the output frame.
         self.frame.set_dts(frame.dts());
@@ -119,6 +128,7 @@ mod tests {
     use ffmpeg_sys_next::av_frame_get_buffer;
     use insta::assert_debug_snapshot;
 
+    use crate::error::FfmpegErrorCode;
     use crate::frame::Frame;
     use crate::scalar::{AVPixelFormat, Scalar};
 
@@ -179,17 +189,17 @@ mod tests {
         .expect("Failed to create Scalar");
 
         let mut input_frame = Frame::new().expect("Failed to create Frame");
-        unsafe {
-            let frame_mut = input_frame.as_mut_ptr().as_mut().unwrap();
-            frame_mut.width = input_width;
-            frame_mut.height = input_height;
-            frame_mut.format = incoming_pixel_fmt as i32;
+        // Safety: `input_frame` is a valid pointer
+        let frame_mut = unsafe { &mut *input_frame.as_mut_ptr() };
+        frame_mut.width = input_width;
+        frame_mut.height = input_height;
+        frame_mut.format = incoming_pixel_fmt as i32;
 
-            match av_frame_get_buffer(frame_mut, 32) {
-                0 => {}
-                err => panic!("Failed to allocate input frame buffer: {}", err),
-            }
-        }
+        // Safety: `av_frame_get_buffer` is safe to call, and the pointer returned is
+        // valid.
+        FfmpegErrorCode(unsafe { av_frame_get_buffer(frame_mut, 32) })
+            .result()
+            .expect("Failed to allocate input frame buffer");
 
         let result = scalar.process(&input_frame);
 

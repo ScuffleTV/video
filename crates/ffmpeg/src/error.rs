@@ -1,51 +1,113 @@
 use ffmpeg_sys_next::*;
+use nutype_enum::nutype_enum;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
+/// An error that occurs when the ffmpeg operation fails.
 pub enum FfmpegError {
+    /// An error that occurs when the memory allocation fails.
+    #[error("failed to allocate memory")]
     Alloc,
-    Code(FfmpegErrorCode),
+    /// An error that occurs when the ffmpeg error code is not a success code.
+    #[error("ffmpeg error: {0}")]
+    Code(#[from] FfmpegErrorCode),
+    /// An error that occurs when no decoder is found.
+    #[error("no decoder found")]
     NoDecoder,
+    /// An error that occurs when no encoder is found.
+    #[error("no encoder found")]
     NoEncoder,
+    /// An error that occurs when no stream is found.
+    #[error("no stream found")]
     NoStream,
+    /// An error that occurs when no filter is found.
+    #[error("no filter found")]
     NoFilter,
+    /// An error that occurs when no frame is found.
+    #[error("no frame found")]
     NoFrame,
+    /// An error that occurs when the arguments are invalid.
+    #[error("invalid arguments: {0}")]
     Arguments(&'static str),
 }
 
 pub(crate) const AVERROR_EAGAIN: i32 = AVERROR(EAGAIN);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FfmpegErrorCode {
-    EndOfFile,
-    InvalidData,
-    MuxerNotFound,
-    OptionNotFound,
-    PatchWelcome,
-    ProtocolNotFound,
-    StreamNotFound,
-    BitstreamFilterNotFound,
-    Bug,
-    BufferTooSmall,
-    DecoderNotFound,
-    DemuxerNotFound,
-    EncoderNotFound,
-    Exit,
-    External,
-    FilterNotFound,
-    HttpBadRequest,
-    HttpForbidden,
-    HttpNotFound,
-    HttpOther4xx,
-    HttpServerError,
-    HttpUnauthorized,
-    Bug2,
-    Unknown,
-    UnknownError(i32),
+nutype_enum! {
+    /// An enum that represents the ffmpeg error code.
+    pub enum FfmpegErrorCode(i32) {
+        /// FFmpeg error code for end of file.
+        EndOfFile = AVERROR_EOF,
+        /// FFmpeg error code for invalid data.
+        InvalidData = AVERROR_INVALIDDATA,
+        /// FFmpeg error code for muxer not found.
+        MuxerNotFound = AVERROR_MUXER_NOT_FOUND,
+        /// FFmpeg error code for option not found.
+        OptionNotFound = AVERROR_OPTION_NOT_FOUND,
+        /// FFmpeg error code for patch welcome.
+        PatchWelcome = AVERROR_PATCHWELCOME,
+        /// FFmpeg error code for protocol not found.
+        ProtocolNotFound = AVERROR_PROTOCOL_NOT_FOUND,
+        /// FFmpeg error code for stream not found.
+        StreamNotFound = AVERROR_STREAM_NOT_FOUND,
+        /// FFmpeg error code for bitstream filter not found.
+        BitstreamFilterNotFound = AVERROR_BSF_NOT_FOUND,
+        /// FFmpeg error code for bug.
+        Bug = AVERROR_BUG,
+        /// FFmpeg error code for eof.
+        Eof = AVERROR_EOF,
+        /// FFmpeg error code for eagain.
+        Eagain = AVERROR_EAGAIN,
+        /// FFmpeg error code for buffer too small.
+        BufferTooSmall = AVERROR_BUFFER_TOO_SMALL,
+        /// FFmpeg error code for decoder not found.
+        DecoderNotFound = AVERROR_DECODER_NOT_FOUND,
+        /// FFmpeg error code for demuxer not found.
+        DemuxerNotFound = AVERROR_DEMUXER_NOT_FOUND,
+        /// FFmpeg error code for encoder not found.
+        EncoderNotFound = AVERROR_ENCODER_NOT_FOUND,
+        /// FFmpeg error code for exit.
+        Exit = AVERROR_EXIT,
+        /// FFmpeg error code for external.
+        External = AVERROR_EXTERNAL,
+        /// FFmpeg error code for filter not found.
+        FilterNotFound = AVERROR_FILTER_NOT_FOUND,
+        /// FFmpeg error code for http bad request.
+        HttpBadRequest = AVERROR_HTTP_BAD_REQUEST,
+        /// FFmpeg error code for http forbidden.
+        HttpForbidden = AVERROR_HTTP_FORBIDDEN,
+        /// FFmpeg error code for http not found.
+        HttpNotFound = AVERROR_HTTP_NOT_FOUND,
+        /// FFmpeg error code for http other 4xx.
+        HttpOther4xx = AVERROR_HTTP_OTHER_4XX,
+        /// FFmpeg error code for http server error.
+        HttpServerError = AVERROR_HTTP_SERVER_ERROR,
+        /// FFmpeg error code for http unauthorized.
+        HttpUnauthorized = AVERROR_HTTP_UNAUTHORIZED,
+        /// FFmpeg error code for bug2.
+        Bug2 = AVERROR_BUG2,
+        /// FFmpeg error code for unknown.
+        Unknown = AVERROR_UNKNOWN,
+    }
+}
+
+impl FfmpegErrorCode {
+    /// Returns the result of the error code.
+    pub const fn result(self) -> Result<i32, FfmpegError> {
+        match self {
+            code if code.is_success() => Ok(code.0),
+            _ => Err(FfmpegError::Code(self)),
+        }
+    }
+
+    /// Returns true if the error code is a success code.
+    pub const fn is_success(self) -> bool {
+        self.0 >= 0
+    }
 }
 
 impl std::fmt::Display for FfmpegErrorCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
+        match *self {
             Self::EndOfFile => write!(f, "end of file"),
             Self::InvalidData => write!(f, "invalid data"),
             Self::MuxerNotFound => write!(f, "muxer not found"),
@@ -70,59 +132,12 @@ impl std::fmt::Display for FfmpegErrorCode {
             Self::HttpUnauthorized => write!(f, "http unauthorized"),
             Self::Bug2 => write!(f, "bug2"),
             Self::Unknown => write!(f, "unknown"),
-            Self::UnknownError(ec) => write!(f, "unknown error code: {ec}"),
+            Self(ec) => write!(f, "unknown error code: {ec}"),
         }
     }
 }
 
-impl From<i32> for FfmpegErrorCode {
-    fn from(value: i32) -> Self {
-        match value {
-            AVERROR_EOF => FfmpegErrorCode::EndOfFile,
-            AVERROR_INVALIDDATA => FfmpegErrorCode::InvalidData,
-            AVERROR_MUXER_NOT_FOUND => FfmpegErrorCode::MuxerNotFound,
-            AVERROR_OPTION_NOT_FOUND => FfmpegErrorCode::OptionNotFound,
-            AVERROR_PATCHWELCOME => FfmpegErrorCode::PatchWelcome,
-            AVERROR_PROTOCOL_NOT_FOUND => FfmpegErrorCode::ProtocolNotFound,
-            AVERROR_STREAM_NOT_FOUND => FfmpegErrorCode::StreamNotFound,
-            AVERROR_BSF_NOT_FOUND => FfmpegErrorCode::BitstreamFilterNotFound,
-            AVERROR_BUG => FfmpegErrorCode::Bug,
-            AVERROR_BUFFER_TOO_SMALL => FfmpegErrorCode::BufferTooSmall,
-            AVERROR_DECODER_NOT_FOUND => FfmpegErrorCode::DecoderNotFound,
-            AVERROR_DEMUXER_NOT_FOUND => FfmpegErrorCode::DemuxerNotFound,
-            AVERROR_ENCODER_NOT_FOUND => FfmpegErrorCode::EncoderNotFound,
-            AVERROR_EXIT => FfmpegErrorCode::Exit,
-            AVERROR_EXTERNAL => FfmpegErrorCode::External,
-            AVERROR_FILTER_NOT_FOUND => FfmpegErrorCode::FilterNotFound,
-            AVERROR_HTTP_BAD_REQUEST => FfmpegErrorCode::HttpBadRequest,
-            AVERROR_HTTP_FORBIDDEN => FfmpegErrorCode::HttpForbidden,
-            AVERROR_HTTP_NOT_FOUND => FfmpegErrorCode::HttpNotFound,
-            AVERROR_HTTP_OTHER_4XX => FfmpegErrorCode::HttpOther4xx,
-            AVERROR_HTTP_SERVER_ERROR => FfmpegErrorCode::HttpServerError,
-            AVERROR_HTTP_UNAUTHORIZED => FfmpegErrorCode::HttpUnauthorized,
-            AVERROR_BUG2 => FfmpegErrorCode::Bug2,
-            AVERROR_UNKNOWN => FfmpegErrorCode::Unknown,
-            _ => FfmpegErrorCode::UnknownError(value),
-        }
-    }
-}
-
-impl std::error::Error for FfmpegError {}
-
-impl std::fmt::Display for FfmpegError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FfmpegError::Alloc => write!(f, "failed to allocate memory"),
-            FfmpegError::Code(code) => write!(f, "ffmpeg error: {code}"),
-            FfmpegError::NoDecoder => write!(f, "no decoder found"),
-            FfmpegError::NoEncoder => write!(f, "no encoder found"),
-            FfmpegError::NoStream => write!(f, "no stream found"),
-            FfmpegError::NoFilter => write!(f, "no filter found"),
-            FfmpegError::NoFrame => write!(f, "no frame found"),
-            FfmpegError::Arguments(msg) => write!(f, "invalid arguments: {}", msg),
-        }
-    }
-}
+impl std::error::Error for FfmpegErrorCode {}
 
 #[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
@@ -157,7 +172,7 @@ mod tests {
             (FfmpegErrorCode::HttpUnauthorized, "http unauthorized"),
             (FfmpegErrorCode::Bug2, "bug2"),
             (FfmpegErrorCode::Unknown, "unknown"),
-            (FfmpegErrorCode::UnknownError(123), "unknown error code: 123"),
+            (FfmpegErrorCode(123), "unknown error code: 123"),
         ];
 
         for (code, expected) in cases {
@@ -206,7 +221,7 @@ mod tests {
         let result: FfmpegErrorCode = unknown_value.into();
         assert_eq!(
             result,
-            FfmpegErrorCode::UnknownError(unknown_value),
+            FfmpegErrorCode(unknown_value),
             "Failed for unknown value: {unknown_value}"
         );
     }

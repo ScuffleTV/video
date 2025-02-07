@@ -1,18 +1,24 @@
 use ffmpeg_sys_next::*;
 
 use crate::codec::DecoderCodec;
-use crate::error::{FfmpegError, AVERROR_EAGAIN};
-use crate::frame::{Frame, VideoFrame};
+use crate::error::{FfmpegError, FfmpegErrorCode};
+use crate::frame::{AudioFrame, Frame, VideoFrame};
 use crate::packet::Packet;
 use crate::smart_object::SmartPtr;
 use crate::stream::Stream;
 
+/// Either a [`VideoDecoder`] or an [`AudioDecoder`].
+///
+/// This is the most common way to interact with decoders.
 #[derive(Debug)]
 pub enum Decoder {
+    /// A video decoder.
     Video(VideoDecoder),
+    /// An audio decoder.
     Audio(AudioDecoder),
 }
 
+/// A generic decoder that can be used to decode any type of media.
 pub struct GenericDecoder {
     decoder: SmartPtr<AVCodecContext>,
 }
@@ -29,6 +35,7 @@ impl std::fmt::Debug for GenericDecoder {
     }
 }
 
+/// A video decoder.
 pub struct VideoDecoder(GenericDecoder);
 
 impl std::fmt::Debug for VideoDecoder {
@@ -44,6 +51,7 @@ impl std::fmt::Debug for VideoDecoder {
     }
 }
 
+/// An audio decoder.
 pub struct AudioDecoder(GenericDecoder);
 
 impl std::fmt::Debug for AudioDecoder {
@@ -57,11 +65,15 @@ impl std::fmt::Debug for AudioDecoder {
     }
 }
 
+/// Options for creating a [`Decoder`].
 pub struct DecoderOptions {
+    /// The codec to use for decoding.
     pub codec: Option<DecoderCodec>,
+    /// The number of threads to use for decoding.
     pub thread_count: i32,
 }
 
+/// The default options for a [`Decoder`].
 impl Default for DecoderOptions {
     fn default() -> Self {
         Self {
@@ -72,10 +84,12 @@ impl Default for DecoderOptions {
 }
 
 impl Decoder {
+    /// Creates a new [`Decoder`] with the default options.
     pub fn new(ist: &Stream) -> Result<Self, FfmpegError> {
         Self::with_options(ist, Default::default())
     }
 
+    /// Creates a new [`Decoder`] with the given options.
     pub fn with_options(ist: &Stream, options: DecoderOptions) -> Result<Self, FfmpegError> {
         let Some(codec_params) = ist.codec_parameters() else {
             return Err(FfmpegError::NoDecoder);
@@ -85,21 +99,24 @@ impl Decoder {
             .codec
             .or_else(|| DecoderCodec::new(codec_params.codec_id))
             .ok_or(FfmpegError::NoDecoder)?;
-        if codec.as_ptr().is_null() {
+
+        if codec.is_empty() {
             return Err(FfmpegError::NoDecoder);
         }
 
-        // Safety: `codec` is a valid pointer, also the pointer returned from
-        // `avcodec_alloc_context3` is valid.
-        let mut decoder =
-            unsafe { SmartPtr::wrap_non_null(avcodec_alloc_context3(codec.as_ptr()), |ptr| avcodec_free_context(ptr)) }
-                .ok_or(FfmpegError::Alloc)?;
+        // Safety: `avcodec_alloc_context3` is safe to call and all arguments are valid.
+        let decoder = unsafe { avcodec_alloc_context3(codec.as_ptr()) };
+
+        let destructor = |ptr: &mut *mut AVCodecContext| {
+            // Safety: The pointer here is valid.
+            unsafe { avcodec_free_context(ptr) };
+        };
+
+        // Safety: `decoder` is a valid pointer, and `destructor` has been setup to free the context.
+        let mut decoder = unsafe { SmartPtr::wrap_non_null(decoder, destructor) }.ok_or(FfmpegError::Alloc)?;
 
         // Safety: `codec_params` is a valid pointer, and `decoder` is a valid pointer.
-        let ret = unsafe { avcodec_parameters_to_context(decoder.as_mut_ptr(), codec_params) };
-        if ret < 0 {
-            return Err(FfmpegError::Code(ret.into()));
-        }
+        FfmpegErrorCode(unsafe { avcodec_parameters_to_context(decoder.as_mut_ptr(), codec_params) }).result()?;
 
         let decoder_mut = decoder.as_deref_mut_except();
 
@@ -108,18 +125,16 @@ impl Decoder {
         decoder_mut.thread_count = options.thread_count;
 
         if decoder_mut.codec_type == AVMediaType::AVMEDIA_TYPE_VIDEO {
-            // Even though we are upcasting `AVFormatContext` from a const pointer to a
+            // Safety: Even though we are upcasting `AVFormatContext` from a const pointer to a
             // mutable pointer, it is still safe becasuse av_guess_frame_rate does not use
-            // the pointer to modify the `AVFormatContext`. https://github.com/FFmpeg/FFmpeg/blame/90bef6390fba02472141f299264331f68018a992/libavformat/avformat.c#L728
+            // the pointer to modify the `AVFormatContext`. https://github.com/FFmpeg/FFmpeg/blame/268d0b6527cba1ebac1f44347578617341f85c35/libavformat/avformat.c#L763
             // The function does not use the pointer at all, it only uses the `AVStream`
             // pointer to get the `AVRational`
-            decoder_mut.framerate = unsafe {
-                av_guess_frame_rate(
-                    ist.format_context() as *const AVFormatContext as *mut AVFormatContext,
-                    ist.as_ptr() as *mut AVStream,
-                    std::ptr::null_mut(),
-                )
-            };
+            let format_context = unsafe { ist.format_context() };
+
+            decoder_mut.framerate =
+                // Safety: See above.
+                unsafe { av_guess_frame_rate(format_context, ist.as_ptr() as *mut AVStream, std::ptr::null_mut()) };
         }
 
         if matches!(
@@ -127,10 +142,7 @@ impl Decoder {
             AVMediaType::AVMEDIA_TYPE_VIDEO | AVMediaType::AVMEDIA_TYPE_AUDIO
         ) {
             // Safety: `codec` is a valid pointer, and `decoder` is a valid pointer.
-            let ret = unsafe { avcodec_open2(decoder_mut, codec.as_ptr(), std::ptr::null_mut()) };
-            if ret < 0 {
-                return Err(FfmpegError::Code(ret.into()));
-            }
+            FfmpegErrorCode(unsafe { avcodec_open2(decoder_mut, codec.as_ptr(), std::ptr::null_mut()) }).result()?;
         }
 
         Ok(match decoder_mut.codec_type {
@@ -142,70 +154,77 @@ impl Decoder {
 }
 
 impl GenericDecoder {
-    pub fn codec_type(&self) -> AVMediaType {
+    /// Returns the codec type of the decoder.
+    pub const fn codec_type(&self) -> AVMediaType {
         self.decoder.as_deref_except().codec_type
     }
 
-    pub fn time_base(&self) -> AVRational {
+    /// Returns the time base of the decoder.
+    pub const fn time_base(&self) -> AVRational {
         self.decoder.as_deref_except().time_base
     }
 
+    /// Sends a packet to the decoder.
     pub fn send_packet(&mut self, packet: &Packet) -> Result<(), FfmpegError> {
         // Safety: `packet` is a valid pointer, and `self.decoder` is a valid pointer.
-        let ret = unsafe { avcodec_send_packet(self.decoder.as_mut_ptr(), packet.as_ptr()) };
-
-        match ret {
-            0 => Ok(()),
-            _ => Err(FfmpegError::Code(ret.into())),
-        }
+        FfmpegErrorCode(unsafe { avcodec_send_packet(self.decoder.as_mut_ptr(), packet.as_ptr()) }).result()?;
+        Ok(())
     }
 
+    /// Sends an end-of-file packet to the decoder.
     pub fn send_eof(&mut self) -> Result<(), FfmpegError> {
         // Safety: `self.decoder` is a valid pointer.
-        let ret = unsafe { avcodec_send_packet(self.decoder.as_mut_ptr(), std::ptr::null()) };
-
-        match ret {
-            0 => Ok(()),
-            _ => Err(FfmpegError::Code(ret.into())),
-        }
+        FfmpegErrorCode(unsafe { avcodec_send_packet(self.decoder.as_mut_ptr(), std::ptr::null()) }).result()?;
+        Ok(())
     }
 
-    pub fn receive_frame(&mut self) -> Result<Option<VideoFrame>, FfmpegError> {
+    /// Receives a frame from the decoder.
+    pub fn receive_frame(&mut self) -> Result<Option<Frame>, FfmpegError> {
         let mut frame = Frame::new()?;
 
         // Safety: `frame` is a valid pointer, and `self.decoder` is a valid pointer.
-        let ret = unsafe { avcodec_receive_frame(self.decoder.as_mut_ptr(), frame.as_mut_ptr()) };
+        let ret = FfmpegErrorCode(unsafe { avcodec_receive_frame(self.decoder.as_mut_ptr(), frame.as_mut_ptr()) });
 
         match ret {
-            AVERROR_EAGAIN | AVERROR_EOF => Ok(None),
-            0 => {
+            FfmpegErrorCode::Eagain | FfmpegErrorCode::Eof => Ok(None),
+            code if code.is_success() => {
                 frame.set_time_base(self.decoder.as_deref_except().time_base);
-                Ok(Some(frame.video()))
+                Ok(Some(frame))
             }
-            _ => Err(FfmpegError::Code(ret.into())),
+            code => Err(FfmpegError::Code(code)),
         }
     }
 }
 
 impl VideoDecoder {
-    pub fn width(&self) -> i32 {
+    /// Returns the width of the video frame.
+    pub const fn width(&self) -> i32 {
         self.0.decoder.as_deref_except().width
     }
 
-    pub fn height(&self) -> i32 {
+    /// Returns the height of the video frame.
+    pub const fn height(&self) -> i32 {
         self.0.decoder.as_deref_except().height
     }
 
-    pub fn pixel_format(&self) -> AVPixelFormat {
+    /// Returns the pixel format of the video frame.
+    pub const fn pixel_format(&self) -> AVPixelFormat {
         self.0.decoder.as_deref_except().pix_fmt
     }
 
-    pub fn frame_rate(&self) -> AVRational {
+    /// Returns the frame rate of the video frame.
+    pub const fn frame_rate(&self) -> AVRational {
         self.0.decoder.as_deref_except().framerate
     }
 
-    pub fn sample_aspect_ratio(&self) -> AVRational {
+    /// Returns the sample aspect ratio of the video frame.
+    pub const fn sample_aspect_ratio(&self) -> AVRational {
         self.0.decoder.as_deref_except().sample_aspect_ratio
+    }
+
+    /// Receives a frame from the decoder.
+    pub fn receive_frame(&mut self) -> Result<Option<VideoFrame>, FfmpegError> {
+        Ok(self.0.receive_frame()?.map(|frame| frame.video()))
     }
 }
 
@@ -224,16 +243,24 @@ impl std::ops::DerefMut for VideoDecoder {
 }
 
 impl AudioDecoder {
-    pub fn sample_rate(&self) -> i32 {
+    /// Returns the sample rate of the audio frame.
+    pub const fn sample_rate(&self) -> i32 {
         self.0.decoder.as_deref_except().sample_rate
     }
 
-    pub fn channels(&self) -> i32 {
+    /// Returns the number of channels in the audio frame.
+    pub const fn channels(&self) -> i32 {
         self.0.decoder.as_deref_except().ch_layout.nb_channels
     }
 
-    pub fn sample_format(&self) -> AVSampleFormat {
+    /// Returns the sample format of the audio frame.
+    pub const fn sample_format(&self) -> AVSampleFormat {
         self.0.decoder.as_deref_except().sample_fmt
+    }
+
+    /// Receives a frame from the decoder.
+    pub fn receive_frame(&mut self) -> Result<Option<AudioFrame>, FfmpegError> {
+        Ok(self.0.receive_frame()?.map(|frame| frame.audio()))
     }
 }
 
@@ -435,6 +462,7 @@ mod tests {
         let mut input = Input::open(valid_file_path).expect("Failed to open valid file");
         let mut streams = input.streams_mut();
         let mut stream = streams.get(0).expect("Expected a valid stream");
+        // Safety: We are setting the `codecpar` to `null` to simulate a missing codec parameters.
         unsafe {
             (*stream.as_mut_ptr()).codecpar = std::ptr::null_mut();
         }
@@ -455,8 +483,11 @@ mod tests {
         let mut input = Input::open(valid_file_path).expect("Failed to open valid file");
         let mut streams = input.streams_mut();
         let mut stream = streams.get(0).expect("Expected a valid stream");
+        // Safety: We are setting the `codecpar` to `null` to simulate a missing codec parameters.
+        let codecpar = unsafe { (*stream.as_mut_ptr()).codecpar };
+        // Safety: We are setting the `codec_type` to `AVMEDIA_TYPE_SUBTITLE` to simulate a non-video/audio codec type.
         unsafe {
-            (*stream.as_mut_ptr()).codecpar.as_mut().unwrap().codec_type = AVMediaType::AVMEDIA_TYPE_SUBTITLE;
+            (*codecpar).codec_type = AVMediaType::AVMEDIA_TYPE_SUBTITLE;
         }
         let decoder_result = Decoder::with_options(&stream, DecoderOptions::default());
 

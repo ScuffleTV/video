@@ -1,33 +1,43 @@
 use ffmpeg_sys_next::*;
 
+/// A wrapper around an [`AVCodec`] pointer.
+///
+/// This is specifically used for decoders. The most typical way to use this is to create it from a [`AVCodecID`] or to search for it by name.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct DecoderCodec(*const AVCodec);
 
 impl std::fmt::Debug for DecoderCodec {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.0.is_null() {
-            return f
-                .debug_struct("DecoderCodec")
-                .field("name", &c"null")
-                .field("id", &AVCodecID::AV_CODEC_ID_NONE)
-                .finish();
-        }
+        // Safety: The pointer here is valid.
+        if let Some(codec) = unsafe { self.0.as_ref() } {
+            // Safety: The pointer here is valid.
+            let name = unsafe { std::ffi::CStr::from_ptr(codec.name) };
 
-        // Safety: `self.0` is a non-null pointer.
-        let name = unsafe { std::ffi::CStr::from_ptr((*self.0).name) };
-        f.debug_struct("DecoderCodec")
-            .field("name", &name)
-            // Safety: `self.0` is a non-null pointer.
-            .field("id", unsafe { &(*self.0).id })
-            .finish()
+            f.debug_struct("DecoderCodec")
+                .field("name", &name)
+                .field("id", &codec.id)
+                .finish()
+        } else {
+            f.debug_struct("DecoderCodec")
+                .field("name", &"null")
+                .field("id", &AVCodecID::AV_CODEC_ID_NONE)
+                .finish()
+        }
     }
 }
 
 impl DecoderCodec {
-    pub fn empty() -> Self {
+    /// Creates an empty [`DecoderCodec`].
+    pub const fn empty() -> Self {
         Self(std::ptr::null())
     }
 
+    /// Returns true if the [`DecoderCodec`] is empty.
+    pub const fn is_empty(&self) -> bool {
+        self.0.is_null()
+    }
+
+    /// Creates a [`DecoderCodec`] from a [`AVCodecID`].
     pub fn new(codec_id: AVCodecID) -> Option<Self> {
         // Safety: `avcodec_find_decoder` is safe to call.
         let codec = unsafe { avcodec_find_decoder(codec_id) };
@@ -38,6 +48,7 @@ impl DecoderCodec {
         }
     }
 
+    /// Creates a [`DecoderCodec`] from a codec name.
     pub fn by_name(name: &str) -> Option<Self> {
         let c_name = std::ffi::CString::new(name).ok()?;
 
@@ -50,43 +61,58 @@ impl DecoderCodec {
         }
     }
 
-    pub fn as_ptr(&self) -> *const AVCodec {
+    /// Returns the raw pointer to the [`AVCodec`].
+    pub const fn as_ptr(&self) -> *const AVCodec {
         self.0
     }
 
-    pub fn from_ptr(ptr: *const AVCodec) -> Self {
+    /// Creates a [`DecoderCodec`] from a raw pointer.
+    ///
+    /// # Safety
+    /// The provided pointer must either be null or point to a valid [`AVCodec`].
+    pub const unsafe fn from_ptr(ptr: *const AVCodec) -> Self {
         Self(ptr)
     }
 }
 
+/// A wrapper around an [`AVCodec`] pointer.
+///
+/// This is specifically used for encoders. The most typical way to use this is to create it from a [`AVCodecID`] or to search for it by name.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct EncoderCodec(*const AVCodec);
 
 impl std::fmt::Debug for EncoderCodec {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.0.is_null() {
-            return f
-                .debug_struct("EncoderCodec")
-                .field("name", &c"null")
-                .field("id", &AVCodecID::AV_CODEC_ID_NONE)
-                .finish();
-        }
+        // Safety: The pointer here is valid.
+        if let Some(codec) = unsafe { self.0.as_ref() } {
+            // Safety: The pointer here is valid.
+            let name = unsafe { std::ffi::CStr::from_ptr(codec.name) };
 
-        // Safety: `self.0` is a valid pointer.
-        let name = unsafe { std::ffi::CStr::from_ptr((*self.0).name) };
-        f.debug_struct("EncoderCodec")
-            .field("name", &name)
-            // Safety: `self.0` is a valid pointer.
-            .field("id", unsafe { &(*self.0).id })
-            .finish()
+            f.debug_struct("EncoderCodec")
+                .field("name", &name)
+                .field("id", &codec.id)
+                .finish()
+        } else {
+            f.debug_struct("EncoderCodec")
+                .field("name", &"null")
+                .field("id", &AVCodecID::AV_CODEC_ID_NONE)
+                .finish()
+        }
     }
 }
 
 impl EncoderCodec {
-    pub fn empty() -> Self {
+    /// Creates an empty [`EncoderCodec`].
+    pub const fn empty() -> Self {
         Self(std::ptr::null())
     }
 
+    /// Returns true if the [`EncoderCodec`] is empty.
+    pub const fn is_empty(&self) -> bool {
+        self.0.is_null()
+    }
+
+    /// Creates an [`EncoderCodec`] from a [`AVCodecID`].
     pub fn new(codec_id: AVCodecID) -> Option<Self> {
         // Safety: `avcodec_find_encoder` is safe to call.
         let codec = unsafe { avcodec_find_encoder(codec_id) };
@@ -97,6 +123,7 @@ impl EncoderCodec {
         }
     }
 
+    /// Creates an [`EncoderCodec`] from a codec name.
     pub fn by_name(name: &str) -> Option<Self> {
         let c_name = std::ffi::CString::new(name).ok()?;
         // Safety: `avcodec_find_encoder_by_name` is safe to call with a valid c-string.
@@ -108,11 +135,16 @@ impl EncoderCodec {
         }
     }
 
-    pub fn as_ptr(&self) -> *const AVCodec {
+    /// Returns the raw pointer to the [`AVCodec`].
+    pub const fn as_ptr(&self) -> *const AVCodec {
         self.0
     }
 
-    pub fn from_ptr(ptr: *const AVCodec) -> Self {
+    /// Creates an [`EncoderCodec`] from a raw pointer.
+    ///
+    /// # Safety
+    /// The provided pointer must either be null or point to a valid [`AVCodec`].
+    pub const unsafe fn from_ptr(ptr: *const AVCodec) -> Self {
         Self(ptr)
     }
 }
@@ -190,10 +222,12 @@ mod tests {
 
     #[test]
     fn test_decoder_codec_from_ptr_valid() {
+        // Safety: `avcodec_find_decoder` is safe to call.
         let codec_ptr = unsafe { avcodec_find_decoder(AVCodecID::AV_CODEC_ID_H264) };
         assert!(!codec_ptr.is_null(), "Expected a valid codec pointer for H264");
 
-        let decoder_codec = DecoderCodec::from_ptr(codec_ptr);
+        // Safety: The pointer was allocated by `avcodec_find_decoder` and is valid.
+        let decoder_codec = unsafe { DecoderCodec::from_ptr(codec_ptr) };
         assert_eq!(
             decoder_codec.as_ptr(),
             codec_ptr,
@@ -203,7 +237,9 @@ mod tests {
 
     #[test]
     fn test_encoder_codec_debug_valid() {
+        // Safety: `avcodec_find_encoder` is safe to call.
         let codec_ptr = unsafe { avcodec_find_encoder(AVCodecID::AV_CODEC_ID_MPEG4) };
+
         assert!(!codec_ptr.is_null(), "Expected a valid codec pointer for MPEG4");
 
         let encoder_codec = EncoderCodec(codec_ptr);

@@ -1,6 +1,5 @@
 use bytes::Bytes;
-
-use crate::macros::nutype_enum;
+use nutype_enum::nutype_enum;
 
 nutype_enum! {
     /// FLV AAC Packet Type

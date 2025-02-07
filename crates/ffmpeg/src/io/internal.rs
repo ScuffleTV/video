@@ -1,7 +1,7 @@
 use ffmpeg_sys_next::*;
 use libc::{c_void, SEEK_CUR, SEEK_END, SEEK_SET};
 
-use crate::error::FfmpegError;
+use crate::error::{FfmpegError, FfmpegErrorCode};
 use crate::smart_object::SmartPtr;
 
 const AVERROR_IO: i32 = AVERROR(EIO);
@@ -111,73 +111,75 @@ impl Default for InnerOptions {
 }
 
 impl<T: Send + Sync> Inner<T> {
+    /// Creates a new `Inner` instance.
     pub fn new(data: T, options: InnerOptions) -> Result<Self, FfmpegError> {
         // Safety: av_malloc is safe to call
-        let buffer = unsafe {
-            SmartPtr::wrap_non_null(av_malloc(options.buffer_size), |ptr| {
-                // We own this resource so we need to free it
-                av_free(*ptr);
-                // We clear the old pointer so it doesn't get freed again.
-                *ptr = std::ptr::null_mut();
-            })
+        let buffer = unsafe { av_malloc(options.buffer_size) };
+
+        fn buffer_destructor(ptr: &mut *mut c_void) {
+            // We own this resource so we need to free it
+            // Safety: this buffer was allocated via `av_malloc` so we need to free it.
+            unsafe { av_free(*ptr) };
+            // We clear the old pointer so it doesn't get freed again.
+            *ptr = std::ptr::null_mut();
         }
-        .ok_or(FfmpegError::Alloc)?;
+
+        // This is only a temporary smart_ptr because we will change the ownership to be owned by the io context. & freed, by the io context.
+        // Safety: av_malloc gives a valid pointer & the destructor has been setup to free the buffer.
+        let buffer = unsafe { SmartPtr::wrap_non_null(buffer, buffer_destructor) }.ok_or(FfmpegError::Alloc)?;
 
         let mut data = Box::new(data);
 
-        // Safety: avio_alloc_context is safe to call, and all the function pointers are
-        // valid
-        let mut io = unsafe {
-            SmartPtr::wrap_non_null(
-                avio_alloc_context(
-                    buffer.as_ptr() as *mut u8,
-                    options.buffer_size as i32,
-                    if options.write_fn.is_some() { 1 } else { 0 },
-                    data.as_mut() as *mut _ as *mut c_void,
-                    options.read_fn,
-                    options.write_fn,
-                    options.seek_fn,
-                ),
-                |ptr| {
-                    // Safety: the pointer is always valid.
-                    if let Some(ptr) = ptr.as_mut() {
-                        // We need to free the buffer
-                        av_free(ptr.buffer as *mut libc::c_void);
+        // Safety: avio_alloc_context is safe to call, and all the function pointers are valid
+        let destructor = |ptr: &mut *mut AVIOContext| {
+            // Safety: the pointer is always valid.
+            let mut_ref = unsafe { ptr.as_mut() };
+            if let Some(ptr) = mut_ref {
+                buffer_destructor(&mut (ptr.buffer as *mut c_void));
+            }
 
-                        // We clear the old pointer so it doesn't get freed again.
-                        ptr.buffer = std::ptr::null_mut();
-                    }
+            // Safety: avio_context_free is safe to call & the pointer was allocated by `av_create_io_context`
+            unsafe { avio_context_free(ptr) };
+            *ptr = std::ptr::null_mut();
+        };
 
-                    avio_context_free(ptr);
-                },
+        // Safety: avio_alloc_context is safe to call & the destructor has been setup to free the buffer.
+        let io = unsafe {
+            avio_alloc_context(
+                buffer.as_ptr() as *mut u8,
+                options.buffer_size as i32,
+                if options.write_fn.is_some() { 1 } else { 0 },
+                data.as_mut() as *mut _ as *mut c_void,
+                options.read_fn,
+                options.write_fn,
+                options.seek_fn,
             )
-        }
-        .ok_or(FfmpegError::Alloc)?;
+        };
 
-        // The buffer is now owned by the IO context
+        // Safety: `avio_alloc_context` returns a valid pointer & the destructor has been setup to free both the buffer & the io context.
+        let mut io = unsafe { SmartPtr::wrap_non_null(io, destructor) }.ok_or(FfmpegError::Alloc)?;
+
+        // The buffer is now owned by the IO context. We need to go into_inner here to prevent the destructor from being called before we use it.
         buffer.into_inner();
 
         let mut context = if options.write_fn.is_some() {
-            let mut context = unsafe {
-                SmartPtr::wrap(std::ptr::null_mut(), |ptr| {
-                    // We own this resource so we need to free it
-                    avformat_free_context(*ptr);
-                    *ptr = std::ptr::null_mut();
-                })
-            };
+            let mut context = SmartPtr::null(|mut_ref| {
+                let ptr = *mut_ref;
+                // Safety: The pointer here is valid.
+                unsafe { avformat_free_context(ptr) };
+                *mut_ref = std::ptr::null_mut();
+            });
 
             // Safety: avformat_alloc_output_context2 is safe to call
-            let ec = unsafe {
+            FfmpegErrorCode(unsafe {
                 avformat_alloc_output_context2(
                     context.as_mut(),
                     options.output_format,
                     std::ptr::null(),
                     std::ptr::null_mut(),
                 )
-            };
-            if ec != 0 {
-                return Err(FfmpegError::Code(ec.into()));
-            }
+            })
+            .result()?;
 
             if context.as_ptr().is_null() {
                 return Err(FfmpegError::Alloc);
@@ -186,14 +188,17 @@ impl<T: Send + Sync> Inner<T> {
             context
         } else {
             // Safety: avformat_alloc_context is safe to call
-            unsafe {
-                SmartPtr::wrap_non_null(avformat_alloc_context(), |ptr| {
-                    // We own this resource so we need to free it
-                    avformat_free_context(*ptr);
-                    *ptr = std::ptr::null_mut();
-                })
-            }
-            .ok_or(FfmpegError::Alloc)?
+            let context = unsafe { avformat_alloc_context() };
+
+            let destructor = |mut_ref: &mut *mut AVFormatContext| {
+                let ptr = *mut_ref;
+                // Safety: The pointer here is valid and was allocated by `avformat_alloc_context`.
+                unsafe { avformat_free_context(ptr) };
+                *mut_ref = std::ptr::null_mut();
+            };
+
+            // Safety: `avformat_alloc_context` returns a valid pointer & the destructor has been setup to free the context.
+            unsafe { SmartPtr::wrap_non_null(context, destructor) }.ok_or(FfmpegError::Alloc)?
         };
 
         // The io context will live as long as the format context
@@ -209,51 +214,58 @@ impl<T: Send + Sync> Inner<T> {
 
 impl Inner<()> {
     /// Empty context cannot be used until its initialized and setup correctly
+    /// Safety: this function is marked as unsafe because it must be initialized and setup correctltly before returning it to the user.
     pub unsafe fn empty() -> Self {
         Self {
             data: Some(Box::new(())),
-            context: unsafe {
-                SmartPtr::wrap(std::ptr::null_mut(), |ptr| {
-                    // We own this resource so we need to free it
-                    avformat_free_context(*ptr);
-                    *ptr = std::ptr::null_mut();
-                })
-            },
-            _io: unsafe { SmartPtr::wrap(std::ptr::null_mut(), |_| {}) },
+            // Safety: A null mut pointer is
+            context: SmartPtr::null(|mut_ref| {
+                // We own this resource so we need to free it
+                let ptr = *mut_ref;
+                // Safety: The pointer here is valid.
+                unsafe { avformat_free_context(ptr) };
+                *mut_ref = std::ptr::null_mut();
+            }),
+            _io: SmartPtr::null(|_| {}),
         }
     }
 
+    /// Opens an output stream to a file path.
     pub fn open_output(path: &str) -> Result<Self, FfmpegError> {
         let path = std::ffi::CString::new(path).expect("Failed to convert path to CString");
 
-        // Safety: avformat_alloc_output_context2 is safe to call
+        // Safety: We immediately initialize the inner and setup the context.
         let mut this = unsafe { Self::empty() };
 
-        // Safety: avformat_alloc_output_context2 is safe to call
-        let ec = unsafe {
+        // Safety: avformat_alloc_output_context2 is safe to call and all arguments are valid
+        FfmpegErrorCode(unsafe {
             avformat_alloc_output_context2(this.context.as_mut(), std::ptr::null(), std::ptr::null(), path.as_ptr())
-        };
-        if ec != 0 {
-            return Err(FfmpegError::Code(ec.into()));
-        }
+        })
+        .result()?;
 
         // We are not moving the pointer so this is safe
         if this.context.as_ptr().is_null() {
             return Err(FfmpegError::Alloc);
         }
 
-        // Safety: avio_open is safe to call
-        let ec = unsafe { avio_open(&mut this.context.as_deref_mut_except().pb, path.as_ptr(), AVIO_FLAG_WRITE) };
+        // Safety: avio_open is safe to call and all arguments are valid
+        FfmpegErrorCode(unsafe { avio_open(&mut this.context.as_deref_mut_except().pb, path.as_ptr(), AVIO_FLAG_WRITE) })
+            .result()?;
 
-        if ec != 0 {
-            return Err(FfmpegError::Code(ec.into()));
-        }
-
-        this.context.set_destructor(|ptr| unsafe {
+        this.context.set_destructor(|mut_ref| {
             // We own this resource so we need to free it
-            avio_closep(&mut (**ptr).pb);
-            avformat_free_context(*ptr);
-            *ptr = std::ptr::null_mut();
+            let ptr = *mut_ref;
+            // Safety: The pointer here is valid.
+            let mut_ptr_ref = unsafe { ptr.as_mut() };
+
+            if let Some(mut_ptr_ref) = mut_ptr_ref {
+                // Safety: The pointer here is valid. And we need to clean this up before we do `avformat_free_context`.
+                unsafe { avio_closep(&mut mut_ptr_ref.pb) };
+            }
+
+            // Safety: The pointer here is valid.
+            unsafe { avformat_free_context(ptr) };
+            *mut_ref = std::ptr::null_mut();
         });
 
         Ok(this)
@@ -280,6 +292,7 @@ mod tests {
         let mut data: Cursor<Vec<u8>> = Cursor::new(vec![]);
         let mut buf = [0u8; 10];
 
+        // Safety: The pointer is valid.
         unsafe {
             let result =
                 read_packet::<Cursor<Vec<u8>>>((&raw mut data) as *mut libc::c_void, buf.as_mut_ptr(), buf.len() as i32);
@@ -293,6 +306,7 @@ mod tests {
         let mut data = Cursor::new(vec![0u8; 10]);
         let buf = [1u8, 2, 3, 4, 5];
 
+        // Safety: The pointer is valid.
         unsafe {
             let result = write_packet::<Cursor<Vec<u8>>>((&raw mut data) as *mut c_void, buf.as_ptr(), buf.len() as i32);
             assert_eq!(result, buf.len() as i32);
@@ -309,6 +323,7 @@ mod tests {
         assert_eq!(cursor.position(), 0);
         let offset = 10;
         let mut whence = SEEK_CUR | AVSEEK_FORCE;
+        // Safety: The pointer is valid.
         let result = unsafe { seek::<Cursor<Vec<u8>>>(opaque, offset, whence) };
 
         assert_eq!(result, { offset });
@@ -323,6 +338,7 @@ mod tests {
         let opaque = &raw mut cursor as *mut libc::c_void;
         let offset = -10;
         let whence = SEEK_END;
+        // Safety: The pointer is valid.
         let result = unsafe { seek::<Cursor<Vec<u8>>>(opaque, offset, whence) };
 
         assert_eq!(result, 90);
@@ -333,6 +349,7 @@ mod tests {
     fn test_seek_invalid_whence() {
         let mut cursor = Cursor::new(vec![0u8; 100]);
         let opaque = &raw mut cursor as *mut libc::c_void;
+        // Safety: The pointer is valid.
         let result = unsafe { seek::<Cursor<Vec<u8>>>(opaque, 0, 999) };
 
         assert_eq!(result, -1);
@@ -360,6 +377,7 @@ mod tests {
         let options = InnerOptions {
             buffer_size: 4096,
             write_fn: Some(dummy_write_fn),
+            // Safety: av_guess_format is safe to call
             output_format: unsafe { av_guess_format(invalid_format.as_ptr(), std::ptr::null(), std::ptr::null()) },
             ..Default::default()
         };

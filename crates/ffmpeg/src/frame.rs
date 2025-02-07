@@ -1,14 +1,19 @@
 use ffmpeg_sys_next::*;
 
-use crate::error::FfmpegError;
-use crate::smart_object::SmartPtr;
-use crate::utils::check_i64;
+use crate::error::{FfmpegError, FfmpegErrorCode};
+use crate::smart_object::{SmartObject, SmartPtr};
+use crate::utils::{check_i64, or_nopts};
 
+/// A frame. Thin wrapper around [`AVFrame`].
 pub struct Frame(SmartPtr<AVFrame>);
 
 impl Clone for Frame {
     fn clone(&self) -> Self {
-        unsafe { Self::wrap(av_frame_clone(self.0.as_ptr())).expect("failed to clone frame") }
+        // Safety: `av_frame_clone` is safe to call.
+        let clone = unsafe { av_frame_clone(self.0.as_ptr()) };
+
+        // Safety: The pointer here is valid.
+        unsafe { Self::wrap(clone).expect("failed to clone frame") }
     }
 }
 
@@ -18,114 +23,135 @@ unsafe impl Send for Frame {}
 /// Safety: `Frame` is safe to share between threads.
 unsafe impl Sync for Frame {}
 
+/// A video frame. Thin wrapper around [`Frame`]. Like a frame but has specific video properties.
 #[derive(Clone)]
 pub struct VideoFrame(pub Frame);
 
+/// An audio frame. Thin wrapper around [`Frame`]. Like a frame but has specific audio properties.
 #[derive(Clone)]
 pub struct AudioFrame(pub Frame);
 
 impl Frame {
+    /// Creates a new frame.
     pub fn new() -> Result<Self, FfmpegError> {
-        // Safety: the pointer returned from av_frame_alloc is valid
-        unsafe { Self::wrap(av_frame_alloc()) }
+        // Safety: `av_frame_alloc` is safe to call.
+        let frame = unsafe { av_frame_alloc() };
+
+        // Safety: The pointer here is valid.
+        unsafe { Self::wrap(frame).ok_or(FfmpegError::Alloc) }
     }
 
-    /// Safety: `ptr` must be a valid pointer to an `AVFrame`.
-    unsafe fn wrap(ptr: *mut AVFrame) -> Result<Self, FfmpegError> {
-        Ok(Self(
-            // The caller guarantees that `ptr` is valid.
-            SmartPtr::wrap_non_null(ptr, |ptr| av_frame_free(ptr)).ok_or(FfmpegError::Alloc)?,
-        ))
+    /// Wraps a pointer to an `AVFrame`.
+    ///
+    /// # Safety
+    /// `ptr` must be a valid pointer to an `AVFrame`.
+    unsafe fn wrap(ptr: *mut AVFrame) -> Option<Self> {
+        SmartPtr::wrap_non_null(ptr, |ptr| av_frame_free(ptr)).map(Self)
     }
 
+    /// Allocates a buffer for the frame.
     pub fn alloc_frame_buffer(&mut self, alignment: Option<i32>) -> Result<(), FfmpegError> {
         // Safety: `self.as_mut_ptr()` is assumed to provide a valid mutable pointer to an
         // `AVFrame` structure. The `av_frame_get_buffer` function from FFMPEG allocates
         // and attaches a buffer to the `AVFrame` if it doesn't already exist.
         // It is the caller's responsibility to ensure that `self` is properly initialized
         // and represents a valid `AVFrame` instance.
-
-        unsafe {
-            let av_frame = self.as_mut_ptr();
-            let ret = ffmpeg_sys_next::av_frame_get_buffer(av_frame, alignment.unwrap_or(0));
-            if ret < 0 {
-                return Err(FfmpegError::Code(ret.into()));
-            }
-        }
+        FfmpegErrorCode(unsafe { av_frame_get_buffer(self.as_mut_ptr(), alignment.unwrap_or(0)) }).result()?;
         Ok(())
     }
 
-    pub fn as_ptr(&self) -> *const AVFrame {
+    /// Returns a pointer to the frame.
+    pub const fn as_ptr(&self) -> *const AVFrame {
         self.0.as_ptr()
     }
 
-    pub fn as_mut_ptr(&mut self) -> *mut AVFrame {
+    /// Returns a mutable pointer to the frame.
+    pub const fn as_mut_ptr(&mut self) -> *mut AVFrame {
         self.0.as_mut_ptr()
     }
 
-    pub fn video(self) -> VideoFrame {
+    /// Make this frame a video frame.
+    pub const fn video(self) -> VideoFrame {
         VideoFrame(self)
     }
 
-    pub fn audio(self) -> AudioFrame {
+    /// Make this frame an audio frame.
+    pub const fn audio(self) -> AudioFrame {
         AudioFrame(self)
     }
 
-    pub fn pts(&self) -> Option<i64> {
+    /// Returns the presentation timestamp of the frame.
+    pub const fn pts(&self) -> Option<i64> {
         check_i64(self.0.as_deref_except().pts)
     }
 
-    pub fn set_pts(&mut self, pts: Option<i64>) {
-        self.0.as_deref_mut_except().pts = pts.unwrap_or(AV_NOPTS_VALUE);
-        self.0.as_deref_mut_except().best_effort_timestamp = pts.unwrap_or(AV_NOPTS_VALUE);
+    /// Sets the presentation timestamp of the frame.
+    pub const fn set_pts(&mut self, pts: Option<i64>) {
+        self.0.as_deref_mut_except().pts = or_nopts(pts);
+        self.0.as_deref_mut_except().best_effort_timestamp = or_nopts(pts);
     }
 
-    pub fn duration(&self) -> Option<i64> {
+    /// Returns the duration of the frame.
+    pub const fn duration(&self) -> Option<i64> {
         check_i64(self.0.as_deref_except().duration)
     }
 
-    pub fn set_duration(&mut self, duration: Option<i64>) {
-        self.0.as_deref_mut_except().duration = duration.unwrap_or(AV_NOPTS_VALUE);
+    /// Sets the duration of the frame.
+    pub const fn set_duration(&mut self, duration: Option<i64>) {
+        self.0.as_deref_mut_except().duration = or_nopts(duration);
     }
 
-    pub fn best_effort_timestamp(&self) -> Option<i64> {
+    /// Returns the best effort timestamp of the frame.
+    pub const fn best_effort_timestamp(&self) -> Option<i64> {
         check_i64(self.0.as_deref_except().best_effort_timestamp)
     }
 
-    pub fn dts(&self) -> Option<i64> {
+    /// Returns the decoding timestamp of the frame.
+    pub const fn dts(&self) -> Option<i64> {
         check_i64(self.0.as_deref_except().pkt_dts)
     }
 
-    pub fn set_dts(&mut self, dts: Option<i64>) {
-        self.0.as_deref_mut_except().pkt_dts = dts.unwrap_or(AV_NOPTS_VALUE);
+    /// Sets the decoding timestamp of the frame.
+    pub const fn set_dts(&mut self, dts: Option<i64>) {
+        self.0.as_deref_mut_except().pkt_dts = or_nopts(dts);
     }
 
-    pub fn time_base(&self) -> AVRational {
+    /// Returns the time base of the frame.
+    pub const fn time_base(&self) -> AVRational {
         self.0.as_deref_except().time_base
     }
 
-    pub fn set_time_base(&mut self, time_base: AVRational) {
+    /// Sets the time base of the frame.
+    pub const fn set_time_base(&mut self, time_base: AVRational) {
         self.0.as_deref_mut_except().time_base = time_base;
     }
 
-    pub fn format(&self) -> i32 {
+    /// Returns the format of the frame.
+    pub const fn format(&self) -> i32 {
         self.0.as_deref_except().format
     }
 
-    pub fn set_format(&mut self, format: i32) {
+    /// Sets the format of the frame.
+    pub const fn set_format(&mut self, format: i32) {
         self.0.as_deref_mut_except().format = format;
     }
 
-    pub fn is_audio(&self) -> bool {
+    /// Returns true if the frame is an audio frame.
+    pub const fn is_audio(&self) -> bool {
         self.0.as_deref_except().ch_layout.nb_channels != 0
     }
 
-    pub fn is_video(&self) -> bool {
+    /// Returns true if the frame is a video frame.
+    pub const fn is_video(&self) -> bool {
         self.0.as_deref_except().width != 0
     }
 
-    pub fn linesize(&self, index: usize) -> Option<i32> {
-        self.0.as_deref_except().linesize.get(index).copied()
+    /// Returns the linesize of the frame.
+    pub const fn linesize(&self, index: usize) -> Option<i32> {
+        if index >= self.0.as_deref_except().linesize.len() {
+            return None;
+        }
+        Some(self.0.as_deref_except().linesize[index])
     }
 }
 
@@ -145,51 +171,60 @@ impl std::fmt::Debug for Frame {
 }
 
 impl VideoFrame {
-    pub fn width(&self) -> usize {
+    /// Returns the width of the frame.
+    pub const fn width(&self) -> usize {
         self.0 .0.as_deref_except().width as usize
     }
 
-    pub fn height(&self) -> usize {
+    /// Returns the height of the frame.
+    pub const fn height(&self) -> usize {
         self.0 .0.as_deref_except().height as usize
     }
 
-    pub fn sample_aspect_ratio(&self) -> AVRational {
+    /// Returns the sample aspect ratio of the frame.
+    pub const fn sample_aspect_ratio(&self) -> AVRational {
         self.0 .0.as_deref_except().sample_aspect_ratio
     }
 
-    pub fn set_sample_aspect_ratio(&mut self, sample_aspect_ratio: AVRational) {
+    /// Sets the sample aspect ratio of the frame.
+    pub const fn set_sample_aspect_ratio(&mut self, sample_aspect_ratio: AVRational) {
         self.0 .0.as_deref_mut_except().sample_aspect_ratio = sample_aspect_ratio;
     }
 
-    pub fn set_width(&mut self, width: usize) {
+    /// Sets the width of the frame.
+    pub const fn set_width(&mut self, width: usize) {
         self.0 .0.as_deref_mut_except().width = width as i32;
     }
 
-    pub fn set_height(&mut self, height: usize) {
+    /// Sets the height of the frame.
+    pub const fn set_height(&mut self, height: usize) {
         self.0 .0.as_deref_mut_except().height = height as i32;
     }
 
-    pub fn is_keyframe(&self) -> bool {
+    /// Returns true if the frame is a keyframe.
+    pub const fn is_keyframe(&self) -> bool {
         self.0 .0.as_deref_except().key_frame != 0
     }
 
-    pub fn pict_type(&self) -> AVPictureType {
+    /// Returns the picture type of the frame.
+    pub const fn pict_type(&self) -> AVPictureType {
         self.0 .0.as_deref_except().pict_type
     }
 
-    pub fn set_pict_type(&mut self, pict_type: AVPictureType) {
+    /// Sets the picture type of the frame.
+    pub const fn set_pict_type(&mut self, pict_type: AVPictureType) {
         self.0 .0.as_deref_mut_except().pict_type = pict_type;
     }
 
+    /// Returns the data of the frame. By specifying the index of the plane.
     pub fn data(&self, index: usize) -> Option<&[u8]> {
-        unsafe {
-            self.0
-                 .0
-                .as_deref_except()
-                .data
-                .get(index)
-                .map(|ptr| std::slice::from_raw_parts(*ptr, self.linesize(index).unwrap() as usize * self.height()))
-        }
+        let raw = self.0 .0.as_deref_except().data.get(index)?;
+
+        let line = self.linesize(index)? as usize;
+        let height = self.height();
+
+        // Safety: The pointer here is valid & has the sizeof the `line * height`.
+        unsafe { Some(std::slice::from_raw_parts(*raw, line * height)) }
     }
 }
 
@@ -226,65 +261,124 @@ impl std::ops::DerefMut for VideoFrame {
     }
 }
 
+/// A thin wrapper around `AVChannelLayout` to make it easier to use.
+pub struct AudioChannelLayout(SmartObject<AVChannelLayout>);
+
+impl Default for AudioChannelLayout {
+    fn default() -> Self {
+        // Safety: this is a c-struct and those are safe to zero out.
+        let zeroed_layout = unsafe { std::mem::zeroed() };
+
+        Self(SmartObject::new(zeroed_layout, Self::destructor))
+    }
+}
+
+impl AudioChannelLayout {
+    #[doc(hidden)]
+    fn destructor(ptr: &mut AVChannelLayout) {
+        // Safety: `av_channel_layout_uninit` is safe to call.
+        unsafe { av_channel_layout_uninit(ptr) };
+    }
+
+    /// Creates a new `AudioChannelLayout` instance.
+    pub fn new(channels: i32) -> Result<Self, FfmpegError> {
+        let mut layout = Self::default();
+
+        // Safety: `av_channel_layout_default` is safe to call.
+        unsafe { av_channel_layout_default(layout.0.as_mut(), channels) };
+
+        layout.validate()?;
+
+        Ok(layout)
+    }
+
+    /// Validates the channel layout.
+    pub fn validate(&self) -> Result<(), FfmpegError> {
+        // Safety: `av_channel_layout_check` is safe to call
+        if unsafe { av_channel_layout_check(self.0.as_ref()) } == 0 {
+            return Err(FfmpegError::Arguments("invalid channel layout"));
+        }
+
+        Ok(())
+    }
+
+    /// Wraps an `AVChannelLayout` automatically calling `av_channel_layout_uninit` on drop.
+    ///
+    /// # Safety
+    /// Requires that the layout can be safely deallocated with `av_channel_layout_uninit`
+    pub unsafe fn wrap(layout: AVChannelLayout) -> Self {
+        Self(SmartObject::new(layout, Self::destructor))
+    }
+
+    /// Returns the number of channels in the layout.
+    pub fn channel_count(&self) -> i32 {
+        self.0.as_ref().nb_channels
+    }
+
+    /// Consumes the `AudioChannelLayout` and returns the inner `AVChannelLayout`.
+    /// The caller is responsible for calling `av_channel_layout_uninit` on the returned value.
+    pub fn into_inner(self) -> AVChannelLayout {
+        self.0.into_inner()
+    }
+
+    pub(crate) fn apply(mut self, layout: &mut AVChannelLayout) {
+        std::mem::swap(layout, self.0.as_mut());
+    }
+}
+
 impl AudioFrame {
-    // Sets channel layout to default with a channel count of `channel_count`.
+    /// Sets channel layout to default with a channel count of `channel_count`.
     pub fn set_channel_layout_default(&mut self, channel_count: usize) -> Result<(), FfmpegError> {
-        // Safety: `self.as_mut_ptr()` should return a valid mutable pointer to the internal
-        // `AVFrame` structure. This block modifies the `ch_layout` field of the `AVFrame`
-        // using FFMPEG's `av_channel_layout_default` function, which is expected to be safe
-        // as long as the provided `channel_count` is valid and within acceptable ranges.
-        unsafe {
-            let av_frame = self.as_mut_ptr();
-            ffmpeg_sys_next::av_channel_layout_default(&mut (*av_frame).ch_layout, channel_count as i32);
+        let layout = AudioChannelLayout::new(channel_count as i32)?;
 
-            // returns 0 if the channel layout is invalid
-            if ffmpeg_sys_next::av_channel_layout_check(&(*av_frame).ch_layout) == 0 {
-                return Err(FfmpegError::Arguments("Invalid default channel layout."));
-            }
-        }
+        // Safety: Our pointer is valid.
+        let av_frame = unsafe { self.as_mut_ptr().as_mut() }.ok_or(FfmpegError::Alloc)?;
+
+        layout.apply(&mut av_frame.ch_layout);
+
         Ok(())
     }
 
-    // Sets channel layout to a custom layout. Note that the channel count
-    // is defined by the given `ffmpeg_sys_next::AVChannelLayout`.
-    pub fn set_channel_layout_custom(&mut self, custom_layout: ffmpeg_sys_next::AVChannelLayout) -> Result<(), FfmpegError> {
-        // Safety: `self.as_mut_ptr()` is assumed to return a valid mutable pointer to the internal
-        // `AVFrame` structure. This block directly assigns a custom channel layout to the
-        // `ch_layout` field. It is the caller's responsibility to ensure that the custom
-        // layout is valid and properly initialized.
-        unsafe {
-            let av_frame = self.as_mut_ptr();
-            (*av_frame).ch_layout = custom_layout;
+    /// Sets channel layout to a custom layout. Note that the channel count
+    /// is defined by the given `ffmpeg_sys_next::AVChannelLayout`.
+    pub fn set_channel_layout_custom(&mut self, custom_layout: AudioChannelLayout) -> Result<(), FfmpegError> {
+        custom_layout.validate()?;
 
-            // returns 0 if the channel layout is invalid
-            if ffmpeg_sys_next::av_channel_layout_check(&(*av_frame).ch_layout) == 0 {
-                return Err(FfmpegError::Arguments("Invalid default channel layout."));
-            }
-        }
+        // Safety: Our pointer is valid.
+        let av_frame = unsafe { self.as_mut_ptr().as_mut() }.ok_or(FfmpegError::Alloc)?;
+
+        custom_layout.apply(&mut av_frame.ch_layout);
+
         Ok(())
     }
 
-    pub fn channel_layout(&self) -> ffmpeg_sys_next::AVChannelLayout {
+    /// Returns the channel layout of the frame.
+    pub const fn channel_layout(&self) -> AVChannelLayout {
         self.0 .0.as_deref_except().ch_layout
     }
 
-    pub fn channel_count(&self) -> usize {
+    /// Returns the channel count of the frame.
+    pub const fn channel_count(&self) -> usize {
         self.0 .0.as_deref_except().ch_layout.nb_channels as usize
     }
 
-    pub fn nb_samples(&self) -> i32 {
+    /// Returns the number of samples in the frame.
+    pub const fn nb_samples(&self) -> i32 {
         self.0 .0.as_deref_except().nb_samples
     }
 
-    pub fn set_nb_samples(&mut self, nb_samples: usize) {
+    /// Sets the number of samples in the frame.
+    pub const fn set_nb_samples(&mut self, nb_samples: usize) {
         self.0 .0.as_deref_mut_except().nb_samples = nb_samples as i32;
     }
 
-    pub fn sample_rate(&self) -> i32 {
+    /// Returns the sample rate of the frame.
+    pub const fn sample_rate(&self) -> i32 {
         self.0 .0.as_deref_except().sample_rate
     }
 
-    pub fn set_sample_rate(&mut self, sample_rate: usize) {
+    /// Sets the sample rate of the frame.
+    pub const fn set_sample_rate(&mut self, sample_rate: usize) {
         self.0 .0.as_deref_mut_except().sample_rate = sample_rate as i32;
     }
 }
@@ -330,21 +424,23 @@ mod tests {
     use insta::assert_debug_snapshot;
     use rand::{thread_rng, Rng};
 
-    use crate::frame::Frame;
+    use crate::frame::{AudioChannelLayout, Frame};
 
     #[test]
     fn test_frame_clone() {
         let mut frame = Frame::new().expect("Failed to create frame");
         frame.set_format(AV_PIX_FMT_YUV420P as i32);
 
-        unsafe {
-            let av_frame = frame.as_mut_ptr();
-            (*av_frame).width = 16;
-            (*av_frame).height = 16;
+        // Safety: Our pointer is valid.
+        let av_frame = unsafe { frame.as_mut_ptr().as_mut() }.expect("Failed to get mutable pointer");
+        av_frame.width = 16;
+        av_frame.height = 16;
 
+        // Safety: `av_frame_get_buffer` is safe to call.
+        unsafe {
             assert!(av_frame_get_buffer(av_frame, 32) >= 0, "Failed to allocate buffer for frame.");
 
-            let buf_size = (*av_frame).linesize[0] * (*av_frame).height;
+            let buf_size = av_frame.linesize[0] * av_frame.height;
             assert_eq!(buf_size, 512, "Allocated buffer size should match.");
         }
 
@@ -399,8 +495,11 @@ mod tests {
         video_frame.set_width(1920);
         video_frame.set_height(1080);
 
+        // Safety: Our pointer is valid.
+        let av_frame = unsafe { video_frame.as_mut_ptr().as_mut() }.expect("Failed to get mutable pointer");
+        // Safety: `av_frame_get_buffer` is safe to call.
+
         unsafe {
-            let av_frame = video_frame.as_mut_ptr();
             assert!(av_frame_get_buffer(av_frame, 32) >= 0, "Failed to allocate buffer for frame.");
         }
 
@@ -486,24 +585,28 @@ mod tests {
         video_frame.set_height(16);
 
         let randomized_data: Vec<u8>;
+        // Safety: Our pointer is valid.
+        let av_frame = unsafe { video_frame.as_mut_ptr().as_mut() }.expect("Failed to get mutable pointer");
+
+        // Safety: `av_frame_get_buffer` is safe to call.
         unsafe {
-            let av_frame = video_frame.as_mut_ptr();
             assert!(av_frame_get_buffer(av_frame, 32) >= 0, "Failed to allocate buffer for frame.");
+        }
 
-            // randomize y-plane (data[0])
-            let linesize = (*av_frame).linesize[0] as usize; // bytes per row
-            let height = (*av_frame).height as usize; // total rows
-            let data_ptr = (*av_frame).data[0]; // pointer to the Y-plane data
+        // randomize y-plane (data[0])
+        let linesize = av_frame.linesize[0] as usize; // bytes per row
+        let height = av_frame.height as usize; // total rows
+        let data_ptr = av_frame.data[0]; // pointer to the Y-plane data
 
-            if !data_ptr.is_null() {
-                let data_slice = std::slice::from_raw_parts_mut(data_ptr, linesize * height);
-                randomized_data = (0..data_slice.len())
-                    .map(|_| thread_rng().gen()) // generate random data
-                    .collect();
-                data_slice.copy_from_slice(&randomized_data); // copy random data to the frame
-            } else {
-                panic!("Failed to get valid data pointer for Y-plane.");
-            }
+        if !data_ptr.is_null() {
+            // Safety: `std::slice::from_raw_parts_mut` is safe to call.
+            let data_slice = unsafe { std::slice::from_raw_parts_mut(data_ptr, linesize * height) };
+            randomized_data = (0..data_slice.len())
+                .map(|_| thread_rng().gen()) // generate random data
+                .collect();
+            data_slice.copy_from_slice(&randomized_data); // copy random data to the frame
+        } else {
+            panic!("Failed to get valid data pointer for Y-plane.");
         }
 
         if let Some(data) = video_frame.data(0) {
@@ -573,13 +676,16 @@ mod tests {
     fn test_set_channel_layout_custom_invalid_layout_error() {
         let frame = Frame::new().expect("Failed to create frame");
         let mut audio_frame = frame.audio();
-        let custom_layout = ffmpeg_sys_next::AVChannelLayout {
-            order: ffmpeg_sys_next::AVChannelOrder::AV_CHANNEL_ORDER_NATIVE,
-            nb_channels: -1,
-            u: ffmpeg_sys_next::AVChannelLayout__bindgen_ty_1 {
-                mask: ffmpeg_sys_next::AV_CH_LAYOUT_STEREO,
-            },
-            opaque: std::ptr::null_mut(),
+        // Safety: This is safe to be deallocated by the layout destructor.
+        let custom_layout = unsafe {
+            AudioChannelLayout::wrap(ffmpeg_sys_next::AVChannelLayout {
+                order: ffmpeg_sys_next::AVChannelOrder::AV_CHANNEL_ORDER_NATIVE,
+                nb_channels: -1,
+                u: ffmpeg_sys_next::AVChannelLayout__bindgen_ty_1 {
+                    mask: ffmpeg_sys_next::AV_CH_LAYOUT_STEREO,
+                },
+                opaque: std::ptr::null_mut(),
+            })
         };
 
         assert!(
@@ -592,13 +698,16 @@ mod tests {
     fn test_set_channel_layout_custom() {
         let frame = Frame::new().expect("Failed to create frame");
         let mut audio_frame = frame.audio();
-        let custom_layout = ffmpeg_sys_next::AVChannelLayout {
-            order: ffmpeg_sys_next::AVChannelOrder::AV_CHANNEL_ORDER_NATIVE,
-            nb_channels: 2,
-            u: ffmpeg_sys_next::AVChannelLayout__bindgen_ty_1 {
-                mask: ffmpeg_sys_next::AV_CH_LAYOUT_STEREO,
-            },
-            opaque: std::ptr::null_mut(),
+        // Safety: This is safe to be deallocated by the layout destructor.
+        let custom_layout = unsafe {
+            AudioChannelLayout::wrap(ffmpeg_sys_next::AVChannelLayout {
+                order: ffmpeg_sys_next::AVChannelOrder::AV_CHANNEL_ORDER_NATIVE,
+                nb_channels: 2,
+                u: ffmpeg_sys_next::AVChannelLayout__bindgen_ty_1 {
+                    mask: ffmpeg_sys_next::AV_CH_LAYOUT_STEREO,
+                },
+                opaque: std::ptr::null_mut(),
+            })
         };
 
         assert!(
@@ -609,6 +718,7 @@ mod tests {
         let layout = audio_frame.channel_layout();
         assert_eq!(layout.nb_channels, 2, "Expected channel layout to have 2 channels (stereo).");
         assert_eq!(
+            // Safety: this should be a mask not a pointer.
             unsafe { layout.u.mask },
             ffmpeg_sys_next::AV_CH_LAYOUT_STEREO,
             "Expected channel mask to match AV_CH_LAYOUT_STEREO."

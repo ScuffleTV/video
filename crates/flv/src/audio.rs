@@ -2,10 +2,10 @@ use std::io;
 
 use byteorder::ReadBytesExt;
 use bytes::Bytes;
+use nutype_enum::nutype_enum;
 use scuffle_bytes_util::BytesCursorExt;
 
 use super::aac::{AacPacket, AacPacketType};
-use crate::macros::nutype_enum;
 
 /// FLV Tag Audio Data
 ///
