@@ -31,7 +31,7 @@ impl Http3Backend {
     pub async fn run<F>(self, service_factory: F, mut rustls_config: rustls::ServerConfig) -> Result<(), Error<F>>
     where
         F: HttpServiceFactory + Clone + Send + 'static,
-        F::Error: Display + Debug + Send,
+        F::Error: std::error::Error + Display + Debug + Send,
         F::Service: Clone + Send + 'static,
         <F::Service as HttpService>::Error: std::error::Error + Debug + Send + Sync,
         <F::Service as HttpService>::ResBody: Send,

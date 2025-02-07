@@ -21,7 +21,7 @@ async fn handle_connection<F, S, I>(
 ) -> Result<(), Error<F>>
 where
     F: HttpServiceFactory<Service = S>,
-    F::Error: Debug + Display,
+    F::Error: std::error::Error + Debug + Display,
     S: HttpService + Clone + Send + 'static,
     S::Error: std::error::Error + Debug + Display + Send + Sync,
     S::ResBody: Send,
