@@ -12,12 +12,12 @@ enum State {
     Done,
 }
 
-pub struct QuicIncomingBody<S: h3::quic::RecvStream> {
+pub struct QuicIncomingBody<S> {
     stream: RequestStream<S, Bytes>,
     state: State,
 }
 
-impl<S: h3::quic::RecvStream> QuicIncomingBody<S> {
+impl<S> QuicIncomingBody<S> {
     pub fn new(stream: RequestStream<S, Bytes>, size_hint: Option<u64>) -> Self {
         Self {
             stream,
