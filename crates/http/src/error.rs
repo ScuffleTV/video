@@ -7,9 +7,9 @@ use crate::service::{HttpService, HttpServiceFactory};
 pub enum Error<F>
 where
     F: HttpServiceFactory,
-    F::Error: Debug,
-    <F::Service as HttpService>::Error: Debug,
-    <<F::Service as HttpService>::ResBody as http_body::Body>::Error: Debug,
+    F::Error: std::error::Error + Debug,
+    <F::Service as HttpService>::Error: std::error::Error + Debug,
+    <<F::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Debug,
 {
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),

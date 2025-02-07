@@ -31,7 +31,7 @@ impl InsecureBackend {
     pub async fn run<F>(self, service_factory: F) -> Result<(), Error<F>>
     where
         F: HttpServiceFactory + Clone + Send + 'static,
-        F::Error: Debug + Display,
+        F::Error: std::error::Error + Debug + Display,
         F::Service: Clone + Send + 'static,
         <F::Service as HttpService>::Error: std::error::Error + Debug + Display + Send + Sync,
         <F::Service as HttpService>::ResBody: Send,
