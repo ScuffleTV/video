@@ -191,25 +191,18 @@ where
             match (start_tcp_backend, enable_http3) {
                 #[cfg(feature = "http3")]
                 (false, true) => {
-                    use scuffle_context::ContextFutExt;
-
                     let backend = crate::backend::h3::Http3Backend {
-                        ctx: self.ctx.clone(),
+                        ctx: self.ctx,
                         worker_tasks: self.worker_tasks,
                         bind: self.bind,
                     };
 
-                    match backend.run(self.service_factory, _rustls_config).with_context(self.ctx).await {
-                        Some(res) => return res,
-                        None => return Ok(()),
-                    }
+                    return backend.run(self.service_factory, _rustls_config).await;
                 }
                 #[cfg(any(feature = "http1", feature = "http2"))]
                 (true, false) => {
-                    use scuffle_context::ContextFutExt;
-
                     let backend = crate::backend::hyper::secure::SecureBackend {
-                        ctx: self.ctx.clone(),
+                        ctx: self.ctx,
                         worker_tasks: self.worker_tasks,
                         bind: self.bind,
                         #[cfg(feature = "http1")]
@@ -218,10 +211,7 @@ where
                         http2_enabled: self.enable_http2,
                     };
 
-                    match backend.run(self.service_factory, _rustls_config).with_context(self.ctx).await {
-                        Some(res) => return res,
-                        None => return Ok(()),
-                    }
+                    return backend.run(self.service_factory, _rustls_config).await;
                 }
                 #[cfg(all(any(feature = "http1", feature = "http2"), feature = "http3"))]
                 (true, true) => {
@@ -238,7 +228,7 @@ where
                     let hyper = std::pin::pin!(hyper);
 
                     let mut http3 = crate::backend::h3::Http3Backend {
-                        ctx: self.ctx.clone(),
+                        ctx: self.ctx,
                         worker_tasks: self.worker_tasks,
                         bind: self.bind,
                     }
@@ -263,10 +253,8 @@ where
 
         #[cfg(any(feature = "http1", feature = "http2"))]
         if start_tcp_backend {
-            use scuffle_context::ContextFutExt;
-
             let backend = crate::backend::hyper::insecure::InsecureBackend {
-                ctx: self.ctx.clone(),
+                ctx: self.ctx,
                 worker_tasks: self.worker_tasks,
                 bind: self.bind,
                 #[cfg(feature = "http1")]
@@ -275,10 +263,7 @@ where
                 http2_enabled: self.enable_http2,
             };
 
-            match backend.run(self.service_factory).with_context(self.ctx).await {
-                Some(res) => return res,
-                None => return Ok(()),
-            }
+            return backend.run(self.service_factory).await;
         }
 
         Ok(())

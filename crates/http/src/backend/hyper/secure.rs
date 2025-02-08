@@ -63,7 +63,7 @@ impl SecureBackend {
             let worker_fut = async move {
                 loop {
                     #[cfg(feature = "tracing")]
-                    tracing::debug!("waiting for connections");
+                    tracing::trace!("waiting for connections");
 
                     let (tcp_stream, addr) = match listener.accept().with_context(&ctx).await {
                         Some(Ok(conn)) => conn,
@@ -76,13 +76,13 @@ impl SecureBackend {
                         Some(Err(_)) => continue,
                         None => {
                             #[cfg(feature = "tracing")]
-                            tracing::debug!("context done, stopping listener");
+                            tracing::trace!("context done, stopping listener");
                             break;
                         }
                     };
 
                     #[cfg(feature = "tracing")]
-                    tracing::debug!(addr = %addr, "accepted tcp connection");
+                    tracing::trace!(addr = %addr, "accepted tcp connection");
 
                     let ctx = ctx.clone();
                     let tls_acceptor = tls_acceptor.clone();
@@ -90,7 +90,7 @@ impl SecureBackend {
 
                     let fut = async move {
                         #[cfg(feature = "tracing")]
-                        tracing::debug!("accepting tls connection");
+                        tracing::trace!("accepting tls connection");
 
                         let stream = match tls_acceptor.accept(tcp_stream).with_context(&ctx).await {
                             Some(Ok(stream)) => stream,
@@ -101,11 +101,15 @@ impl SecureBackend {
                             }
                             #[cfg(not(feature = "tracing"))]
                             Some(Err(_)) => return,
-                            None => return,
+                            None => {
+                                #[cfg(feature = "tracing")]
+                                tracing::trace!("context done, stopping tls acceptor");
+                                return;
+                            }
                         };
 
                         #[cfg(feature = "tracing")]
-                        tracing::debug!("accepted tls connection");
+                        tracing::trace!("accepted tls connection");
 
                         // make a new service
                         let http_service = match service_factory.new_service(addr).await {
@@ -120,7 +124,7 @@ impl SecureBackend {
                         };
 
                         #[cfg(feature = "tracing")]
-                        tracing::debug!("handling connection");
+                        tracing::trace!("handling connection");
 
                         #[cfg(all(feature = "http1", not(feature = "http2")))]
                         let _res = super::handle_connection::<F, _, _>(ctx, http_service, stream, self.http1_enabled).await;
@@ -144,21 +148,21 @@ impl SecureBackend {
                         }
 
                         #[cfg(feature = "tracing")]
-                        tracing::debug!("connection closed");
+                        tracing::trace!("connection closed");
                     };
 
                     #[cfg(feature = "tracing")]
-                    let fut = fut.instrument(tracing::debug_span!("connection", addr = %addr));
+                    let fut = fut.instrument(tracing::trace_span!("connection", addr = %addr));
 
                     tokio::spawn(fut);
                 }
 
                 #[cfg(feature = "tracing")]
-                tracing::debug!("listener closed");
+                tracing::trace!("listener closed");
             };
 
             #[cfg(feature = "tracing")]
-            let worker_fut = worker_fut.instrument(tracing::debug_span!("worker", n = n));
+            let worker_fut = worker_fut.instrument(tracing::trace_span!("worker", n = n));
 
             worker_fut
         });
