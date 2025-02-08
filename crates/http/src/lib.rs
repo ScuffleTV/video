@@ -96,6 +96,7 @@ mod tests {
 
     use scuffle_future_ext::FutureExt;
 
+    use crate::body::TrackedBody;
     use crate::server::HttpServerBuilder;
     use crate::service::{fn_http_service, service_clone_factory, HttpService, HttpServiceFactory};
     use crate::HttpServer;
@@ -418,6 +419,56 @@ mod tests {
         );
 
         let builder = HttpServer::builder().tower_make_service_factory(router.into_make_service());
+
+        test_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
+    }
+
+    #[tokio::test]
+    async fn tracked_body() {
+        #[derive(Clone)]
+        struct TestTracker;
+
+        impl crate::body::Tracker for TestTracker {
+            type Error = Infallible;
+
+            fn on_data(&self, size: usize) -> Result<(), Self::Error> {
+                assert_eq!(size, RESPONSE_TEXT.len());
+                Ok(())
+            }
+        }
+
+        let builder = HttpServer::builder().service_factory(service_clone_factory(fn_http_service(|req| async {
+            let req = req.map(|b| TrackedBody::new(b, TestTracker));
+            let body = req.into_body();
+            Ok::<_, Infallible>(http::Response::new(body))
+        })));
+
+        test_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
+    }
+
+    #[tokio::test]
+    async fn tracked_body_error() {
+        #[derive(Clone)]
+        struct TestTracker;
+
+        impl crate::body::Tracker for TestTracker {
+            type Error = &'static str;
+
+            fn on_data(&self, size: usize) -> Result<(), Self::Error> {
+                assert_eq!(size, RESPONSE_TEXT.len());
+                Err("test")
+            }
+        }
+
+        let builder = HttpServer::builder().service_factory(service_clone_factory(fn_http_service(|req| async {
+            let req = req.map(|b| TrackedBody::new(b, TestTracker));
+            let body = req.into_body();
+            // Use axum to convert the body to bytes
+            let bytes = axum::body::to_bytes(axum::body::Body::new(body), usize::MAX).await;
+            assert_eq!(bytes.expect_err("expected error").to_string(), "tracker error: test");
+
+            Ok::<_, Infallible>(http::Response::new(RESPONSE_TEXT.to_string()))
+        })));
 
         test_server(builder, &[reqwest::Version::HTTP_11, reqwest::Version::HTTP_2]).await;
     }

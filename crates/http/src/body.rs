@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
@@ -103,13 +104,31 @@ impl<B, T> TrackedBody<B, T> {
 }
 
 /// An error that can occur when tracking the body of an incoming request.
+#[derive(thiserror::Error)]
 pub enum TrackedBodyError<B, T>
 where
     B: http_body::Body,
     T: Tracker,
 {
+    #[error("body error: {0}")]
     Body(B::Error),
+    #[error("tracker error: {0}")]
     Tracker(T::Error),
+}
+
+impl<B, T> Debug for TrackedBodyError<B, T>
+where
+    B: http_body::Body,
+    B::Error: Debug,
+    T: Tracker,
+    T::Error: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TrackedBodyError::Body(err) => f.debug_tuple("TrackedBodyError::Body").field(err).finish(),
+            TrackedBodyError::Tracker(err) => f.debug_tuple("TrackedBodyError::Tracker").field(err).finish(),
+        }
+    }
 }
 
 /// A trait for tracking the size of the data that is read from an HTTP body.
@@ -135,6 +154,7 @@ where
 
     fn poll_frame(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Result<Frame<Self::Data>, Self::Error>>> {
         let this = self.project();
+
         match this.body.poll_frame(cx) {
             Poll::Pending => Poll::Pending,
             Poll::Ready(frame) => {
