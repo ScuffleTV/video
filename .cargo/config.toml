@@ -1,2 +1,10 @@
 [alias]
 xtask = "run --package xtask --target-dir target/xtask -- "
+
+[build]
+# https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags
+rustflags = [
+    # Required for http3 support in reqwest in scuffle-http
+    "--cfg",
+    "reqwest_unstable",
+]
