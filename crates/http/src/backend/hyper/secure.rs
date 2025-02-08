@@ -15,6 +15,7 @@ use crate::service::{HttpService, HttpServiceFactory};
 #[derive(Debug, Clone)]
 pub struct SecureBackend {
     pub ctx: scuffle_context::Context,
+    pub worker_tasks: usize,
     pub bind: SocketAddr,
     #[cfg(feature = "http1")]
     #[cfg_attr(docsrs, doc(cfg(feature = "http1")))]
@@ -46,68 +47,85 @@ impl SecureBackend {
         // https://github.com/hyperium/hyper/issues/3841
         rustls_config.max_early_data_size = 0;
 
-        let listener = tokio::net::TcpListener::bind(self.bind).await?;
+        // We have to create an std listener first because the tokio listener isn't clonable
+        let std_listener = std::net::TcpListener::bind(self.bind)?;
         let tls_acceptor = tokio_rustls::TlsAcceptor::from(Arc::new(rustls_config));
 
-        loop {
-            let (tcp_stream, addr) = match listener.accept().with_context(&self.ctx).await {
-                Some(Ok(conn)) => conn,
-                #[cfg(feature = "tracing")]
-                Some(Err(e)) => {
-                    tracing::warn!(err = %e, "failed to accept tcp connection");
-                    continue;
-                }
-                #[cfg(not(feature = "tracing"))]
-                Some(Err(_)) => continue,
-                None => break,
-            };
-
+        let tasks = (0..self.worker_tasks).map(|_| {
+            let service_factory = service_factory.clone();
+            let ctx = self.ctx.clone();
+            let std_listener = std_listener.try_clone().expect("failed to clone listener");
+            let listener = tokio::net::TcpListener::from_std(std_listener).expect("failed to create tokio listener");
             let tls_acceptor = tls_acceptor.clone();
-            let mut service_factory = service_factory.clone();
-            tokio::spawn(
-                async move {
-                    let stream = match tls_acceptor.accept(tcp_stream).await {
-                        Ok(stream) => stream,
+
+            async move {
+                loop {
+                    let (tcp_stream, addr) = match listener.accept().with_context(&ctx).await {
+                        Some(Ok(conn)) => conn,
                         #[cfg(feature = "tracing")]
-                        Err(err) => {
-                            tracing::warn!(err = %err, "failed to accept tls connection");
-                            return;
+                        Some(Err(e)) => {
+                            tracing::warn!(err = %e, "failed to accept tcp connection");
+                            continue;
                         }
                         #[cfg(not(feature = "tracing"))]
-                        Err(_) => return,
+                        Some(Err(_)) => continue,
+                        None => break,
                     };
 
-                    // make a new service
-                    let http_service = match service_factory.new_service(addr).await {
-                        Ok(service) => service,
-                        #[cfg(feature = "tracing")]
-                        Err(e) => {
-                            tracing::warn!(err = %e, "failed to create service");
-                            return;
-                        }
-                        #[cfg(not(feature = "tracing"))]
-                        Err(_) => return,
-                    };
+                    let tls_acceptor = tls_acceptor.clone();
+                    let mut service_factory = service_factory.clone();
+                    tokio::spawn(
+                        async move {
+                            let stream = match tls_acceptor.accept(tcp_stream).await {
+                                Ok(stream) => stream,
+                                #[cfg(feature = "tracing")]
+                                Err(err) => {
+                                    tracing::warn!(err = %err, "failed to accept tls connection");
+                                    return;
+                                }
+                                #[cfg(not(feature = "tracing"))]
+                                Err(_) => return,
+                            };
 
-                    #[cfg(all(feature = "http1", not(feature = "http2")))]
-                    let _res = super::handle_connection::<F, _, _>(http_service, stream, self.http1_enabled).await;
+                            // make a new service
+                            let http_service = match service_factory.new_service(addr).await {
+                                Ok(service) => service,
+                                #[cfg(feature = "tracing")]
+                                Err(e) => {
+                                    tracing::warn!(err = %e, "failed to create service");
+                                    return;
+                                }
+                                #[cfg(not(feature = "tracing"))]
+                                Err(_) => return,
+                            };
 
-                    #[cfg(all(not(feature = "http1"), feature = "http2"))]
-                    let _res = super::handle_connection::<F, _, _>(http_service, stream, self.http2_enabled).await;
+                            #[cfg(all(feature = "http1", not(feature = "http2")))]
+                            let _res = super::handle_connection::<F, _, _>(http_service, stream, self.http1_enabled).await;
 
-                    #[cfg(all(feature = "http1", feature = "http2"))]
-                    let _res =
-                        super::handle_connection::<F, _, _>(http_service, stream, self.http1_enabled, self.http2_enabled)
+                            #[cfg(all(not(feature = "http1"), feature = "http2"))]
+                            let _res = super::handle_connection::<F, _, _>(http_service, stream, self.http2_enabled).await;
+
+                            #[cfg(all(feature = "http1", feature = "http2"))]
+                            let _res = super::handle_connection::<F, _, _>(
+                                http_service,
+                                stream,
+                                self.http1_enabled,
+                                self.http2_enabled,
+                            )
                             .await;
 
-                    #[cfg(feature = "tracing")]
-                    if let Err(e) = _res {
-                        tracing::warn!(err = %e, "error handling connection");
-                    }
+                            #[cfg(feature = "tracing")]
+                            if let Err(e) = _res {
+                                tracing::warn!(err = %e, "error handling connection");
+                            }
+                        }
+                        .with_context(ctx.clone()),
+                    );
                 }
-                .with_context(self.ctx.clone()),
-            );
-        }
+            }
+        });
+
+        futures::future::join_all(tasks).await;
 
         Ok(())
     }

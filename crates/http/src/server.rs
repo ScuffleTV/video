@@ -15,6 +15,8 @@ use crate::service::{HttpService, HttpServiceFactory};
 pub struct HttpServer<F> {
     #[builder(default)]
     ctx: scuffle_context::Context,
+    #[builder(default = 1)]
+    worker_tasks: usize,
     service_factory: F,
     bind: SocketAddr,
     #[builder(default = true)]
@@ -193,6 +195,7 @@ where
 
                     let backend = crate::backend::h3::Http3Backend {
                         ctx: self.ctx.clone(),
+                        worker_tasks: self.worker_tasks,
                         bind: self.bind,
                     };
 
@@ -207,6 +210,7 @@ where
 
                     let backend = crate::backend::hyper::secure::SecureBackend {
                         ctx: self.ctx.clone(),
+                        worker_tasks: self.worker_tasks,
                         bind: self.bind,
                         #[cfg(feature = "http1")]
                         http1_enabled: self.enable_http1,
@@ -223,6 +227,7 @@ where
                 (true, true) => {
                     let hyper = crate::backend::hyper::secure::SecureBackend {
                         ctx: self.ctx.clone(),
+                        worker_tasks: self.worker_tasks,
                         bind: self.bind,
                         #[cfg(feature = "http1")]
                         http1_enabled: self.enable_http1,
@@ -234,6 +239,7 @@ where
 
                     let mut http3 = crate::backend::h3::Http3Backend {
                         ctx: self.ctx.clone(),
+                        worker_tasks: self.worker_tasks,
                         bind: self.bind,
                     }
                     .run(self.service_factory, _rustls_config);
@@ -261,6 +267,7 @@ where
 
             let backend = crate::backend::hyper::insecure::InsecureBackend {
                 ctx: self.ctx.clone(),
+                worker_tasks: self.worker_tasks,
                 bind: self.bind,
                 #[cfg(feature = "http1")]
                 http1_enabled: self.enable_http1,

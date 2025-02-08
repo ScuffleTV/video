@@ -74,7 +74,7 @@ where
         };
 
         #[cfg(feature = "tracing")]
-        tracing::info!("connection closed: {:?}", _res);
+        tracing::debug!("connection closed: {:?}", _res);
     });
 
     Ok(())
