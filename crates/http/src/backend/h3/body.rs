@@ -12,12 +12,16 @@ enum State {
     Done,
 }
 
+/// An incoming HTTP/3 body.
+///
+/// Implements [`http_body::Body`].
 pub struct QuicIncomingBody<S> {
     stream: RequestStream<S, Bytes>,
     state: State,
 }
 
 impl<S> QuicIncomingBody<S> {
+    /// Create a new incoming HTTP/3 body.
     pub fn new(stream: RequestStream<S, Bytes>, size_hint: Option<u64>) -> Self {
         Self {
             stream,
