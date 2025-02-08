@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 use std::net::SocketAddr;
 
 use crate::error::Error;
@@ -125,7 +125,7 @@ where
 impl<F> HttpServer<F>
 where
     F: HttpServiceFactory + Clone + Send + 'static,
-    F::Error: std::error::Error + Debug + Display + Send,
+    F::Error: std::error::Error + Debug + Send,
     F::Service: Clone + Send + 'static,
     <F::Service as HttpService>::Error: std::error::Error + Debug + Send + Sync,
     <F::Service as HttpService>::ResBody: Send,

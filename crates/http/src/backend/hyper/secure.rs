@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -32,9 +32,9 @@ impl SecureBackend {
     pub async fn run<F>(self, service_factory: F, mut rustls_config: rustls::ServerConfig) -> Result<(), Error<F>>
     where
         F: HttpServiceFactory + Clone + Send + 'static,
-        F::Error: std::error::Error + Debug + Display,
+        F::Error: std::error::Error + Debug,
         F::Service: Clone + Send + 'static,
-        <F::Service as HttpService>::Error: std::error::Error + Debug + Display + Send + Sync,
+        <F::Service as HttpService>::Error: std::error::Error + Debug + Send + Sync,
         <F::Service as HttpService>::ResBody: Send,
         <<F::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
         <<F::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,

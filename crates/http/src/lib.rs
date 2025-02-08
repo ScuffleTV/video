@@ -88,7 +88,7 @@ pub type IncomingRequest = http::Request<body::IncomingBody>;
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
 mod tests {
     use std::convert::Infallible;
-    use std::fmt::{Debug, Display};
+    use std::fmt::Debug;
     use std::fs;
     use std::io::BufReader;
     use std::net::SocketAddr;
@@ -110,9 +110,9 @@ mod tests {
     async fn test_server<F, S>(builder: HttpServerBuilder<F, S>, versions: &[reqwest::Version])
     where
         F: HttpServiceFactory + Debug + Clone + Send + 'static,
-        F::Error: std::error::Error + Debug + Display + Send,
+        F::Error: std::error::Error + Debug + Send,
         F::Service: Clone + Debug + Send + 'static,
-        <F::Service as HttpService>::Error: std::error::Error + Debug + Display + Send + Sync,
+        <F::Service as HttpService>::Error: std::error::Error + Debug + Send + Sync,
         <F::Service as HttpService>::ResBody: Send,
         <<F::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
         <<F::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
@@ -173,9 +173,9 @@ mod tests {
     async fn test_tls_server<F, S>(builder: HttpServerBuilder<F, S>, versions: &[reqwest::Version])
     where
         F: HttpServiceFactory + Debug + Clone + Send + 'static,
-        F::Error: std::error::Error + Debug + Display + Send,
+        F::Error: std::error::Error + Debug + Send,
         F::Service: Clone + Debug + Send + 'static,
-        <F::Service as HttpService>::Error: std::error::Error + Debug + Display + Send + Sync,
+        <F::Service as HttpService>::Error: std::error::Error + Debug + Send + Sync,
         <F::Service as HttpService>::ResBody: Send,
         <<F::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
         <<F::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Send + Sync,
