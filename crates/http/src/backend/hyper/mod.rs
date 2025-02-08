@@ -2,6 +2,7 @@ use std::fmt::Debug;
 
 use hyper_util::rt::{TokioExecutor, TokioIo, TokioTimer};
 use hyper_util::server::conn::auto;
+use scuffle_context::ContextFutExt;
 use tokio::io::{AsyncRead, AsyncWrite};
 
 use crate::error::Error;
@@ -14,6 +15,7 @@ pub mod secure;
 
 /// Helper function used by both secure and insecure servers to handle incoming connections.
 async fn handle_connection<F, S, I>(
+    ctx: scuffle_context::Context,
     service: S,
     io: I,
     #[cfg(feature = "http1")] http1: bool,
@@ -46,36 +48,41 @@ where
         }
     });
 
-    tokio::spawn(async move {
-        let mut builder = auto::Builder::new(TokioExecutor::new());
+    let mut builder = auto::Builder::new(TokioExecutor::new());
 
-        let _res = if http1 && http2 {
-            #[cfg(feature = "http1")]
-            builder.http1().timer(TokioTimer::new());
+    let _res = if http1 && http2 {
+        #[cfg(feature = "http1")]
+        builder.http1().timer(TokioTimer::new());
 
-            #[cfg(feature = "http2")]
-            builder.http2().timer(TokioTimer::new());
+        #[cfg(feature = "http2")]
+        builder.http2().timer(TokioTimer::new());
 
-            builder.serve_connection_with_upgrades(io, hyper_proxy_service).await
-        } else if http1 {
-            builder
-                .http1_only()
-                .serve_connection_with_upgrades(io, hyper_proxy_service)
-                .await
-        } else if http2 {
-            builder
-                .http2_only()
-                .serve_connection_with_upgrades(io, hyper_proxy_service)
-                .await
-        } else {
-            #[cfg(feature = "tracing")]
-            tracing::warn!("both http1 and http2 are disabled, closing connection");
-            return;
-        };
-
+        builder
+            .serve_connection_with_upgrades(io, hyper_proxy_service)
+            .with_context(ctx)
+            .await
+    } else if http1 {
+        builder
+            .http1_only()
+            .serve_connection_with_upgrades(io, hyper_proxy_service)
+            .with_context(ctx)
+            .await
+    } else if http2 {
+        builder
+            .http2_only()
+            .serve_connection_with_upgrades(io, hyper_proxy_service)
+            .with_context(ctx)
+            .await
+    } else {
         #[cfg(feature = "tracing")]
-        tracing::debug!("connection closed: {:?}", _res);
-    });
+        tracing::warn!("both http1 and http2 are disabled, closing connection");
+        return Ok(());
+    };
+
+    #[cfg(feature = "tracing")]
+    if let Some(Err(e)) = _res {
+        tracing::warn!(err = %e, "connection error");
+    }
 
     Ok(())
 }

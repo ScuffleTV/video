@@ -65,50 +65,55 @@ impl InsecureBackend {
                         None => break,
                     };
 
+                    let ctx = ctx.clone();
                     let mut service_factory = service_factory.clone();
-                    tokio::spawn(
-                        async move {
-                            // make a new service
-                            let http_service = match service_factory.new_service(addr).await {
-                                Ok(service) => service,
-                                #[cfg(feature = "tracing")]
-                                Err(e) => {
-                                    tracing::warn!(err = %e, "failed to create service");
-                                    return;
-                                }
-                                #[cfg(not(feature = "tracing"))]
-                                Err(_) => return,
-                            };
-
-                            #[cfg(all(feature = "http1", not(feature = "http2")))]
-                            let _res =
-                                super::handle_connection::<F, _, _>(http_service, tcp_stream, self.http1_enabled).await;
-
-                            #[cfg(all(not(feature = "http1"), feature = "http2"))]
-                            let _res =
-                                super::handle_connection::<F, _, _>(http_service, tcp_stream, self.http2_enabled).await;
-
-                            #[cfg(all(feature = "http1", feature = "http2"))]
-                            let _res = super::handle_connection::<F, _, _>(
-                                http_service,
-                                tcp_stream,
-                                self.http1_enabled,
-                                self.http2_enabled,
-                            )
-                            .await;
-
+                    tokio::spawn(async move {
+                        // make a new service
+                        let http_service = match service_factory.new_service(addr).await {
+                            Ok(service) => service,
                             #[cfg(feature = "tracing")]
-                            if let Err(e) = _res {
-                                tracing::warn!("error: {}", e);
+                            Err(e) => {
+                                tracing::warn!(err = %e, "failed to create service");
+                                return;
                             }
+                            #[cfg(not(feature = "tracing"))]
+                            Err(_) => return,
+                        };
+
+                        #[cfg(all(feature = "http1", not(feature = "http2")))]
+                        let _res =
+                            super::handle_connection::<F, _, _>(ctx, http_service, tcp_stream, self.http1_enabled).await;
+
+                        #[cfg(all(not(feature = "http1"), feature = "http2"))]
+                        let _res =
+                            super::handle_connection::<F, _, _>(ctx, http_service, tcp_stream, self.http2_enabled).await;
+
+                        #[cfg(all(feature = "http1", feature = "http2"))]
+                        let _res = super::handle_connection::<F, _, _>(
+                            ctx,
+                            http_service,
+                            tcp_stream,
+                            self.http1_enabled,
+                            self.http2_enabled,
+                        )
+                        .await;
+
+                        #[cfg(feature = "tracing")]
+                        if let Err(e) = _res {
+                            tracing::warn!(err = %e, "error handling connection");
                         }
-                        .with_context(ctx.clone()),
-                    );
+
+                        #[cfg(feature = "tracing")]
+                        tracing::debug!(addr = %addr, "connection closed");
+                    });
                 }
             }
         });
 
         futures::future::join_all(tasks).await;
+
+        #[cfg(feature = "tracing")]
+        tracing::debug!("all workers finished");
 
         Ok(())
     }

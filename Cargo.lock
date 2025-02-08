@@ -2997,6 +2997,7 @@ dependencies = [
  "axum",
  "rustls",
  "rustls-pemfile",
+ "scuffle-context",
  "scuffle-http",
  "scuffle-workspace-hack",
  "tokio",

@@ -25,5 +25,6 @@ tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 rustls = "0.23.21"
 rustls-pemfile = "2.2.0"
-scuffle-http = { workspace = true, features = ["tls-rustls", "http3"] }
+scuffle-http = { workspace = true, features = ["tls-rustls", "http3", "tracing"] }
+scuffle-context = { workspace = true }
 scuffle-workspace-hack.workspace = true

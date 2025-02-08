@@ -69,8 +69,8 @@ impl Http3Backend {
                                 let mut h3_conn = h3::server::Connection::new(h3_quinn::Connection::new(conn)).await?;
 
                                 loop {
-                                    match h3_conn.accept().await {
-                                        Ok(Some((req, stream))) => {
+                                    match h3_conn.accept().with_context(&ctx2).await {
+                                        Some(Ok(Some((req, stream)))) => {
                                             let (mut send, recv) = stream.split();
 
                                             let size_hint = req
@@ -89,8 +89,10 @@ impl Http3Backend {
                                             tokio::spawn(
                                                 async move {
                                                     let _res: Result<_, Error<F>> = async move {
-                                                        let resp =
-                                                            http_service.call(req).await.map_err(|e| Error::ServiceError(e))?;
+                                                        let resp = http_service
+                                                            .call(req)
+                                                            .await
+                                                            .map_err(|e| Error::ServiceError(e))?;
                                                         let (parts, body) = resp.into_parts();
 
                                                         send.send_response(http::Response::from_parts(parts, ())).await?;
@@ -110,10 +112,10 @@ impl Http3Backend {
                                             );
                                         }
                                         // indicating no more streams to be received
-                                        Ok(None) => {
+                                        Some(Ok(None)) => {
                                             break;
                                         }
-                                        Err(err) => match err.get_error_level() {
+                                        Some(Err(err)) => match err.get_error_level() {
                                             h3::error::ErrorLevel::ConnectionError => return Err(err.into()),
                                             h3::error::ErrorLevel::StreamError => {
                                                 #[cfg(feature = "tracing")]
@@ -121,6 +123,10 @@ impl Http3Backend {
                                                 continue;
                                             }
                                         },
+                                        // context was cancelled
+                                        None => {
+                                            break;
+                                        }
                                     }
                                 }
 
@@ -144,6 +150,9 @@ impl Http3Backend {
         });
 
         futures::future::join_all(tasks).await;
+
+        #[cfg(feature = "tracing")]
+        tracing::debug!("all workers finished");
 
         Ok(())
     }

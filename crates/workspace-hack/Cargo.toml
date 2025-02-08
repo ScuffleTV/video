@@ -37,7 +37,6 @@ futures-task = { version = "0.3", default-features = false, features = ["std"] }
 futures-util = { version = "0.3", default-features = false, features = ["async-await-macro", "channel", "io", "sink"] }
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
 h3 = { version = "0.0.6", default-features = false, features = ["i-implement-a-third-party-backend-and-opt-into-breaking-changes", "tracing"] }
-h3-quinn = { version = "0.0.7", default-features = false, features = ["tracing"] }
 hyper = { version = "1", features = ["http1", "http2", "server"] }
 hyper-util = { version = "0.1", features = ["http1", "http2", "server", "service", "tokio"] }
 insta = { version = "1", features = ["filters"] }
@@ -51,9 +50,6 @@ opentelemetry_sdk = { version = "0.27", features = ["rt-tokio", "spec_unstable_l
 percent-encoding = { version = "2" }
 prettyplease = { version = "0.2", default-features = false, features = ["verbatim"] }
 proc-macro2 = { version = "1" }
-quinn = { version = "0.11", default-features = false, features = ["aws-lc-rs", "futures-io", "log", "platform-verifier", "runtime-tokio", "rustls-ring"] }
-quinn-proto = { version = "0.11", default-features = false, features = ["aws-lc-rs", "log", "platform-verifier", "rustls-ring"] }
-quinn-udp = { version = "0.5", default-features = false, features = ["log"] }
 quote = { version = "1" }
 rand = { version = "0.8", features = ["small_rng"] }
 regex = { version = "1", default-features = false, features = ["std", "unicode"] }
@@ -69,7 +65,6 @@ stable_deref_trait = { version = "1" }
 syn = { version = "2", features = ["extra-traits", "fold", "full", "visit", "visit-mut"] }
 sync_wrapper = { version = "1", default-features = false, features = ["futures"] }
 tokio = { version = "1", features = ["full", "test-util"] }
-tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc_rs", "logging", "tls12"] }
 tokio-util = { version = "0.7", features = ["codec", "io"] }
 tower = { version = "0.5", default-features = false, features = ["log", "make", "util"] }
 tracing = { version = "0.1", features = ["log"] }
@@ -104,7 +99,6 @@ futures-task = { version = "0.3", default-features = false, features = ["std"] }
 futures-util = { version = "0.3", default-features = false, features = ["async-await-macro", "channel", "io", "sink"] }
 getrandom = { version = "0.2", default-features = false, features = ["std"] }
 h3 = { version = "0.0.6", default-features = false, features = ["i-implement-a-third-party-backend-and-opt-into-breaking-changes", "tracing"] }
-h3-quinn = { version = "0.0.7", default-features = false, features = ["tracing"] }
 hyper = { version = "1", features = ["http1", "http2", "server"] }
 hyper-util = { version = "0.1", features = ["http1", "http2", "server", "service", "tokio"] }
 insta = { version = "1", features = ["filters"] }
@@ -119,9 +113,6 @@ opentelemetry_sdk = { version = "0.27", features = ["rt-tokio", "spec_unstable_l
 percent-encoding = { version = "2" }
 prettyplease = { version = "0.2", default-features = false, features = ["verbatim"] }
 proc-macro2 = { version = "1" }
-quinn = { version = "0.11", default-features = false, features = ["aws-lc-rs", "futures-io", "log", "platform-verifier", "runtime-tokio", "rustls-ring"] }
-quinn-proto = { version = "0.11", default-features = false, features = ["aws-lc-rs", "log", "platform-verifier", "rustls-ring"] }
-quinn-udp = { version = "0.5", default-features = false, features = ["log"] }
 quote = { version = "1" }
 rand = { version = "0.8", features = ["small_rng"] }
 regex = { version = "1", default-features = false, features = ["std", "unicode"] }
@@ -137,7 +128,6 @@ stable_deref_trait = { version = "1" }
 syn = { version = "2", features = ["extra-traits", "fold", "full", "visit", "visit-mut"] }
 sync_wrapper = { version = "1", default-features = false, features = ["futures"] }
 tokio = { version = "1", features = ["full", "test-util"] }
-tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc_rs", "logging", "tls12"] }
 tokio-util = { version = "0.7", features = ["codec", "io"] }
 tower = { version = "0.5", default-features = false, features = ["log", "make", "util"] }
 tracing = { version = "0.1", features = ["log"] }
@@ -149,44 +139,56 @@ zerocopy = { version = "0.7", features = ["derive", "simd"] }
 
 [target.x86_64-unknown-linux-gnu.dependencies]
 bitflags = { version = "2", default-features = false, features = ["std"] }
+h3-quinn = { version = "0.0.7", default-features = false, features = ["tracing"] }
 hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 once_cell = { version = "1" }
-quinn = { version = "0.11", default-features = false, features = ["rustls"] }
+quinn = { version = "0.11", default-features = false, features = ["aws-lc-rs", "futures-io", "log", "platform-verifier", "runtime-tokio", "rustls"] }
+quinn-proto = { version = "0.11", default-features = false, features = ["aws-lc-rs", "log", "platform-verifier", "rustls-ring"] }
+quinn-udp = { version = "0.5", default-features = false, features = ["log"] }
 rustls-webpki = { version = "0.102", default-features = false, features = ["aws_lc_rs", "ring", "std"] }
-tokio-rustls = { version = "0.26", default-features = false, features = ["ring"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc_rs", "logging", "ring", "tls12"] }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
 
 [target.x86_64-unknown-linux-gnu.build-dependencies]
 bitflags = { version = "2", default-features = false, features = ["std"] }
+h3-quinn = { version = "0.0.7", default-features = false, features = ["tracing"] }
 hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 once_cell = { version = "1" }
-quinn = { version = "0.11", default-features = false, features = ["rustls"] }
+quinn = { version = "0.11", default-features = false, features = ["aws-lc-rs", "futures-io", "log", "platform-verifier", "runtime-tokio", "rustls"] }
+quinn-proto = { version = "0.11", default-features = false, features = ["aws-lc-rs", "log", "platform-verifier", "rustls-ring"] }
+quinn-udp = { version = "0.5", default-features = false, features = ["log"] }
 rustls-webpki = { version = "0.102", default-features = false, features = ["aws_lc_rs", "ring", "std"] }
-tokio-rustls = { version = "0.26", default-features = false, features = ["ring"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc_rs", "logging", "ring", "tls12"] }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
 
 [target.x86_64-apple-darwin.dependencies]
 bitflags = { version = "2", default-features = false, features = ["std"] }
+h3-quinn = { version = "0.0.7", default-features = false, features = ["tracing"] }
 hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 num-traits = { version = "0.2", default-features = false, features = ["i128"] }
 once_cell = { version = "1" }
-quinn = { version = "0.11", default-features = false, features = ["rustls"] }
+quinn = { version = "0.11", default-features = false, features = ["aws-lc-rs", "futures-io", "log", "platform-verifier", "runtime-tokio", "rustls"] }
+quinn-proto = { version = "0.11", default-features = false, features = ["aws-lc-rs", "log", "platform-verifier", "rustls-ring"] }
+quinn-udp = { version = "0.5", default-features = false, features = ["log"] }
 rustls-webpki = { version = "0.102", default-features = false, features = ["aws_lc_rs", "ring", "std"] }
-tokio-rustls = { version = "0.26", default-features = false, features = ["ring"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc_rs", "logging", "ring", "tls12"] }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
 
 [target.x86_64-apple-darwin.build-dependencies]
 bitflags = { version = "2", default-features = false, features = ["std"] }
+h3-quinn = { version = "0.0.7", default-features = false, features = ["tracing"] }
 hyper = { version = "1", default-features = false, features = ["client"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-legacy"] }
 num-traits = { version = "0.2", default-features = false, features = ["i128"] }
 once_cell = { version = "1" }
-quinn = { version = "0.11", default-features = false, features = ["rustls"] }
+quinn = { version = "0.11", default-features = false, features = ["aws-lc-rs", "futures-io", "log", "platform-verifier", "runtime-tokio", "rustls"] }
+quinn-proto = { version = "0.11", default-features = false, features = ["aws-lc-rs", "log", "platform-verifier", "rustls-ring"] }
+quinn-udp = { version = "0.5", default-features = false, features = ["log"] }
 rustls-webpki = { version = "0.102", default-features = false, features = ["aws_lc_rs", "ring", "std"] }
-tokio-rustls = { version = "0.26", default-features = false, features = ["ring"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc_rs", "logging", "ring", "tls12"] }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
 
 ### END HAKARI SECTION
