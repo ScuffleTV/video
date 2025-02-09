@@ -1,9 +1,0 @@
-{
-	"recommendations": [
-		"rust-lang.rust-analyzer",
-		"fill-labs.dependi",
-		"tamasfe.even-better-toml",
-		"dustypomerleau.rust-syntax",
-		"editorconfig.editorconfig"
-	]
-}

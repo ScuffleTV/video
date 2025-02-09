@@ -1,6 +1,6 @@
 [package]
 name = "scuffle-http"
-version = "0.0.4"
+version = "0.0.5"
 edition = "2021"
 repository = "https://github.com/scufflecloud/scuffle"
 authors = ["Scuffle <opensource@scuffle.cloud>"]
