@@ -8,16 +8,16 @@ on:
 jobs:
   release-plz-release:
     name: Release-plz release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+
       - name: Run release-plz
         uses: release-plz/action@v0.5
         with:
@@ -28,7 +28,7 @@ jobs:
 
   release-plz-pr:
     name: Release-plz PR
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: write
       contents: write
@@ -38,10 +38,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+
       - name: Run release-plz
         uses: release-plz/action@v0.5
         with:

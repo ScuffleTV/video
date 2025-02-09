@@ -1,4 +1,6 @@
 use bytes::Bytes;
+use scuffle_aac::PartialAudioSpecificConfig;
+use scuffle_flv::audio::{SoundSize, SoundType};
 use scuffle_mp4::types::esds::descriptor::header::DescriptorHeader;
 use scuffle_mp4::types::esds::descriptor::traits::DescriptorType;
 use scuffle_mp4::types::esds::descriptor::types::decoder_config::DecoderConfigDescriptor;
@@ -9,8 +11,6 @@ use scuffle_mp4::types::mp4a::Mp4a;
 use scuffle_mp4::types::stsd::{AudioSampleEntry, SampleEntry};
 use scuffle_mp4::types::trun::{TrunSample, TrunSampleFlag};
 use scuffle_mp4::DynBox;
-use scuffle_aac::PartialAudioSpecificConfig;
-use scuffle_flv::audio::{SoundSize, SoundType};
 
 use crate::TransmuxError;
 

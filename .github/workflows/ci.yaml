@@ -235,9 +235,58 @@ jobs:
           accountId: ${{ secrets.CF_DOCS_ACCOUNT_ID }}
           command: pages deploy --project-name=scuffle-docrs --branch=pr/${{ env.PR_NUMBER || github.event.pull_request.number }} --commit-hash=${{ env.SHA }} --commit-dirty=true ./target/doc
 
+  semver:
+    name: Semver
+    runs-on: ubuntu-24.04
+    permissions:
+      pull-requests: write
+    if: ${{ github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/automation/brawl/try/') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+
+      - uses: dtolnay/rust-toolchain@stable
+        id: setup-rust
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: release-plz,cargo-semver-checks
+
+      - name: Set github branch
+        run: |
+          git checkout -b ${{ github.head_ref || github.ref_name }}
+
+      - name: Run Checks
+        run: |
+          echo "## 🤖 New releases" > semver-check.txt
+          echo "" >> semver-check.txt
+          release-plz update --no-changelog | tee -a semver-check.txt
+        id: semver-check
+
+      - name: PR Override
+        if: ${{ startsWith(github.ref, 'refs/heads/automation/brawl/try/') }}
+        run: |
+          PR_NUMBER=$(echo ${{ github.ref }} | sed -n 's/^refs\/heads\/automation\/brawl\/try\/\([0-9]*\)$/\1/p')
+          echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
+
+      - name: Add Step Summary
+        run: |
+          cat semver-check.txt >> $GITHUB_STEP_SUMMARY
+
+      - name: PR Comment
+        uses: thollander/actions-comment-pull-request@v3
+        # This can only run on non-fork PRs
+        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        with:
+          pr-number: ${{ env.PR_NUMBER || github.event.pull_request.number }}
+          file-path: semver-check.txt
+
   brawl-done:
     runs-on: ubuntu-24.04
-    needs: [hakari, test, clippy, fmt, docs]
+    needs: [hakari, test, clippy, fmt, docs, semver]
     if: ${{ !cancelled() && github.event_name == 'push' }}
     steps:
       - name: calculate the correct exit status

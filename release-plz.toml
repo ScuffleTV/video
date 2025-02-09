@@ -1,7 +1,6 @@
 [workspace]
 allow_dirty = true
 changelog_update = true
-dependencies_update = true
 git_release_body = """
 {{ changelog }}
 {% if remote.contributors %}

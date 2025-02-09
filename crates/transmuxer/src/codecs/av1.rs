@@ -1,14 +1,14 @@
 use bytes::{Buf, Bytes};
+use scuffle_av1::seq::SequenceHeaderObu;
+use scuffle_av1::{AV1CodecConfigurationRecord, ObuHeader, ObuType};
+use scuffle_bytes_util::BytesCursorExt;
+use scuffle_flv::video::FrameType;
 use scuffle_mp4::types::av01::Av01;
 use scuffle_mp4::types::av1c::Av1C;
 use scuffle_mp4::types::colr::{ColorType, Colr};
 use scuffle_mp4::types::stsd::{SampleEntry, VisualSampleEntry};
 use scuffle_mp4::types::trun::{TrunSample, TrunSampleFlag};
 use scuffle_mp4::DynBox;
-use scuffle_av1::seq::SequenceHeaderObu;
-use scuffle_av1::{AV1CodecConfigurationRecord, ObuHeader, ObuType};
-use scuffle_bytes_util::BytesCursorExt;
-use scuffle_flv::video::FrameType;
 
 use crate::TransmuxError;
 

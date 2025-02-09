@@ -1,4 +1,5 @@
 use bytes::Bytes;
+use scuffle_flv::video::FrameType;
 use scuffle_h264::{AVCDecoderConfigurationRecord, Sps};
 use scuffle_mp4::types::avc1::Avc1;
 use scuffle_mp4::types::avcc::AvcC;
@@ -6,7 +7,6 @@ use scuffle_mp4::types::colr::{ColorType, Colr};
 use scuffle_mp4::types::stsd::{SampleEntry, VisualSampleEntry};
 use scuffle_mp4::types::trun::{TrunSample, TrunSampleFlag};
 use scuffle_mp4::DynBox;
-use scuffle_flv::video::FrameType;
 
 use crate::TransmuxError;
 

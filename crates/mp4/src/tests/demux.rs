@@ -6,9 +6,9 @@ use std::process::{Command, Stdio};
 
 use bytes::{Buf, Bytes};
 use fixed::FixedI32;
+use scuffle_av1::AV1CodecConfigurationRecord;
 use scuffle_h264::AVCDecoderConfigurationRecord;
 use scuffle_h265::{HEVCDecoderConfigurationRecord, NaluArray, NaluType};
-use scuffle_av1::AV1CodecConfigurationRecord;
 
 use crate::boxes::header::{BoxHeader, FullBoxHeader};
 use crate::boxes::types::avc1::Avc1;
