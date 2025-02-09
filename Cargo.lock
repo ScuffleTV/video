@@ -2682,7 +2682,7 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
 name = "scuffle-aac"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "byteorder",
  "bytes",
@@ -2694,7 +2694,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-amf0"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "byteorder",
  "bytes",
@@ -2707,7 +2707,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-av1"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "byteorder",
  "bytes",
@@ -2843,7 +2843,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-ffmpeg"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "arc-swap",
  "bon",
