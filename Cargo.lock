@@ -274,7 +274,7 @@ dependencies = [
  "bitflags 2.6.0",
  "cexpr",
  "clang-sys",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "lazy_static",
  "lazycell",
  "log",
@@ -297,7 +297,7 @@ dependencies = [
  "bitflags 2.6.0",
  "cexpr",
  "clang-sys",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "regex",
@@ -2240,7 +2240,7 @@ checksum = "22505a5c94da8e3b7c2996394d1c933236c4d743e81a410bcca4e6989fc066a4"
 dependencies = [
  "bytes",
  "heck",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "log",
  "multimap",
  "once_cell",
@@ -2260,7 +2260,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "syn",
@@ -2683,6 +2683,20 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 [[package]]
 name = "scuffle-aac"
 version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2d8c07ac2325bcd05578404237e056f36ce398446242477b9263dbcf6325979"
+dependencies = [
+ "byteorder",
+ "bytes",
+ "num-derive",
+ "num-traits",
+ "scuffle-bytes-util 0.0.2",
+ "scuffle-workspace-hack",
+]
+
+[[package]]
+name = "scuffle-aac"
+version = "0.0.3"
 dependencies = [
  "byteorder",
  "bytes",
@@ -2695,6 +2709,21 @@ dependencies = [
 [[package]]
 name = "scuffle-amf0"
 version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e5057bcd9777d3706e38cf5debdbc0a41c4f2735bb143a172338d7b9cd7bc530"
+dependencies = [
+ "byteorder",
+ "bytes",
+ "num-derive",
+ "num-traits",
+ "scuffle-bytes-util 0.0.2",
+ "scuffle-workspace-hack",
+ "thiserror 2.0.7",
+]
+
+[[package]]
+name = "scuffle-amf0"
+version = "0.0.3"
 dependencies = [
  "byteorder",
  "bytes",
@@ -2708,6 +2737,18 @@ dependencies = [
 [[package]]
 name = "scuffle-av1"
 version = "0.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0dd7dc496793ad689795f16167c111b3fa3369669b626e0bff65c58f92e85b92"
+dependencies = [
+ "byteorder",
+ "bytes",
+ "scuffle-bytes-util 0.0.2",
+ "scuffle-workspace-hack",
+]
+
+[[package]]
+name = "scuffle-av1"
+version = "0.0.3"
 dependencies = [
  "byteorder",
  "bytes",
@@ -2822,6 +2863,19 @@ dependencies = [
 [[package]]
 name = "scuffle-context"
 version = "0.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "64dd26b4174791d87d730304be256760d1db403af2bf251b527570ca29784af9"
+dependencies = [
+ "futures-lite",
+ "pin-project-lite",
+ "scuffle-workspace-hack",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
+name = "scuffle-context"
+version = "0.0.4"
 dependencies = [
  "futures-lite",
  "pin-project-lite",
@@ -2843,7 +2897,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-ffmpeg"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "arc-swap",
  "bon",
