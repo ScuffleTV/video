@@ -43,7 +43,7 @@ mod tests {
     use std::path::PathBuf;
 
     use bytes::Bytes;
-    use h264::{Sps, SpsExtended};
+    use scuffle_h264::{Sps, SpsExtended};
     use scuffle_aac::{AudioObjectType, PartialAudioSpecificConfig};
     use scuffle_amf0::Amf0Value;
     use scuffle_av1::seq::SequenceHeaderObu;
@@ -786,7 +786,7 @@ mod tests {
             let Some(sps) = config
                 .arrays
                 .iter()
-                .find(|a| a.nal_unit_type == h265::NaluType::Sps)
+                .find(|a| a.nal_unit_type == scuffle_h265::NaluType::Sps)
                 .and_then(|v| v.nalus.first())
             else {
                 panic!("expected sps");
@@ -796,21 +796,21 @@ mod tests {
             let Some(_) = config
                 .arrays
                 .iter()
-                .find(|a| a.nal_unit_type == h265::NaluType::Pps)
+                .find(|a| a.nal_unit_type == scuffle_h265::NaluType::Pps)
                 .and_then(|v| v.nalus.first())
             else {
                 panic!("expected pps");
             };
 
             // We should be able to decode the SPS NAL unit
-            let sps = h265::Sps::parse(sps.clone()).expect("expected sps");
+            let sps = scuffle_h265::Sps::parse(sps.clone()).expect("expected sps");
 
             assert_eq!(sps.frame_rate, 144.0);
             assert_eq!(sps.width, 2560);
             assert_eq!(sps.height, 1440);
             assert_eq!(
                 sps.color_config,
-                Some(h265::ColorConfig {
+                Some(scuffle_h265::ColorConfig {
                     full_range: false,
                     color_primaries: 1,
                     transfer_characteristics: 1,

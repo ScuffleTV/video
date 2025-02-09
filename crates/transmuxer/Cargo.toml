@@ -1,20 +1,23 @@
 [package]
-name = "transmuxer"
+name = "scuffle-transmuxer"
 version = "0.0.1"
 edition = "2021"
+description = "A utility crate for transmuxing media streams."
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/scuffle-transmuxer"
 license = "MIT OR Apache-2.0"
+keywords = ["transmuxer", "media", "streaming"]
 
 [dependencies]
 byteorder = "1.5"
 bytes = "1.5"
 
 
-# scuffle-h264.workspace = true
-# scuffle-h265.workspace = true
-# scuffle-mp4.workspace = true
-h264 = { path = "../h264" }
-h265 = { path = "../h265" }
-mp4 = { path = "../mp4" }
+scuffle-h264.workspace = true
+scuffle-h265.workspace = true
+scuffle-mp4.workspace = true
 scuffle-aac.workspace = true
 scuffle-av1.workspace = true
 scuffle-flv.workspace = true

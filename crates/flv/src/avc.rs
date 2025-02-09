@@ -2,7 +2,7 @@ use std::io;
 
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::Bytes;
-use h264::AVCDecoderConfigurationRecord;
+use scuffle_h264::AVCDecoderConfigurationRecord;
 use nutype_enum::nutype_enum;
 use scuffle_bytes_util::BytesCursorExt;
 

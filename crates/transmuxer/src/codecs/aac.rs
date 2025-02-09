@@ -1,14 +1,14 @@
 use bytes::Bytes;
-use mp4::types::esds::descriptor::header::DescriptorHeader;
-use mp4::types::esds::descriptor::traits::DescriptorType;
-use mp4::types::esds::descriptor::types::decoder_config::DecoderConfigDescriptor;
-use mp4::types::esds::descriptor::types::decoder_specific_info::DecoderSpecificInfoDescriptor;
-use mp4::types::esds::descriptor::types::es::EsDescriptor;
-use mp4::types::esds::Esds;
-use mp4::types::mp4a::Mp4a;
-use mp4::types::stsd::{AudioSampleEntry, SampleEntry};
-use mp4::types::trun::{TrunSample, TrunSampleFlag};
-use mp4::DynBox;
+use scuffle_mp4::types::esds::descriptor::header::DescriptorHeader;
+use scuffle_mp4::types::esds::descriptor::traits::DescriptorType;
+use scuffle_mp4::types::esds::descriptor::types::decoder_config::DecoderConfigDescriptor;
+use scuffle_mp4::types::esds::descriptor::types::decoder_specific_info::DecoderSpecificInfoDescriptor;
+use scuffle_mp4::types::esds::descriptor::types::es::EsDescriptor;
+use scuffle_mp4::types::esds::Esds;
+use scuffle_mp4::types::mp4a::Mp4a;
+use scuffle_mp4::types::stsd::{AudioSampleEntry, SampleEntry};
+use scuffle_mp4::types::trun::{TrunSample, TrunSampleFlag};
+use scuffle_mp4::DynBox;
 use scuffle_aac::PartialAudioSpecificConfig;
 use scuffle_flv::audio::{SoundSize, SoundType};
 

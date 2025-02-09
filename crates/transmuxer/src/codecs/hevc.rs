@@ -1,11 +1,11 @@
 use bytes::Bytes;
-use h265::{HEVCDecoderConfigurationRecord, Sps};
-use mp4::types::colr::{ColorType, Colr};
-use mp4::types::hev1::Hev1;
-use mp4::types::hvcc::HvcC;
-use mp4::types::stsd::{SampleEntry, VisualSampleEntry};
-use mp4::types::trun::{TrunSample, TrunSampleFlag};
-use mp4::DynBox;
+use scuffle_h265::{HEVCDecoderConfigurationRecord, Sps};
+use scuffle_mp4::types::colr::{ColorType, Colr};
+use scuffle_mp4::types::hev1::Hev1;
+use scuffle_mp4::types::hvcc::HvcC;
+use scuffle_mp4::types::stsd::{SampleEntry, VisualSampleEntry};
+use scuffle_mp4::types::trun::{TrunSample, TrunSampleFlag};
+use scuffle_mp4::DynBox;
 use scuffle_flv::video::FrameType;
 
 use crate::TransmuxError;
@@ -14,13 +14,13 @@ pub fn stsd_entry(config: HEVCDecoderConfigurationRecord) -> Result<(DynBox, Sps
     let Some(sps) = config
         .arrays
         .iter()
-        .find(|a| a.nal_unit_type == h265::NaluType::Sps)
+        .find(|a| a.nal_unit_type == scuffle_h265::NaluType::Sps)
         .and_then(|v| v.nalus.first())
     else {
         return Err(TransmuxError::InvalidHEVCDecoderConfigurationRecord);
     };
 
-    let sps = h265::Sps::parse(sps.clone())?;
+    let sps = scuffle_h265::Sps::parse(sps.clone())?;
 
     let colr = sps.color_config.as_ref().map(|color_config| {
         Colr::new(ColorType::Nclx {

@@ -568,8 +568,8 @@ mod tests {
         let metrics = request_metrics(bind_addr).await.expect("metrics failed");
         assert!(metrics.contains("# UNIT example_request_requests requests\n"));
         assert!(metrics.contains("example_request_requests_total{"));
-        assert!(metrics.contains("otel_scope_name=\"scuffle-bootstrap-telemetry\""));
-        assert!(metrics.contains("otel_scope_version=\"0.0.3\""));
+        assert!(metrics.contains(format!("otel_scope_name=\"{}\"", env!("CARGO_PKG_NAME")).as_str()));
+        assert!(metrics.contains(format!("otel_scope_version=\"{}\"", env!("CARGO_PKG_VERSION")).as_str()));
         assert!(metrics.contains("kind=\"Http\""));
         assert!(metrics.contains("} 1\n"));
         assert!(metrics.ends_with("# EOF\n"));
@@ -581,8 +581,8 @@ mod tests {
         let metrics = request_metrics(bind_addr).await.expect("metrics failed");
         assert!(metrics.contains("# UNIT example_request_requests requests\n"));
         assert!(metrics.contains("example_request_requests_total{"));
-        assert!(metrics.contains("otel_scope_name=\"scuffle-bootstrap-telemetry\""));
-        assert!(metrics.contains("otel_scope_version=\"0.0.3\""));
+        assert!(metrics.contains(format!("otel_scope_name=\"{}\"", env!("CARGO_PKG_NAME")).as_str()));
+        assert!(metrics.contains(format!("otel_scope_version=\"{}\"", env!("CARGO_PKG_VERSION")).as_str()));
         assert!(metrics.contains("kind=\"Http\""));
         assert!(metrics.contains("} 2\n"));
         assert!(metrics.ends_with("# EOF\n"));

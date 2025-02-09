@@ -1,8 +1,14 @@
 [package]
-name = "rtmp"
+name = "scuffle-rtmp"
 version = "0.0.1"
 edition = "2021"
+description = "A pure Rust RTMP server"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/scuffle-rtmp"
 license = "MIT OR Apache-2.0"
+keywords = ["rtmp", "server", "streaming"]
 
 [dependencies]
 byteorder = "1.5"

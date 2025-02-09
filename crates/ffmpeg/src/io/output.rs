@@ -473,8 +473,8 @@ mod tests {
             let mut cursor = Cursor::new(Bytes::copy_from_slice(binary));
             let mut boxes = Vec::new();
             while cursor.has_remaining() {
-                let mut box_ = mp4::DynBox::demux(&mut cursor).expect("Failed to demux mp4");
-                if let mp4::DynBox::Mdat(mdat) = &mut box_ {
+                let mut box_ = scuffle_mp4::DynBox::demux(&mut cursor).expect("Failed to demux mp4");
+                if let scuffle_mp4::DynBox::Mdat(mdat) = &mut box_ {
                     mdat.data.iter_mut().for_each(|buf| {
                         let mut hash = sha2::Sha256::new();
                         hash.write_all(buf).unwrap();

@@ -1,11 +1,11 @@
 use bytes::Bytes;
-use h264::{AVCDecoderConfigurationRecord, Sps};
-use mp4::types::avc1::Avc1;
-use mp4::types::avcc::AvcC;
-use mp4::types::colr::{ColorType, Colr};
-use mp4::types::stsd::{SampleEntry, VisualSampleEntry};
-use mp4::types::trun::{TrunSample, TrunSampleFlag};
-use mp4::DynBox;
+use scuffle_h264::{AVCDecoderConfigurationRecord, Sps};
+use scuffle_mp4::types::avc1::Avc1;
+use scuffle_mp4::types::avcc::AvcC;
+use scuffle_mp4::types::colr::{ColorType, Colr};
+use scuffle_mp4::types::stsd::{SampleEntry, VisualSampleEntry};
+use scuffle_mp4::types::trun::{TrunSample, TrunSampleFlag};
+use scuffle_mp4::DynBox;
 use scuffle_flv::video::FrameType;
 
 use crate::TransmuxError;
@@ -15,7 +15,7 @@ pub fn stsd_entry(config: AVCDecoderConfigurationRecord) -> Result<(DynBox, Sps)
         return Err(TransmuxError::InvalidAVCDecoderConfigurationRecord);
     }
 
-    let sps = h264::Sps::parse(config.sps[0].clone())?;
+    let sps = scuffle_h264::Sps::parse(config.sps[0].clone())?;
 
     let colr = sps.color_config.as_ref().map(|color_config| {
         Colr::new(ColorType::Nclx {

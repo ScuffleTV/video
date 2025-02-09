@@ -801,8 +801,8 @@ mod tests {
         let mut cursor = std::io::Cursor::new(Bytes::from(output.into_inner().into_inner()));
         let mut boxes = Vec::new();
         while cursor.has_remaining() {
-            let mut _box = mp4::DynBox::demux(&mut cursor).expect("Failed to demux box");
-            if let mp4::DynBox::Mdat(mdat) = &mut _box {
+            let mut _box = scuffle_mp4::DynBox::demux(&mut cursor).expect("Failed to demux box");
+            if let scuffle_mp4::DynBox::Mdat(mdat) = &mut _box {
                 mdat.data.iter_mut().for_each(|buf| {
                     let mut hash = sha2::Sha256::new();
                     hash.write_all(buf).unwrap();

@@ -64,13 +64,11 @@ scuffle-settings = { path = "crates/settings", version = "0.0.2" }
 scuffle-signal = { path = "crates/signal", version = "0.0.2" }
 nutype-enum = { path = "crates/nutype_enum", version = "0.0.1" }
 scuffle-workspace-hack = { version = "0.1.0" }
-
-# To be renamed:
-# scuffle-h264 = { path = "crates/h264", version = "0.0.1" }
-# scuffle-h265 = { path = "crates/h265", version = "0.0.1" }
-# scuffle-mp4 = { path = "crates/mp4", version = "0.0.1" }
-# scuffle-rtmp = { path = "crates/rtmp", version = "0.0.1" }
-# scuffle-transmuxer = { path = "crates/transmuxer", version = "0.0.1" }
+scuffle-h264 = { path = "crates/h264", version = "0.0.1" }
+scuffle-h265 = { path = "crates/h265", version = "0.0.1" }
+scuffle-mp4 = { path = "crates/mp4", version = "0.0.1" }
+scuffle-rtmp = { path = "crates/rtmp", version = "0.0.1" }
+scuffle-transmuxer = { path = "crates/transmuxer", version = "0.0.1" }
 
 [profile.release-debug]
 inherits = "release"

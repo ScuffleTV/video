@@ -1153,28 +1153,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "h264"
-version = "0.0.1"
-dependencies = [
- "byteorder",
- "bytes",
- "scuffle-bytes-util",
- "scuffle-expgolomb",
- "scuffle-workspace-hack",
-]
-
-[[package]]
-name = "h265"
-version = "0.0.1"
-dependencies = [
- "byteorder",
- "bytes",
- "scuffle-bytes-util",
- "scuffle-expgolomb",
- "scuffle-workspace-hack",
-]
-
-[[package]]
 name = "h3"
 version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1793,24 +1771,6 @@ dependencies = [
  "libc",
  "wasi",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "mp4"
-version = "0.0.1"
-dependencies = [
- "byteorder",
- "bytes",
- "fixed",
- "h264",
- "h265",
- "paste",
- "scuffle-aac",
- "scuffle-av1",
- "scuffle-bytes-util",
- "scuffle-workspace-hack",
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -2558,30 +2518,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rtmp"
-version = "0.0.1"
-dependencies = [
- "async-trait",
- "byteorder",
- "bytes",
- "chrono",
- "futures",
- "hmac",
- "num-derive",
- "num-traits",
- "rand",
- "scuffle-amf0",
- "scuffle-bytes-util",
- "scuffle-future-ext",
- "scuffle-workspace-hack",
- "serde_json",
- "sha2",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
 name = "rust-ini"
 version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2916,9 +2852,9 @@ dependencies = [
  "ffmpeg-sys-next",
  "insta",
  "libc",
- "mp4",
  "nutype-enum",
  "rand",
+ "scuffle-mp4",
  "scuffle-workspace-hack",
  "sha2",
  "tempfile",
@@ -2935,8 +2871,6 @@ version = "0.0.1"
 dependencies = [
  "byteorder",
  "bytes",
- "h264",
- "h265",
  "num-derive",
  "num-traits",
  "nutype-enum",
@@ -2944,6 +2878,8 @@ dependencies = [
  "scuffle-amf0",
  "scuffle-av1",
  "scuffle-bytes-util",
+ "scuffle-h264",
+ "scuffle-h265",
  "scuffle-workspace-hack",
  "thiserror 2.0.7",
 ]
@@ -2954,6 +2890,28 @@ version = "0.0.1"
 dependencies = [
  "scuffle-workspace-hack",
  "tokio",
+]
+
+[[package]]
+name = "scuffle-h264"
+version = "0.0.1"
+dependencies = [
+ "byteorder",
+ "bytes",
+ "scuffle-bytes-util",
+ "scuffle-expgolomb",
+ "scuffle-workspace-hack",
+]
+
+[[package]]
+name = "scuffle-h265"
+version = "0.0.1"
+dependencies = [
+ "byteorder",
+ "bytes",
+ "scuffle-bytes-util",
+ "scuffle-expgolomb",
+ "scuffle-workspace-hack",
 ]
 
 [[package]]
@@ -3060,6 +3018,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "scuffle-mp4"
+version = "0.0.1"
+dependencies = [
+ "byteorder",
+ "bytes",
+ "fixed",
+ "paste",
+ "scuffle-aac",
+ "scuffle-av1",
+ "scuffle-bytes-util",
+ "scuffle-h264",
+ "scuffle-h265",
+ "scuffle-workspace-hack",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "scuffle-pprof"
 version = "0.0.2"
 dependencies = [
@@ -3077,6 +3053,30 @@ dependencies = [
  "rand",
  "scuffle-pprof",
  "scuffle-workspace-hack",
+]
+
+[[package]]
+name = "scuffle-rtmp"
+version = "0.0.1"
+dependencies = [
+ "async-trait",
+ "byteorder",
+ "bytes",
+ "chrono",
+ "futures",
+ "hmac",
+ "num-derive",
+ "num-traits",
+ "rand",
+ "scuffle-amf0",
+ "scuffle-bytes-util",
+ "scuffle-future-ext",
+ "scuffle-workspace-hack",
+ "serde_json",
+ "sha2",
+ "tokio",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -3117,6 +3117,25 @@ dependencies = [
  "scuffle-workspace-hack",
  "tokio",
  "tokio-test",
+]
+
+[[package]]
+name = "scuffle-transmuxer"
+version = "0.0.1"
+dependencies = [
+ "byteorder",
+ "bytes",
+ "scuffle-aac",
+ "scuffle-amf0",
+ "scuffle-av1",
+ "scuffle-bytes-util",
+ "scuffle-flv",
+ "scuffle-h264",
+ "scuffle-h265",
+ "scuffle-mp4",
+ "scuffle-workspace-hack",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -3776,25 +3795,6 @@ checksum = "04659ddb06c87d233c566112c1c9c5b9e98256d9af50ec3bc9c8327f873a7568"
 dependencies = [
  "quote",
  "syn",
-]
-
-[[package]]
-name = "transmuxer"
-version = "0.0.1"
-dependencies = [
- "byteorder",
- "bytes",
- "h264",
- "h265",
- "mp4",
- "scuffle-aac",
- "scuffle-amf0",
- "scuffle-av1",
- "scuffle-bytes-util",
- "scuffle-flv",
- "scuffle-workspace-hack",
- "serde",
- "serde_json",
 ]
 
 [[package]]

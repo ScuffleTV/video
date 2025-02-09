@@ -1,7 +1,7 @@
 use std::io;
 
 use bytes::Bytes;
-use h264::AVCDecoderConfigurationRecord;
+use scuffle_h264::AVCDecoderConfigurationRecord;
 
 use crate::boxes::header::BoxHeader;
 use crate::boxes::traits::BoxType;

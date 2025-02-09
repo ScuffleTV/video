@@ -2,7 +2,7 @@ use std::io::{self, Read};
 
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::Bytes;
-use h265::HEVCDecoderConfigurationRecord;
+use scuffle_h265::HEVCDecoderConfigurationRecord;
 use nutype_enum::nutype_enum;
 use scuffle_av1::{AV1CodecConfigurationRecord, AV1VideoDescriptor};
 use scuffle_bytes_util::BytesCursorExt;

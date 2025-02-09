@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use h265::HEVCDecoderConfigurationRecord;
+use scuffle_h265::HEVCDecoderConfigurationRecord;
 
 /// HEVC Packet
 #[derive(Debug, Clone, PartialEq)]

@@ -1,8 +1,14 @@
 [package]
-name = "h265"
+name = "scuffle-h265"
 version = "0.0.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
+description = "A pure Rust H.265 header decoder."
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/scuffle-h265"
+keywords = ["h265", "video", "codec"]
 
 [dependencies]
 bytes = "1.5"

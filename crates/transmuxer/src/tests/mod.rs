@@ -4,7 +4,7 @@ use std::io::{
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
-use mp4::codec::{AudioCodec, VideoCodec};
+use scuffle_mp4::codec::{AudioCodec, VideoCodec};
 use scuffle_aac::AudioObjectType;
 use scuffle_flv::header::FlvHeader;
 

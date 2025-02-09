@@ -1,0 +1,24 @@
+[workspace]
+allow_dirty = true
+changelog_update = true
+dependencies_update = true
+git_release_body = """
+{{ changelog }}
+{% if remote.contributors %}
+### Contributors
+{% for contributor in remote.contributors %}
+* @{{ contributor.username }}
+{% endfor %}
+{% endif %}
+"""
+
+[[package]]
+name = "scuffle-workspace-hack"
+release = false
+
+[changelog]
+body = """
+
+## [{{ version | trim_start_matches(pat="v") }}]{%- if release_link -%}({{ release_link }}){% endif %} - {{ timestamp | date(format="%Y-%m-%d") }}
+
+"""

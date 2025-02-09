@@ -1,7 +1,7 @@
 use std::io;
 
 use bytes::Bytes;
-use h265::HEVCDecoderConfigurationRecord;
+use scuffle_h265::HEVCDecoderConfigurationRecord;
 
 use crate::boxes::header::BoxHeader;
 use crate::boxes::traits::BoxType;
