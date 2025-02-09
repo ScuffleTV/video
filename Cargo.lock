@@ -2821,7 +2821,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-context"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "futures-lite",
  "pin-project-lite",
@@ -2843,7 +2843,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-ffmpeg"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "arc-swap",
  "bon",

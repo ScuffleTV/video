@@ -49,9 +49,9 @@ scuffle-bootstrap = { path = "crates/bootstrap", version = "0.0.3" }
 scuffle-bootstrap-derive = { path = "crates/bootstrap/derive", version = "0.0.3" }
 scuffle-bootstrap-telemetry = { path = "crates/bootstrap/telemetry", version = "0.0.4" }
 scuffle-bytes-util = { path = "crates/bytes-util", version = "0.0.2" }
-scuffle-context = { path = "crates/context", version = "0.0.3" }
+scuffle-context = { path = "crates/context", version = "0.0.4" }
 scuffle-expgolomb = { path = "crates/expgolomb", version = "0.0.2" }
-scuffle-ffmpeg = { path = "crates/ffmpeg", version = "0.0.3" }
+scuffle-ffmpeg = { path = "crates/ffmpeg", version = "0.0.4" }
 scuffle-flv = { path = "crates/flv", version = "0.0.2" }
 scuffle-future-ext = { path = "crates/future-ext", version = "0.0.1" }
 scuffle-h3-webtransport = { path = "crates/h3-webtransport", version = "0.0.3" }
