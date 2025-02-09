@@ -2132,7 +2132,7 @@ dependencies = [
 
 [[package]]
 name = "postcompile"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "cargo-platform",
  "cargo_metadata",
@@ -2718,7 +2718,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-batching"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "criterion",
  "futures",
@@ -2739,7 +2739,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-bootstrap"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "anyhow",
  "futures",
@@ -2756,7 +2756,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-bootstrap-derive"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "darling",
  "insta",
@@ -2786,7 +2786,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-bootstrap-telemetry"
-version = "0.0.3"
+version = "0.0.4"
 dependencies = [
  "anyhow",
  "bytes",
@@ -2821,7 +2821,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-context"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "futures-lite",
  "pin-project-lite",
@@ -2843,7 +2843,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-ffmpeg"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "arc-swap",
  "bon",
@@ -2916,7 +2916,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-h3-webtransport"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "bytes",
  "futures-util",
@@ -2929,7 +2929,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-http"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "async-trait",
  "axum-core",
@@ -2979,7 +2979,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-metrics"
-version = "0.0.4"
+version = "0.0.5"
 dependencies = [
  "insta",
  "opentelemetry",
@@ -2994,7 +2994,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-metrics-derive"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -3037,7 +3037,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-pprof"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "flate2",
  "pprof",
@@ -3081,7 +3081,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-settings"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "anyhow",
  "clap",
@@ -3106,7 +3106,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-signal"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "anyhow",
  "futures",

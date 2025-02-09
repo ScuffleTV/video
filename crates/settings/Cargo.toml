@@ -1,6 +1,6 @@
 [package]
 name = "scuffle-settings"
-version = "0.0.2"
+version = "0.0.3"
 edition = "2021"
 repository = "https://github.com/scufflecloud/scuffle"
 authors = ["Scuffle <opensource@scuffle.cloud>"]

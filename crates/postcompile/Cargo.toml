@@ -1,6 +1,6 @@
 [package]
 name = "postcompile"
-version = "0.0.5"
+version = "0.0.6"
 edition = "2021"
 build = "build.rs"
 repository = "https://github.com/scufflecloud/scuffle"
