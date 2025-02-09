@@ -25,7 +25,7 @@ tokio = { version = "1.41.1", features = ["macros", "rt", "time"] }
 tokio-test = "0.4.4"
 libc = "0.2"
 futures = "0.3"
-scuffle-future-ext.workspace = true
+scuffle-future-ext = { version = "*", workspace = true }
 
 [features]
 bootstrap = ["scuffle-bootstrap", "scuffle-context", "anyhow", "tokio/macros"]

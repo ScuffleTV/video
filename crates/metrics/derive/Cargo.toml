@@ -21,4 +21,4 @@ proc-macro2 = "1"
 scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
-scuffle-metrics = { workspace = true }
+scuffle-metrics = { version = "*", workspace = true }

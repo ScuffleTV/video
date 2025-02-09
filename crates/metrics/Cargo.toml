@@ -24,7 +24,7 @@ scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
 insta = "1.42.0"
-postcompile = { workspace = true, features = ["prettyplease"] }
+postcompile = { version = "*", workspace = true, features = ["prettyplease"] }
 
 [features]
 internal-logs = ["dep:tracing"]

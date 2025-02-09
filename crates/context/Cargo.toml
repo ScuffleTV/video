@@ -22,4 +22,4 @@ scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
 tokio-test = "0.4.4"
-scuffle-future-ext = { workspace = true }
+scuffle-future-ext = { version = "*", workspace = true }

@@ -25,6 +25,6 @@ scuffle-workspace-hack.workspace = true
 
 [dev-dependencies]
 insta = "1.42"
-postcompile = { workspace = true, features = ["prettyplease"] }
-scuffle-future-ext.workspace = true
-scuffle-signal = { workspace = true, features = ["bootstrap"] }
+postcompile = { version = "*", workspace = true, features = ["prettyplease"] }
+scuffle-future-ext = { version = "*", workspace = true }
+scuffle-signal = { version = "*", workspace = true, features = ["bootstrap"] }

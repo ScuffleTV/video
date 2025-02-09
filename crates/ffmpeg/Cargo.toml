@@ -33,7 +33,7 @@ ffmpeg-sys-next = { version = "7.1.0", features = ["build-lib-x264", "build-lice
 tempfile = "3.15"
 tracing-test = "0.2"
 tracing-subscriber = "0.3"
-scuffle-mp4.workspace = true
+scuffle-mp4 = { version = "*", workspace = true }
 sha2 = "0.10"
 bytes = "1"
 
