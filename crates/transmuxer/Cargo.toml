@@ -1,6 +1,6 @@
 [package]
 name = "scuffle-transmuxer"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 description = "A utility crate for transmuxing media streams."
 repository = "https://github.com/scufflecloud/scuffle"

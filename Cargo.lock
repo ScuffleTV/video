@@ -2682,7 +2682,7 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
 name = "scuffle-aac"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "byteorder",
  "bytes",
@@ -2694,7 +2694,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-amf0"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "byteorder",
  "bytes",
@@ -2707,7 +2707,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-av1"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "byteorder",
  "bytes",
@@ -2813,7 +2813,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-bytes-util"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "bytes",
  "scuffle-workspace-hack",
@@ -2834,7 +2834,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-expgolomb"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "bytes",
  "scuffle-bytes-util",
@@ -2867,7 +2867,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-flv"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "byteorder",
  "bytes",
@@ -2894,7 +2894,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-h264"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "byteorder",
  "bytes",
@@ -2905,7 +2905,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-h265"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "byteorder",
  "bytes",
@@ -3019,7 +3019,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-mp4"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "byteorder",
  "bytes",
@@ -3057,7 +3057,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-rtmp"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "async-trait",
  "byteorder",
@@ -3121,7 +3121,7 @@ dependencies = [
 
 [[package]]
 name = "scuffle-transmuxer"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "byteorder",
  "bytes",
