@@ -1,14 +1,16 @@
-name: Release-plz
+name: Crates Release
 
 on:
   push:
     branches:
       - main
+      - troy/ci-tests/deploy
 
 jobs:
-  release-plz-release:
-    name: Release-plz release
+  release:
+    name: Release
     runs-on: ubuntu-24.04
+    environment: crates
     permissions:
       contents: write
     steps:
@@ -26,15 +28,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-  release-plz-pr:
-    name: Release-plz PR
+  release-pr:
+    name: Generate Release PR
     runs-on: ubuntu-24.04
     permissions:
       pull-requests: write
       contents: write
-    concurrency:
-      group: release-plz-${{ github.ref }}
-      cancel-in-progress: false
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
