@@ -16,7 +16,7 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
 [dependencies]
 libc = "0.2"
 bytes = { optional = true, version = "1" }
-tokio = { optional = true, version = "1" }
+tokio = { optional = true, version = "1", features = ["sync"]}
 crossbeam-channel = { optional = true, version = "0.5.13" }
 tracing = { optional = true, version = "0.1" }
 arc-swap = { version = "1.7" }
