@@ -1,6 +1,6 @@
 [package]
 name = "scuffle-rtmp"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 description = "A pure Rust RTMP server"
 repository = "https://github.com/scufflecloud/scuffle"
