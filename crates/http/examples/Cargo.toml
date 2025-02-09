@@ -2,6 +2,11 @@
 name = "scuffle-http-examples"
 version = "0.0.0"
 edition = "2021"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+publish = false
 
 [[example]]
 name = "scuffle-http-tcp"
