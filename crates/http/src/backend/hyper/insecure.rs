@@ -2,6 +2,8 @@ use std::fmt::Debug;
 use std::net::SocketAddr;
 
 use scuffle_context::ContextFutExt;
+#[cfg(feature = "tracing")]
+use tracing::Instrument;
 
 use crate::error::Error;
 use crate::service::{HttpService, HttpServiceFactory};
@@ -44,16 +46,22 @@ impl InsecureBackend {
 
         // We have to create an std listener first because the tokio listener isn't clonable
         let std_listener = std::net::TcpListener::bind(self.bind)?;
+        // Set nonblocking so we can use it in the async runtime
+        // This should be the default when converting to a tokio listener
+        std_listener.set_nonblocking(true)?;
 
-        let tasks = (0..self.worker_tasks).map(|_| {
+        let tasks = (0..self.worker_tasks).map(|n| {
             let service_factory = service_factory.clone();
             let ctx = self.ctx.clone();
             let std_listener = std_listener.try_clone().expect("failed to clone listener");
             let listener = tokio::net::TcpListener::from_std(std_listener).expect("failed to create tokio listener");
 
-            async move {
+            let worker_fut = async move {
                 loop {
-                    let (tcp_stream, addr) = match listener.accept().with_context(&ctx).await {
+                    #[cfg(feature = "tracing")]
+                    tracing::trace!("waiting for connections");
+
+                    let (tcp_stream, addr) = match listener.accept().with_context(ctx.clone()).await {
                         Some(Ok(conn)) => conn,
                         #[cfg(feature = "tracing")]
                         Some(Err(e)) => {
@@ -62,12 +70,20 @@ impl InsecureBackend {
                         }
                         #[cfg(not(feature = "tracing"))]
                         Some(Err(_)) => continue,
-                        None => break,
+                        None => {
+                            #[cfg(feature = "tracing")]
+                            tracing::trace!("context done, stopping listener");
+                            break;
+                        }
                     };
+
+                    #[cfg(feature = "tracing")]
+                    tracing::trace!(addr = %addr, "accepted tcp connection");
 
                     let ctx = ctx.clone();
                     let mut service_factory = service_factory.clone();
-                    tokio::spawn(async move {
+
+                    let connection_fut = async move {
                         // make a new service
                         let http_service = match service_factory.new_service(addr).await {
                             Ok(service) => service,
@@ -79,6 +95,9 @@ impl InsecureBackend {
                             #[cfg(not(feature = "tracing"))]
                             Err(_) => return,
                         };
+
+                        #[cfg(feature = "tracing")]
+                        tracing::trace!("handling connection");
 
                         #[cfg(all(feature = "http1", not(feature = "http2")))]
                         let _res =
@@ -104,10 +123,20 @@ impl InsecureBackend {
                         }
 
                         #[cfg(feature = "tracing")]
-                        tracing::debug!(addr = %addr, "connection closed");
-                    });
+                        tracing::trace!("connection closed");
+                    };
+
+                    #[cfg(feature = "tracing")]
+                    let connection_fut = connection_fut.instrument(tracing::trace_span!("connection", addr = %addr));
+
+                    tokio::spawn(connection_fut);
                 }
-            }
+            };
+
+            #[cfg(feature = "tracing")]
+            let worker_fut = worker_fut.instrument(tracing::trace_span!("worker", n = n));
+
+            worker_fut
         });
 
         futures::future::join_all(tasks).await;

@@ -4,6 +4,8 @@ use std::sync::Arc;
 
 use body::QuicIncomingBody;
 use scuffle_context::ContextFutExt;
+#[cfg(feature = "tracing")]
+use tracing::Instrument;
 use utils::copy_response_body;
 
 use crate::error::Error;
@@ -49,28 +51,42 @@ impl Http3Backend {
 
         let endpoint = h3_quinn::quinn::Endpoint::server(server_config, self.bind)?;
 
-        let tasks = (0..self.worker_tasks).map(|_| {
+        let tasks = (0..self.worker_tasks).map(|n| {
             let ctx = self.ctx.clone();
             let service_factory = service_factory.clone();
             let endpoint = endpoint.clone();
 
-            async move {
-                // handle incoming connections and requests
+            let worker_fut = async move {
+                #[cfg(feature = "tracing")]
+                tracing::trace!("waiting for connections");
+
                 while let Some(Some(new_conn)) = endpoint.accept().with_context(&ctx).await {
                     let mut service_factory = service_factory.clone();
-                    let ctx2 = ctx.clone();
+                    let ctx = ctx.clone();
 
-                    tokio::spawn(
-                        async move {
-                            let _res: Result<_, Error<F>> = async move {
-                                let conn = new_conn.await?;
-                                let addr = conn.remote_address();
+                    tokio::spawn(async move {
+                        let _res: Result<_, Error<F>> = async move {
+                            let conn = new_conn.await?;
+                            let addr = conn.remote_address();
 
+                            #[cfg(feature = "tracing")]
+                            tracing::debug!(addr = %addr, "accepted quic connection");
+
+                            let connection_fut = async move {
                                 let mut h3_conn = h3::server::Connection::new(h3_quinn::Connection::new(conn)).await?;
 
+                                // make a new service for this connection
+                                let http_service = service_factory
+                                    .new_service(addr)
+                                    .await
+                                    .map_err(|e| Error::ServiceFactoryError(e))?;
+
                                 loop {
-                                    match h3_conn.accept().with_context(&ctx2).await {
+                                    match h3_conn.accept().with_context(&ctx).await {
                                         Some(Ok(Some((req, stream)))) => {
+                                            #[cfg(feature = "tracing")]
+                                            tracing::debug!(method = %req.method(), uri = %req.uri(), "received request");
+
                                             let (mut send, recv) = stream.split();
 
                                             let size_hint = req
@@ -80,36 +96,25 @@ impl Http3Backend {
                                             let body = QuicIncomingBody::new(recv, size_hint);
                                             let req = req.map(|_| crate::body::IncomingBody::from(body));
 
-                                            // make a new service
-                                            let mut http_service = service_factory
-                                                .new_service(addr)
-                                                .await
-                                                .map_err(|e| Error::ServiceFactoryError(e))?;
+                                            let mut http_service = http_service.clone();
+                                            tokio::spawn(async move {
+                                                let _res: Result<_, Error<F>> = async move {
+                                                    let resp =
+                                                        http_service.call(req).await.map_err(|e| Error::ServiceError(e))?;
+                                                    let (parts, body) = resp.into_parts();
 
-                                            tokio::spawn(
-                                                async move {
-                                                    let _res: Result<_, Error<F>> = async move {
-                                                        let resp = http_service
-                                                            .call(req)
-                                                            .await
-                                                            .map_err(|e| Error::ServiceError(e))?;
-                                                        let (parts, body) = resp.into_parts();
+                                                    send.send_response(http::Response::from_parts(parts, ())).await?;
+                                                    copy_response_body(send, body).await?;
 
-                                                        send.send_response(http::Response::from_parts(parts, ())).await?;
-
-                                                        copy_response_body(send, body).await?;
-
-                                                        Ok(())
-                                                    }
-                                                    .await;
-
-                                                    #[cfg(feature = "tracing")]
-                                                    if let Err(err) = _res {
-                                                        tracing::warn!("error: {}", err);
-                                                    }
+                                                    Ok(())
                                                 }
-                                                .with_context(ctx2.clone()),
-                                            );
+                                                .await;
+
+                                                #[cfg(feature = "tracing")]
+                                                if let Err(e) = _res {
+                                                    tracing::warn!(err = %e, "error handling request");
+                                                }
+                                            });
                                         }
                                         // indicating no more streams to be received
                                         Some(Ok(None)) => {
@@ -123,30 +128,44 @@ impl Http3Backend {
                                                 continue;
                                             }
                                         },
-                                        // context was cancelled
+                                        // context is done
                                         None => {
+                                            #[cfg(feature = "tracing")]
+                                            tracing::trace!("context done, stopping connection loop");
                                             break;
                                         }
                                     }
                                 }
 
+                                #[cfg(feature = "tracing")]
+                                tracing::trace!("connection closed");
+
                                 Ok(())
-                            }
-                            .await;
+                            };
 
                             #[cfg(feature = "tracing")]
-                            if let Err(err) = _res {
-                                tracing::warn!("error: {}", err);
-                            }
+                            let connection_fut = connection_fut.instrument(tracing::trace_span!("connection", addr = %addr));
+
+                            connection_fut.await
                         }
-                        .with_context(ctx.clone()),
-                    );
+                        .await;
+
+                        #[cfg(feature = "tracing")]
+                        if let Err(err) = _res {
+                            tracing::warn!("error: {}", err);
+                        }
+                    });
                 }
 
                 // shut down gracefully
                 // wait for connections to be closed before exiting
                 endpoint.wait_idle().await;
-            }
+            };
+
+            #[cfg(feature = "tracing")]
+            let worker_fut = worker_fut.instrument(tracing::trace_span!("worker", n = n));
+
+            worker_fut
         });
 
         futures::future::join_all(tasks).await;

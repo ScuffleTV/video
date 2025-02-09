@@ -51,6 +51,10 @@ impl SecureBackend {
 
         // We have to create an std listener first because the tokio listener isn't clonable
         let std_listener = std::net::TcpListener::bind(self.bind)?;
+        // Set nonblocking so we can use it in the async runtime
+        // This should be the default when converting to a tokio listener
+        std_listener.set_nonblocking(true)?;
+
         let tls_acceptor = tokio_rustls::TlsAcceptor::from(Arc::new(rustls_config));
 
         let tasks = (0..self.worker_tasks).map(|n| {
@@ -65,7 +69,7 @@ impl SecureBackend {
                     #[cfg(feature = "tracing")]
                     tracing::trace!("waiting for connections");
 
-                    let (tcp_stream, addr) = match listener.accept().with_context(&ctx).await {
+                    let (tcp_stream, addr) = match listener.accept().with_context(ctx.clone()).await {
                         Some(Ok(conn)) => conn,
                         #[cfg(feature = "tracing")]
                         Some(Err(e)) => {
@@ -88,7 +92,7 @@ impl SecureBackend {
                     let tls_acceptor = tls_acceptor.clone();
                     let mut service_factory = service_factory.clone();
 
-                    let fut = async move {
+                    let connection_fut = async move {
                         #[cfg(feature = "tracing")]
                         tracing::trace!("accepting tls connection");
 
@@ -152,9 +156,9 @@ impl SecureBackend {
                     };
 
                     #[cfg(feature = "tracing")]
-                    let fut = fut.instrument(tracing::trace_span!("connection", addr = %addr));
+                    let connection_fut = connection_fut.instrument(tracing::trace_span!("connection", addr = %addr));
 
-                    tokio::spawn(fut);
+                    tokio::spawn(connection_fut);
                 }
 
                 #[cfg(feature = "tracing")]

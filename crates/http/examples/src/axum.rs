@@ -46,24 +46,15 @@ async fn main() {
         .route("/ws", axum::routing::get(ws))
         .into_make_service();
 
-    tokio::spawn(async {
-        tokio::time::sleep(std::time::Duration::from_secs(10)).await;
-        tracing::info!("cancelling the handler");
-        scuffle_context::Handler::global().cancel();
-    });
-
     scuffle_http::HttpServer::builder()
         .rustls_config(get_tls_config().expect("failed to load tls config"))
         .tower_make_service_factory(make_service)
         .bind("[::]:443".parse().unwrap())
-        // .enable_http3(true)
+        .enable_http3(true)
         .build()
         .run()
         .await
         .expect("server failed");
-
-    scuffle_context::Handler::global().done().await;
-    tracing::info!("done");
 }
 
 pub fn get_tls_config() -> io::Result<rustls::ServerConfig> {
