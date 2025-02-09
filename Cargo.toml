@@ -41,14 +41,14 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-scuffle-aac = { path = "crates/aac", version = "0.0.1" }
-scuffle-amf0 = { path = "crates/amf0", version = "0.0.1" }
-scuffle-av1 = { path = "crates/av1", version = "0.0.1" }
+scuffle-aac = { path = "crates/aac", version = "0.0.2" }
+scuffle-amf0 = { path = "crates/amf0", version = "0.0.2" }
+scuffle-av1 = { path = "crates/av1", version = "0.0.2" }
 scuffle-batching = { path = "crates/batching", version = "0.0.5" }
 scuffle-bootstrap = { path = "crates/bootstrap", version = "0.0.3" }
 scuffle-bootstrap-derive = { path = "crates/bootstrap/derive", version = "0.0.3" }
 scuffle-bootstrap-telemetry = { path = "crates/bootstrap/telemetry", version = "0.0.4" }
-scuffle-bytes-util = { path = "crates/bytes-util", version = "0.0.1" }
+scuffle-bytes-util = { path = "crates/bytes-util", version = "0.0.2" }
 scuffle-context = { path = "crates/context", version = "0.0.3" }
 scuffle-expgolomb = { path = "crates/expgolomb", version = "0.0.1" }
 scuffle-ffmpeg = { path = "crates/ffmpeg", version = "0.0.3" }

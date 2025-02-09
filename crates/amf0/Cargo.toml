@@ -1,6 +1,6 @@
 [package]
 name = "scuffle-amf0"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "A pure-rust implementation of AMF0 encoder and decoder."
