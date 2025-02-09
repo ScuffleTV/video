@@ -283,6 +283,8 @@ jobs:
         with:
           pr-number: ${{ env.PR_NUMBER || github.event.pull_request.number }}
           file-path: semver-check.txt
+          comment-tag: "semver-check"
+          mode: upsert
 
   brawl-done:
     runs-on: ubuntu-24.04
