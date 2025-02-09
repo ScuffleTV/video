@@ -96,8 +96,12 @@ impl Http3Backend {
                                             let body = QuicIncomingBody::new(recv, size_hint);
                                             let req = req.map(|_| crate::body::IncomingBody::from(body));
 
+                                            let ctx = ctx.clone();
                                             let mut http_service = http_service.clone();
                                             tokio::spawn(async move {
+                                                // The context must live as long as the request is being handled
+                                                let _ctx = ctx;
+
                                                 let _res: Result<_, Error<F>> = async move {
                                                     let resp =
                                                         http_service.call(req).await.map_err(|e| Error::ServiceError(e))?;
