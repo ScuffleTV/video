@@ -28,7 +28,7 @@ jobs:
         with:
           ref: ${{ env.SHA }}
 
-      - name: Setup nasm
+      - name: Setup system deps
         run: |
           sudo apt-get install nasm libx264-dev
 
@@ -39,7 +39,6 @@ jobs:
           components: clippy
 
       - uses: Swatinem/rust-cache@v2
-        id: cache-rust
         with:
           prefix-key: "v0-rust-${{ steps.setup-rust.outputs.cachekey }}"
           shared-key: clippy
@@ -99,7 +98,7 @@ jobs:
         with:
           ref: ${{ env.SHA }}
 
-      - name: Setup nasm
+      - name: Setup system deps
         run: |
           sudo apt-get install nasm libx264-dev
 
@@ -183,7 +182,7 @@ jobs:
         with:
           ref: ${{ env.SHA }}
 
-      - name: Setup nasm
+      - name: Setup system deps
         run: |
           sudo apt-get install nasm libx264-dev
 
@@ -194,7 +193,6 @@ jobs:
           components: rust-docs
 
       - uses: Swatinem/rust-cache@v2
-        id: cache-rust
         with:
           prefix-key: "v0-rust-${{ steps.setup-rust.outputs.cachekey }}"
           shared-key: docs
@@ -237,9 +235,36 @@ jobs:
           accountId: ${{ secrets.CF_DOCS_ACCOUNT_ID }}
           command: pages deploy --project-name=scuffle-docrs --branch=pr/${{ env.PR_NUMBER || github.event.pull_request.number }} --commit-hash=${{ env.SHA }} --commit-dirty=true ./target/doc
 
+  bloat:
+    name: Bloat
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+
+      - name: Setup system deps
+        run: |
+          sudo apt-get install nasm libx264-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+        id: setup-rust
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v0-rust-${{ steps.setup-rust.outputs.cachekey }}"
+          shared-key: bloat
+
+      - name: Run cargo bloat
+        uses: orf/cargo-bloat-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   brawl-done:
     runs-on: ubuntu-24.04
-    needs: [hakari, test, clippy, fmt, docs]
+    needs: [hakari, test, clippy, fmt, docs, bloat]
     if: ${{ !cancelled() && github.event_name == 'push' }}
     steps:
       - name: calculate the correct exit status
