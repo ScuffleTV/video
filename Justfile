@@ -29,12 +29,9 @@ test *args:
     cargo +{{RUST_TOOLCHAIN}} llvm-cov report --lcov --output-path ./lcov.info
     cargo +{{RUST_TOOLCHAIN}} llvm-cov report --html
 
-    # Run tests under valgrind, atm just testing amf0 results in 2 errors
-    echo "Running tests under Valgrind...\n"
-    for test in $(find target/llvm-cov-target/debug/deps -maxdepth 1 -type f -executable | grep scuffle_amf0); do
-        echo "Running ${test} under Valgrind...\n"
-        valgrind --leak-check=full --error-exitcode=1 "${test}"
-    done
+grind *args:
+    # Run tests in valgrind
+    CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER="valgrind --error-exitcode=1 --leak-check=full" cargo nextest run --all-features -E 'not (package(scuffle-batching) | package(scuffle-bootstrap))' -- {{args}}
 
 alias docs := doc
 doc *args:
