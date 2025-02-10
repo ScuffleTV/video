@@ -19,41 +19,45 @@ mod utils;
 /// This is used internally by the [`HttpServer`](crate::server::HttpServer) but can be used directly if preferred.
 ///
 /// Call [`run`](Http3Backend::run) to start the server.
-#[derive(Debug, Clone)]
-pub struct Http3Backend {
-    pub ctx: scuffle_context::Context,
-    pub worker_tasks: usize,
-    pub bind: SocketAddr,
+#[derive(bon::Builder, Debug, Clone)]
+pub struct Http3Backend<F> {
+    #[builder(default)]
+    ctx: scuffle_context::Context,
+    #[builder(default = 1)]
+    worker_tasks: usize,
+    service_factory: F,
+    bind: SocketAddr,
+    rustls_config: rustls::ServerConfig,
 }
 
-impl Http3Backend {
+impl<F> Http3Backend<F>
+where
+    F: HttpServiceFactory + Clone + Send + 'static,
+    F::Error: std::error::Error + Debug + Send,
+    F::Service: Clone + Send + 'static,
+    <F::Service as HttpService>::Error: std::error::Error + Debug + Send + Sync,
+    <F::Service as HttpService>::ResBody: Send,
+    <<F::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
+    <<F::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Debug + Send + Sync,
+{
     /// Run the HTTP3 server
     ///
     /// This function will bind to the address specified in `bind`, listen for incoming connections and handle requests.
     #[cfg_attr(feature = "tracing", tracing::instrument(skip_all, fields(bind = %self.bind)))]
-    pub async fn run<F>(self, service_factory: F, mut rustls_config: rustls::ServerConfig) -> Result<(), Error<F>>
-    where
-        F: HttpServiceFactory + Clone + Send + 'static,
-        F::Error: std::error::Error + Debug + Send,
-        F::Service: Clone + Send + 'static,
-        <F::Service as HttpService>::Error: std::error::Error + Debug + Send + Sync,
-        <F::Service as HttpService>::ResBody: Send,
-        <<F::Service as HttpService>::ResBody as http_body::Body>::Data: Send,
-        <<F::Service as HttpService>::ResBody as http_body::Body>::Error: std::error::Error + Debug + Send + Sync,
-    {
+    pub async fn run(mut self) -> Result<(), Error<F>> {
         #[cfg(feature = "tracing")]
         tracing::debug!("starting server");
 
         // not quite sure why this is necessary but it is
-        rustls_config.max_early_data_size = u32::MAX;
-        let crypto = h3_quinn::quinn::crypto::rustls::QuicServerConfig::try_from(rustls_config)?;
+        self.rustls_config.max_early_data_size = u32::MAX;
+        let crypto = h3_quinn::quinn::crypto::rustls::QuicServerConfig::try_from(self.rustls_config)?;
         let server_config = h3_quinn::quinn::ServerConfig::with_crypto(Arc::new(crypto));
 
         let endpoint = h3_quinn::quinn::Endpoint::server(server_config, self.bind)?;
 
         let tasks = (0..self.worker_tasks).map(|n| {
             let ctx = self.ctx.clone();
-            let service_factory = service_factory.clone();
+            let service_factory = self.service_factory.clone();
             let endpoint = endpoint.clone();
 
             let worker_fut = async move {

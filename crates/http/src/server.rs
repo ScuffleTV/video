@@ -191,48 +191,58 @@ where
             match (start_tcp_backend, enable_http3) {
                 #[cfg(feature = "http3")]
                 (false, true) => {
-                    let backend = crate::backend::h3::Http3Backend {
-                        ctx: self.ctx,
-                        worker_tasks: self.worker_tasks,
-                        bind: self.bind,
-                    };
+                    let backend = crate::backend::h3::Http3Backend::builder()
+                        .ctx(self.ctx)
+                        .worker_tasks(self.worker_tasks)
+                        .service_factory(self.service_factory)
+                        .bind(self.bind)
+                        .rustls_config(_rustls_config)
+                        .build();
 
-                    return backend.run(self.service_factory, _rustls_config).await;
+                    return backend.run().await;
                 }
                 #[cfg(any(feature = "http1", feature = "http2"))]
                 (true, false) => {
-                    let backend = crate::backend::hyper::secure::SecureBackend {
-                        ctx: self.ctx,
-                        worker_tasks: self.worker_tasks,
-                        bind: self.bind,
-                        #[cfg(feature = "http1")]
-                        http1_enabled: self.enable_http1,
-                        #[cfg(feature = "http2")]
-                        http2_enabled: self.enable_http2,
-                    };
+                    let builder = crate::backend::hyper::HyperBackend::builder()
+                        .ctx(self.ctx)
+                        .worker_tasks(self.worker_tasks)
+                        .service_factory(self.service_factory)
+                        .bind(self.bind)
+                        .rustls_config(_rustls_config);
 
-                    return backend.run(self.service_factory, _rustls_config).await;
+                    #[cfg(feature = "http1")]
+                    let builder = builder.http1_enabled(self.enable_http1);
+
+                    #[cfg(feature = "http2")]
+                    let builder = builder.http2_enabled(self.enable_http2);
+
+                    return builder.build().run().await;
                 }
                 #[cfg(all(any(feature = "http1", feature = "http2"), feature = "http3"))]
                 (true, true) => {
-                    let hyper = crate::backend::hyper::secure::SecureBackend {
-                        ctx: self.ctx.clone(),
-                        worker_tasks: self.worker_tasks,
-                        bind: self.bind,
-                        #[cfg(feature = "http1")]
-                        http1_enabled: self.enable_http1,
-                        #[cfg(feature = "http2")]
-                        http2_enabled: self.enable_http2,
-                    }
-                    .run(self.service_factory.clone(), _rustls_config.clone());
-                    let hyper = std::pin::pin!(hyper);
+                    let builder = crate::backend::hyper::HyperBackend::builder()
+                        .ctx(self.ctx.clone())
+                        .worker_tasks(self.worker_tasks)
+                        .service_factory(self.service_factory.clone())
+                        .bind(self.bind)
+                        .rustls_config(_rustls_config.clone());
 
-                    let mut http3 = crate::backend::h3::Http3Backend {
-                        ctx: self.ctx,
-                        worker_tasks: self.worker_tasks,
-                        bind: self.bind,
-                    }
-                    .run(self.service_factory, _rustls_config);
+                    #[cfg(feature = "http1")]
+                    let builder = builder.http1_enabled(self.enable_http1);
+
+                    #[cfg(feature = "http2")]
+                    let builder = builder.http2_enabled(self.enable_http2);
+
+                    let hyper = std::pin::pin!(builder.build().run());
+
+                    let mut http3 = crate::backend::h3::Http3Backend::builder()
+                        .ctx(self.ctx)
+                        .worker_tasks(self.worker_tasks)
+                        .service_factory(self.service_factory)
+                        .bind(self.bind)
+                        .rustls_config(_rustls_config)
+                        .build()
+                        .run();
                     let http3 = std::pin::pin!(http3);
 
                     let res = futures::future::select(hyper, http3).await;
@@ -253,17 +263,19 @@ where
 
         #[cfg(any(feature = "http1", feature = "http2"))]
         if start_tcp_backend {
-            let backend = crate::backend::hyper::insecure::InsecureBackend {
-                ctx: self.ctx,
-                worker_tasks: self.worker_tasks,
-                bind: self.bind,
-                #[cfg(feature = "http1")]
-                http1_enabled: self.enable_http1,
-                #[cfg(feature = "http2")]
-                http2_enabled: self.enable_http2,
-            };
+            let builder = crate::backend::hyper::HyperBackend::builder()
+                .ctx(self.ctx)
+                .worker_tasks(self.worker_tasks)
+                .service_factory(self.service_factory)
+                .bind(self.bind);
 
-            return backend.run(self.service_factory).await;
+            #[cfg(feature = "http1")]
+            let builder = builder.http1_enabled(self.enable_http1);
+
+            #[cfg(feature = "http2")]
+            let builder = builder.http2_enabled(self.enable_http2);
+
+            return builder.build().run().await;
         }
 
         Ok(())
