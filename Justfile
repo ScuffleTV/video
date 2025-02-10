@@ -29,6 +29,13 @@ test *args:
     cargo +{{RUST_TOOLCHAIN}} llvm-cov report --lcov --output-path ./lcov.info
     cargo +{{RUST_TOOLCHAIN}} llvm-cov report --html
 
+    # Run tests under valgrind, atm just testing amf0 results in 2 errors
+    echo "Running tests under Valgrind...\n"
+    for test in $(find target/llvm-cov-target/debug/deps -maxdepth 1 -type f -executable | grep scuffle_amf0); do
+        echo "Running ${test} under Valgrind...\n"
+        valgrind --leak-check=full --error-exitcode=1 "${test}"
+    done
+
 alias docs := doc
 doc *args:
     # `--cfg docsrs` enables us to write feature hints in the form of `#[cfg_attr(docsrs, doc(cfg(feature = "some-feature")))]`
