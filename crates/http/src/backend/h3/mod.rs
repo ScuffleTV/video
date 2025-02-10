@@ -103,9 +103,6 @@ where
                                             let ctx = ctx.clone();
                                             let mut http_service = http_service.clone();
                                             tokio::spawn(async move {
-                                                // The context must live as long as the request is being handled
-                                                let _ctx = ctx;
-
                                                 let _res: Result<_, Error<F>> = async move {
                                                     let resp =
                                                         http_service.call(req).await.map_err(|e| Error::ServiceError(e))?;
@@ -122,6 +119,9 @@ where
                                                 if let Err(e) = _res {
                                                     tracing::warn!(err = %e, "error handling request");
                                                 }
+
+                                                // This moves the context into the async block because it is dropped here
+                                                drop(ctx);
                                             });
                                         }
                                         // indicating no more streams to be received
