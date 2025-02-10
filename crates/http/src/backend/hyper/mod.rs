@@ -77,6 +77,7 @@ where
             let ctx = self.ctx.clone();
             let std_listener = std_listener.try_clone().expect("failed to clone listener");
             let listener = tokio::net::TcpListener::from_std(std_listener).expect("failed to create tokio listener");
+            #[cfg(feature = "tls-rustls")]
             let tls_acceptor = tls_acceptor.clone();
 
             let worker_fut = async move {
@@ -104,11 +105,13 @@ where
                     tracing::trace!(addr = %addr, "accepted tcp connection");
 
                     let ctx = ctx.clone();
+                    #[cfg(feature = "tls-rustls")]
                     let tls_acceptor = tls_acceptor.clone();
                     let mut service_factory = service_factory.clone();
 
                     let connection_fut = async move {
                         // Perform the TLS handshake if the acceptor is set
+                        #[cfg(feature = "tls-rustls")]
                         if let Some(tls_acceptor) = tls_acceptor {
                             #[cfg(feature = "tracing")]
                             tracing::trace!("accepting tls connection");
