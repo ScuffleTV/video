@@ -3,6 +3,7 @@
 Examples of using the `scuffle-http` crate.
 
 - [axum](./src/axum.rs) - Example of creating a cpu profile.
+- [simple_service](./src/simple_service.rs) - Example of creating a server which hosts a simple service.
 
 ## Status
 
