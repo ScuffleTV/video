@@ -30,18 +30,10 @@ test *args:
     cargo +{{RUST_TOOLCHAIN}} llvm-cov report --html
 
 grind *args:
-    # Run tests in valgrind
-    RUSTFLAGS="--cfg=valgrind" CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER="valgrind --error-exitcode=1 --leak-check=full --suppressions=$(pwd)/valgrind_suppressions.log" cargo nextest run --all-features --no-fail-fast -- {{args}}
-
-grind_sup *args:
-    # Automatically generates the `valgrind_suppressions.log` file.
-    # Removes the suppressions if it already exists.
-    rm -f valgrind_suppressions.log
-    # Runs valgrind on the tests and stores the *entire* output to `valgrind_suppressions.log`.
-    # There will be errors: that is necessary for valgrind to generate the necessary suppressions.
-    RUSTFLAGS="--cfg=valgrind" CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER="valgrind --error-exitcode=1 --leak-check=full --gen-suppressions=all --log-fd=9" 9>>$(pwd)/valgrind_suppressions.log cargo nextest run --all-features --no-fail-fast -- {{args}} || true
-    # Filter the file so it only contains the suppressions, since the file originally contains all the valgrind output.
-    sed -i -n '/^{$/,/^}$/p' valgrind_suppressions.log
+    # Runs valgrind on the tests.
+    # If there are errors due to tests using global (and not actual memory leaks) then use the
+    # information given by valgrind to replace the "<insert_a_suppression_name_here>" with the actual test name.
+    RUSTFLAGS="--cfg=valgrind" CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER="valgrind --error-exitcode=1 --leak-check=full --gen-suppressions=all --suppressions=$(pwd)/valgrind_suppressions.log" cargo nextest run --all-features --no-fail-fast -- {{args}}
 
 alias docs := doc
 doc *args:
