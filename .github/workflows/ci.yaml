@@ -168,6 +168,54 @@ jobs:
           override_commit: ${{ env.RUN_COMMIT_SHA || env.SHA }}
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  grind:
+    name: Grind
+    if: |
+      startsWith(github.ref, 'automation/brawl/try/') ||
+      startsWith(github.ref, 'automation/brawl/merge/')
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+
+      - name: Setup system deps
+        run: |
+          sudo apt-get install -y --no-install-recommends libdrm2 libxcb1 libasound2t64 libxv1 libc++1 libvdpau1 libva2 nasm libx264-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+        id: setup-rust
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          components: llvm-tools-preview
+
+      - name: Install ffmpeg
+        run: |
+          set -xeo pipefail
+
+          curl -L https://sourceforge.net/projects/avbuild/files/linux/ffmpeg-7.1-linux-clang-default.tar.xz/download -o ffmpeg.tar.xz
+          tar -xvf ffmpeg.tar.xz
+
+          sudo mv ffmpeg-7.1-linux-clang-default/include/* /usr/include
+          sudo mv ffmpeg-7.1-linux-clang-default/lib/amd64/* /usr/local/lib
+          sudo mv ffmpeg-7.1-linux-clang-default/bin/amd64/* /usr/local/bin
+          sudo rm -rf ffmpeg-7.1-linux-clang-default
+          sudo rm -rf ffmpeg.tar.xz
+          sudo ldconfig
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v0-rust-${{ steps.setup-rust.outputs.cachekey }}"
+          shared-key: grind
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest,cargo-llvm-cov
+
+      - name: Run valgrind
+        run: |
+          RUSTFLAGS="--cfg=valgrind" CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUNNER="valgrind --error-exitcode=1 --leak-check=full --suppressions=$(pwd)/valgrind_suppressions.log" cargo nextest run --all-features --no-fail-fast -- {{args}}
+
   docs:
     name: Docs
     runs-on: ubuntu-24.04
@@ -233,7 +281,7 @@ jobs:
 
   brawl-done:
     runs-on: ubuntu-24.04
-    needs: [hakari, test, clippy, fmt, docs]
+    needs: [hakari, test, clippy, fmt, grind, docs]
     if: ${{ !cancelled() && github.event_name == 'push' }}
     steps:
       - name: calculate the correct exit status
