@@ -474,6 +474,7 @@ mod tests {
             .error_for_status()
     }
 
+    #[cfg(not(valgrind))] // test is time-sensitive
     #[tokio::test]
     async fn telemetry_http_server() {
         struct TestGlobal {
@@ -610,6 +611,7 @@ mod tests {
         task_handle.await.unwrap().unwrap();
     }
 
+    #[cfg(not(valgrind))] // test is time-sensitive
     #[tokio::test]
     async fn empty_telemetry_http_server() {
         struct TestGlobal {

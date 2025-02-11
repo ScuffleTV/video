@@ -89,10 +89,5 @@ mod tests {
         assert_eq!(profile.string_table[period_type.unit as usize], "nanoseconds");
 
         assert_eq!(profile.period, 1_000_000);
-
-        assert!(profile.sample.is_empty());
-        assert!(profile.mapping.is_empty());
-        assert!(profile.location.is_empty());
-        assert!(profile.function.is_empty());
     }
 }

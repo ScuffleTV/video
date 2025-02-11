@@ -12,3 +12,4 @@ coverage/
 benchmark.txt
 .aliases
 local.just
+!valgrind_suppressions.log

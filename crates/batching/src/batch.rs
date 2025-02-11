@@ -320,6 +320,7 @@ mod tests {
         }
     }
 
+    #[cfg(not(valgrind))] // test is time-sensitive
     #[tokio::test]
     async fn basic() {
         let requests = Arc::new(AtomicUsize::new(0));
@@ -363,6 +364,7 @@ mod tests {
         assert_eq!(requests.load(std::sync::atomic::Ordering::Relaxed), 5);
     }
 
+    #[cfg(not(valgrind))] // test is time-sensitive
     #[tokio::test]
     async fn concurrency_high() {
         let requests = Arc::new(AtomicUsize::new(0));
@@ -385,6 +387,7 @@ mod tests {
         assert_eq!(requests.load(std::sync::atomic::Ordering::Relaxed), 5);
     }
 
+    #[cfg(not(valgrind))] // test is time-sensitive
     #[tokio::test]
     async fn delay_low() {
         let requests = Arc::new(AtomicUsize::new(0));
@@ -412,6 +415,7 @@ mod tests {
         assert_eq!(requests.load(std::sync::atomic::Ordering::Relaxed), 5);
     }
 
+    #[cfg(not(valgrind))] // test is time-sensitive
     #[tokio::test]
     async fn batch_size() {
         let requests = Arc::new(AtomicUsize::new(0));
@@ -438,6 +442,7 @@ mod tests {
         assert_eq!(requests.load(std::sync::atomic::Ordering::Relaxed), 1);
     }
 
+    #[cfg(not(valgrind))] // test is time-sensitive
     #[tokio::test]
     async fn high_concurrency() {
         let requests = Arc::new(AtomicUsize::new(0));
@@ -463,6 +468,7 @@ mod tests {
         assert_eq!(requests.load(std::sync::atomic::Ordering::Relaxed), 1134 / 100 + 1);
     }
 
+    #[cfg(not(valgrind))] // test is time-sensitive
     #[tokio::test]
     async fn delayed_start() {
         let requests = Arc::new(AtomicUsize::new(0));
@@ -491,6 +497,7 @@ mod tests {
         assert!(start.elapsed() < std::time::Duration::from_millis(25));
     }
 
+    #[cfg(not(valgrind))] // test is time-sensitive
     #[tokio::test]
     async fn delayed_start_single() {
         let requests = Arc::new(AtomicUsize::new(0));
@@ -517,6 +524,7 @@ mod tests {
         assert!(start.elapsed() < std::time::Duration::from_millis(20));
     }
 
+    #[cfg(not(valgrind))] // test is time-sensitive
     #[tokio::test]
     async fn no_deduplication() {
         let requests = Arc::new(AtomicUsize::new(0));
@@ -542,6 +550,7 @@ mod tests {
         assert!(start.elapsed() < std::time::Duration::from_millis(20));
     }
 
+    #[cfg(not(valgrind))] // test is time-sensitive
     #[tokio::test]
     async fn result() {
         let requests = Arc::new(AtomicUsize::new(0));
@@ -588,6 +597,7 @@ mod tests {
         assert!(start.elapsed() < std::time::Duration::from_millis(20));
     }
 
+    #[cfg(not(valgrind))] // test is time-sensitive
     #[tokio::test]
     async fn option() {
         let requests = Arc::new(AtomicUsize::new(0));

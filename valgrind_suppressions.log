@@ -1,0 +1,152 @@
+{
+   ignore pthread_create
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:calloc
+   fun:calloc
+   fun:allocate_dtv
+   fun:_dl_allocate_tls
+   fun:allocate_stack
+   fun:pthread_create@@*
+   ...
+}
+{
+   ignore tracing_subscriber::registry::extensions::ExtensionsInner::insert
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   ...
+   fun:_ZN18tracing_subscriber8registry10extensions15ExtensionsInner6insert*
+}
+{
+   ignore regex_automata::util::captures::GroupInfoInner::add_explicit_group
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:_ZN14regex_automata4util8captures14GroupInfoInner18add_explicit_group*
+}
+{
+   ignore opentelemetry_sdk::metrics::meter::InstrumentResolver<T>::measures
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:_ZN17opentelemetry_sdk7metrics5meter27InstrumentResolver$LT$T$GT$8measures
+}
+{
+   ignore opentelemetry_sdk::metrics::meter::SdkMeter::new
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:new<alloc::sync::ArcInner<opentelemetry_sdk::metrics::internal::sum::Increment<u64>>>
+   ...
+}
+{
+   ignore std::sync::once_lock::OnceLock::get_or_init
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init*
+   ...
+}
+{
+   ignore opentelemetry::global::metrics::meter_with_scope
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:_ZN13opentelemetry6global7metrics16meter_with_scope*
+   ...
+}
+{
+   ignore opentelemetry::metrics::instruments::SyncInstrument::measure
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:_ZN146_$LT$opentelemetry_sdk..metrics..instrument..ResolvedMeasures$LT$T$GT$$u20$as$u20$opentelemetry..metrics..instruments..SyncInstrument$LT$T$GT$$GT$7measure*
+}
+{
+   ignore opentelemetry_sdk::metrics::pipeline::Inserter::cached_aggregator
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Inserter$LT$T$GT$17cached_aggregator*
+   ...
+}
+{
+   ignore opentelemetry_sdk::metrics::meter_provider::SdkMeterProvider::meter_with_scope
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:_ZN125_$LT$opentelemetry_sdk..metrics..meter_provider..SdkMeterProvider$u20$as$u20$opentelemetry..metrics..meter..MeterProvider$GT$16meter_with_scope*
+}
+{
+   ignore opentelemetry_sdk::resource::Resource::new_with_defaults in scuffle_metrics tests::opentelemetry
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:_ZN17opentelemetry_sdk8resource8Resource17new_with_defaults*
+   fun:_ZN15scuffle_metrics5tests13opentelemetry*
+}
+{
+   ignore opentelemetry_sdk::metrics::pipeline::Pipeline::add_sync
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:_ZN17opentelemetry_sdk7metrics8pipeline8Pipeline8add_sync28_$u7b$$u7b$closure$u7d$$u7d$*
+   ...
+}
+{
+   ignore opentelemetry_sdk::metrics::internal::sum::Sum::new
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:_ZN17opentelemetry_sdk7metrics8internal9aggregate25AggregateBuilder$LT$T$GT$3sum*
+   ...
+}
+{
+   ignore config::file::format::all_extensions
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$*
+   ...
+}
+{
+   ignore std::sync::once::Once::call_once
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:_ZN3std4sync4once4Once9call_once*
+   ...
+}
+{
+   ignore signal_hook_registry::register
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:_ZN20signal_hook_registry8register*
+   ...
+}
+{
+   ignore signal_hook_registry::Slot::clone
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:_ZN65_$LT$signal_hook_registry..Slot$u20$as$u20$core..clone..Clone$GT$5clone*
+   ...
+}
+{
+   ignore signal_hook_registry::register_sigaction_impl
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:_ZN20signal_hook_registry23register_sigaction_impl*
+   ...
+}
+{
+   ignore tokio::runtime::blocking::pool::Spawner::spawn_task
+   Memcheck:Leak
+   match-leak-kinds: possible
+   ...
+   fun:_ZN5tokio7runtime8blocking4pool7Spawner10spawn_task*
+   ...
+}
