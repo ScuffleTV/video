@@ -1,0 +1,1157 @@
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:calloc
+   fun:allocate_dtv
+   fun:_dl_allocate_tls
+   fun:allocate_stack
+   fun:pthread_create@@GLIBC_2.2.5
+   fun:_ZN3std3sys3pal4unix6thread6Thread3new17h36171b12a1527052E
+   fun:_ZN3std6thread7Builder16spawn_unchecked_17hd466a06741539556E
+   fun:_ZN3std6thread7Builder15spawn_unchecked17h531cf9948b678050E
+   fun:spawn<scuffle_bootstrap::global::tests::default_global::{async_block#0}::{closure_env#0}, ()>
+   fun:_ZN3std6thread5spawn17h024bed34ae243422E
+   fun:_ZN17scuffle_bootstrap6global5tests14default_global28_$u7b$$u7b$closure$u7d$$u7d$17h1994e1b39e17a751E
+   fun:_ZN72_$LT$core..pin..Pin$LT$P$GT$$u20$as$u20$core..future..future..Future$GT$4poll17h508c21351922f228E
+   fun:_ZN72_$LT$core..pin..Pin$LT$P$GT$$u20$as$u20$core..future..future..Future$GT$4poll17h7583254520a6d48cE
+   fun:_ZN5tokio7runtime9scheduler14current_thread9CoreGuard8block_on28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$closure$u7d$$u7d$17h4b96cba4bb26c6f8E
+   fun:with_budget<core::task::poll::Poll<()>, tokio::runtime::scheduler::current_thread::{impl#8}::block_on::{closure#0}::{closure#0}::{closure_env#0}<core::pin::Pin<&mut core::pin::Pin<&mut dyn core::future::future::Future<Output=()>>>>>
+   fun:budget<core::task::poll::Poll<()>, tokio::runtime::scheduler::current_thread::{impl#8}::block_on::{closure#0}::{closure#0}::{closure_env#0}<core::pin::Pin<&mut core::pin::Pin<&mut dyn core::future::future::Future<Output=()>>>>>
+   fun:_ZN5tokio7runtime9scheduler14current_thread9CoreGuard8block_on28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$closure$u7d$$u7d$17h0eecf54f6ea4a08aE
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:calloc
+   fun:allocate_dtv
+   fun:_dl_allocate_tls
+   fun:allocate_stack
+   fun:pthread_create@@GLIBC_2.2.5
+   fun:_ZN3std3sys3pal4unix6thread6Thread3new17h36171b12a1527052E
+   fun:_ZN3std6thread7Builder16spawn_unchecked_17h6fd4db5713849d8bE
+   fun:_ZN3std6thread7Builder15spawn_unchecked17h86fbde8274272984E
+   fun:spawn<scuffle_bootstrap::global::tests::default_global_no_config::{async_block#0}::{closure_env#0}, ()>
+   fun:_ZN3std6thread5spawn17h53f2f40b2d61670bE
+   fun:_ZN17scuffle_bootstrap6global5tests24default_global_no_config28_$u7b$$u7b$closure$u7d$$u7d$17h7c4be217f3fddfbdE
+   fun:_ZN72_$LT$core..pin..Pin$LT$P$GT$$u20$as$u20$core..future..future..Future$GT$4poll17h508c21351922f228E
+   fun:_ZN72_$LT$core..pin..Pin$LT$P$GT$$u20$as$u20$core..future..future..Future$GT$4poll17h7583254520a6d48cE
+   fun:_ZN5tokio7runtime9scheduler14current_thread9CoreGuard8block_on28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$closure$u7d$$u7d$17h4b96cba4bb26c6f8E
+   fun:with_budget<core::task::poll::Poll<()>, tokio::runtime::scheduler::current_thread::{impl#8}::block_on::{closure#0}::{closure#0}::{closure_env#0}<core::pin::Pin<&mut core::pin::Pin<&mut dyn core::future::future::Future<Output=()>>>>>
+   fun:budget<core::task::poll::Poll<()>, tokio::runtime::scheduler::current_thread::{impl#8}::block_on::{closure#0}::{closure#0}::{closure_env#0}<core::pin::Pin<&mut core::pin::Pin<&mut dyn core::future::future::Future<Output=()>>>>>
+   fun:_ZN5tokio7runtime9scheduler14current_thread9CoreGuard8block_on28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$closure$u7d$$u7d$17h0eecf54f6ea4a08aE
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h3de357db206a6854E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17hfcbbcb42dc958d5bE
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h0fd2491ebede63d7E
+   fun:do_alloc<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17hfffd4be58c55222cE
+   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h866b81c1b51c8f5aE
+   fun:prepare_resize<alloc::alloc::Global>
+   fun:resize_inner<alloc::alloc::Global>
+   fun:reserve_rehash_inner<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17hb97e401ea440d9cfE
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17h5f93d0b42695e001E
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$24find_or_find_insert_slot17h098656390d941bc2E
+   fun:find_or_find_insert_slot<core::any::TypeId, alloc::boxed::Box<(dyn core::any::Any + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, core::hash::BuildHasherDefault<tracing_subscriber::registry::extensions::IdHasher>, alloc::alloc::Global, core::any::TypeId>
+   fun:_ZN9hashbrown3map28HashMap$LT$K$C$V$C$S$C$A$GT$6insert17h3e4f40398b32a7bbE
+   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$6insert17h059d9c7643296e66E
+   fun:_ZN18tracing_subscriber8registry10extensions15ExtensionsInner6insert17h470e735941956344E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h58156fde30956e65E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17hc79e218c921dd436E
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17hb89554e4efc5d39fE
+   fun:do_alloc<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17hb5ed7ca4df910d9eE
+   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h1f04fd6e10b328b9E
+   fun:prepare_resize<alloc::alloc::Global>
+   fun:resize_inner<alloc::alloc::Global>
+   fun:reserve_rehash_inner<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17hf5ec310492242a9aE
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17hd79e4dd1d44f8c00E
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$24find_or_find_insert_slot17h96e3b1453345e4baE
+   fun:find_or_find_insert_slot<alloc::sync::Arc<str, alloc::alloc::Global>, regex_automata::util::primitives::SmallIndex, std::hash::random::RandomState, alloc::alloc::Global, alloc::sync::Arc<str, alloc::alloc::Global>>
+   fun:_ZN9hashbrown3map28HashMap$LT$K$C$V$C$S$C$A$GT$6insert17h261bf7ccf3423bb4E
+   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$6insert17h40ed9734776bbe1fE
+   fun:_ZN14regex_automata4util8captures14GroupInfoInner18add_explicit_group17hc8d2e0b2a1281fa4E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h3de357db206a6854E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17hfcbbcb42dc958d5bE
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h0fd2491ebede63d7E
+   fun:do_alloc<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17hfffd4be58c55222cE
+   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h866b81c1b51c8f5aE
+   fun:prepare_resize<alloc::alloc::Global>
+   fun:resize_inner<alloc::alloc::Global>
+   fun:reserve_rehash_inner<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17hb97e401ea440d9cfE
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17h5f93d0b42695e001E
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$24find_or_find_insert_slot17h098656390d941bc2E
+   fun:find_or_find_insert_slot<core::any::TypeId, alloc::boxed::Box<(dyn core::any::Any + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, core::hash::BuildHasherDefault<tracing_subscriber::registry::extensions::IdHasher>, alloc::alloc::Global, core::any::TypeId>
+   fun:_ZN9hashbrown3map28HashMap$LT$K$C$V$C$S$C$A$GT$6insert17h3e4f40398b32a7bbE
+   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$6insert17h059d9c7643296e66E
+   fun:_ZN18tracing_subscriber8registry10extensions15ExtensionsInner6insert17h470e735941956344E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h58156fde30956e65E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17hc79e218c921dd436E
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17hb89554e4efc5d39fE
+   fun:do_alloc<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17hb5ed7ca4df910d9eE
+   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h1f04fd6e10b328b9E
+   fun:prepare_resize<alloc::alloc::Global>
+   fun:resize_inner<alloc::alloc::Global>
+   fun:reserve_rehash_inner<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17hf5ec310492242a9aE
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17hd79e4dd1d44f8c00E
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$24find_or_find_insert_slot17h96e3b1453345e4baE
+   fun:find_or_find_insert_slot<alloc::sync::Arc<str, alloc::alloc::Global>, regex_automata::util::primitives::SmallIndex, std::hash::random::RandomState, alloc::alloc::Global, alloc::sync::Arc<str, alloc::alloc::Global>>
+   fun:_ZN9hashbrown3map28HashMap$LT$K$C$V$C$S$C$A$GT$6insert17h261bf7ccf3423bb4E
+   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$6insert17h40ed9734776bbe1fE
+   fun:_ZN14regex_automata4util8captures14GroupInfoInner18add_explicit_group17hc8d2e0b2a1281fa4E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h8846db2789f5ac44E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h8a6f5a0723c6076bE
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h2a453d827233f7deE
+   fun:new<opentelemetry_sdk::metrics::internal::aggregate::{impl#2}::sum::{closure_env#1}<u64>>
+   fun:_ZN17opentelemetry_sdk7metrics8pipeline12aggregate_fn7box_val17h49ae8f39dfaf6a29E
+   fun:_ZN17opentelemetry_sdk7metrics8pipeline12aggregate_fn17he472c9104a332812E
+   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Inserter$LT$T$GT$17cached_aggregator28_$u7b$$u7b$closure$u7d$$u7d$17h35d0864efbbba5f7E
+   fun:_ZN3std11collections4hash3map18Entry$LT$K$C$V$GT$14or_insert_with17h4a92061e9753fdd5E
+   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Inserter$LT$T$GT$17cached_aggregator17h668885de47ccf28dE
+   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Inserter$LT$T$GT$10instrument17h657de2db4568f039E
+   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Resolver$LT$T$GT$8measures17h350b91cdca636436E
+   fun:_ZN17opentelemetry_sdk7metrics5meter27InstrumentResolver$LT$T$GT$8measures17h6e63a21bbb711657E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h8846db2789f5ac44E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h8a6f5a0723c6076bE
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h2a453d827233f7deE
+   fun:new<alloc::sync::ArcInner<opentelemetry_sdk::metrics::internal::sum::Increment<u64>>>
+   fun:_ZN5alloc4sync12Arc$LT$T$GT$3new17h127ca31e92c2df70E
+   fun:_ZN17opentelemetry_sdk7metrics8internal17ValueMap$LT$A$GT$7measure17h280c0e119210d912E
+   fun:_ZN17opentelemetry_sdk7metrics8internal3sum12Sum$LT$T$GT$7measure17h3b0a2ba16f938df4E
+   fun:_ZN17opentelemetry_sdk7metrics8internal9aggregate25AggregateBuilder$LT$T$GT$3sum28_$u7b$$u7b$closure$u7d$$u7d$17hb656abc578f4b688E
+   fun:_ZN87_$LT$F$u20$as$u20$opentelemetry_sdk..metrics..internal..aggregate..Measure$LT$T$GT$$GT$4call17hd1f4198cce7433b4E
+   fun:_ZN17opentelemetry_sdk7metrics8internal9aggregate25AggregateBuilder$LT$T$GT$6filter28_$u7b$$u7b$closure$u7d$$u7d$17hb2dca64e763aca8bE
+   fun:_ZN87_$LT$F$u20$as$u20$opentelemetry_sdk..metrics..internal..aggregate..Measure$LT$T$GT$$GT$4call17h583d3bf5230472fbE
+   fun:_ZN146_$LT$opentelemetry_sdk..metrics..instrument..ResolvedMeasures$LT$T$GT$$u20$as$u20$opentelemetry..metrics..instruments..SyncInstrument$LT$T$GT$$GT$7measure17h083a06ebfe7c3bfbE
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h8846db2789f5ac44E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h8a6f5a0723c6076bE
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h1492f0283b090102E
+   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$17try_new_uninit_in17ha2d5b307baaa4423E
+   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$13new_uninit_in17h6b11fa14d0d03518E
+   fun:new_uninit<alloc::sync::ArcInner<std::sync::poison::mutex::Mutex<std::collections::hash::map::HashMap<alloc::borrow::Cow<str>, opentelemetry_sdk::metrics::instrument::InstrumentId, std::hash::random::RandomState>>>>
+   fun:_ZN68_$LT$alloc..sync..Arc$LT$T$GT$$u20$as$u20$core..default..Default$GT$7default17h43bcddc040e5420fE
+   fun:_ZN17opentelemetry_sdk7metrics5meter8SdkMeter3new17h9bf258d8de940645E
+   fun:_ZN125_$LT$opentelemetry_sdk..metrics..meter_provider..SdkMeterProvider$u20$as$u20$opentelemetry..metrics..meter..MeterProvider$GT$16meter_with_scope17h74613aa81d34b0b0E
+   fun:_ZN13opentelemetry6global7metrics16meter_with_scope17hd6f44d625cfb29dcE
+   fun:_ZN15scuffle_metrics5tests13opentelemetry7example7request28_$u7b$$u7b$closure$u7d$$u7d$17he486ef47017ce13aE
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17hda62ca27a032e7ecE
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc7raw_vec20RawVecInner$LT$A$GT$15try_allocate_in17h5816220a057a06ceE
+   fun:_ZN5alloc7raw_vec20RawVecInner$LT$A$GT$16with_capacity_in17ha6f41c2292b756f1E
+   fun:with_capacity_in<opentelemetry_sdk::metrics::pipeline::Inserter<u64>, alloc::alloc::Global>
+   fun:with_capacity_in<opentelemetry_sdk::metrics::pipeline::Inserter<u64>, alloc::alloc::Global>
+   fun:with_capacity<opentelemetry_sdk::metrics::pipeline::Inserter<u64>>
+   fun:_ZN111_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter_nested..SpecFromIterNested$LT$T$C$I$GT$$GT$9from_iter17h08bd717d8d9ee11fE
+   fun:_ZN98_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter..SpecFromIter$LT$T$C$I$GT$$GT$9from_iter17had545060146b68a6E
+   fun:_ZN95_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$core..iter..traits..collect..FromIterator$LT$T$GT$$GT$9from_iter17h6887d1dd74b8b785E
+   fun:_ZN4core4iter6traits8iterator8Iterator7collect17h77cfd989daa69c11E
+   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Resolver$LT$T$GT$3new17h1bca41a43a5ebf1eE
+   fun:_ZN17opentelemetry_sdk7metrics5meter8SdkMeter3new17h9bf258d8de940645E
+   fun:_ZN125_$LT$opentelemetry_sdk..metrics..meter_provider..SdkMeterProvider$u20$as$u20$opentelemetry..metrics..meter..MeterProvider$GT$16meter_with_scope17h74613aa81d34b0b0E
+   fun:_ZN13opentelemetry6global7metrics16meter_with_scope17hd6f44d625cfb29dcE
+   fun:_ZN15scuffle_metrics5tests13opentelemetry7example7request28_$u7b$$u7b$closure$u7d$$u7d$17he486ef47017ce13aE
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc7raw_vec20RawVecInner$LT$A$GT$15try_allocate_in17h5816220a057a06ceE
+   fun:_ZN5alloc7raw_vec20RawVecInner$LT$A$GT$16with_capacity_in17ha6f41c2292b756f1E
+   fun:with_capacity_in<opentelemetry_sdk::metrics::pipeline::Inserter<i64>, alloc::alloc::Global>
+   fun:with_capacity_in<opentelemetry_sdk::metrics::pipeline::Inserter<i64>, alloc::alloc::Global>
+   fun:with_capacity<opentelemetry_sdk::metrics::pipeline::Inserter<i64>>
+   fun:_ZN111_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter_nested..SpecFromIterNested$LT$T$C$I$GT$$GT$9from_iter17hdf35660f3cba538aE
+   fun:_ZN98_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter..SpecFromIter$LT$T$C$I$GT$$GT$9from_iter17h9f550380efbaf2a7E
+   fun:_ZN95_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$core..iter..traits..collect..FromIterator$LT$T$GT$$GT$9from_iter17h91830d972a23a74aE
+   fun:_ZN4core4iter6traits8iterator8Iterator7collect17h5b294ac806d91f35E
+   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Resolver$LT$T$GT$3new17h20a13a58002a5176E
+   fun:_ZN17opentelemetry_sdk7metrics5meter8SdkMeter3new17h9bf258d8de940645E
+   fun:_ZN125_$LT$opentelemetry_sdk..metrics..meter_provider..SdkMeterProvider$u20$as$u20$opentelemetry..metrics..meter..MeterProvider$GT$16meter_with_scope17h74613aa81d34b0b0E
+   fun:_ZN13opentelemetry6global7metrics16meter_with_scope17hd6f44d625cfb29dcE
+   fun:_ZN15scuffle_metrics5tests13opentelemetry7example7request28_$u7b$$u7b$closure$u7d$$u7d$17he486ef47017ce13aE
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc7raw_vec20RawVecInner$LT$A$GT$15try_allocate_in17h5816220a057a06ceE
+   fun:_ZN5alloc7raw_vec20RawVecInner$LT$A$GT$16with_capacity_in17ha6f41c2292b756f1E
+   fun:with_capacity_in<opentelemetry_sdk::metrics::pipeline::Inserter<f64>, alloc::alloc::Global>
+   fun:with_capacity_in<opentelemetry_sdk::metrics::pipeline::Inserter<f64>, alloc::alloc::Global>
+   fun:with_capacity<opentelemetry_sdk::metrics::pipeline::Inserter<f64>>
+   fun:_ZN111_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter_nested..SpecFromIterNested$LT$T$C$I$GT$$GT$9from_iter17h10d15b9f52109d33E
+   fun:_ZN98_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter..SpecFromIter$LT$T$C$I$GT$$GT$9from_iter17h8ea7d943d74f7c5bE
+   fun:_ZN95_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$core..iter..traits..collect..FromIterator$LT$T$GT$$GT$9from_iter17hd6bf39280b4f2559E
+   fun:_ZN4core4iter6traits8iterator8Iterator7collect17h8521c93c2ed1f44eE
+   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Resolver$LT$T$GT$3new17h153c84c021ce874dE
+   fun:_ZN17opentelemetry_sdk7metrics5meter8SdkMeter3new17h9bf258d8de940645E
+   fun:_ZN125_$LT$opentelemetry_sdk..metrics..meter_provider..SdkMeterProvider$u20$as$u20$opentelemetry..metrics..meter..MeterProvider$GT$16meter_with_scope17h74613aa81d34b0b0E
+   fun:_ZN13opentelemetry6global7metrics16meter_with_scope17hd6f44d625cfb29dcE
+   fun:_ZN15scuffle_metrics5tests13opentelemetry7example7request28_$u7b$$u7b$closure$u7d$$u7d$17he486ef47017ce13aE
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc7raw_vec20RawVecInner$LT$A$GT$15try_allocate_in17h5816220a057a06ceE
+   fun:_ZN5alloc7raw_vec20RawVecInner$LT$A$GT$16with_capacity_in17ha6f41c2292b756f1E
+   fun:with_capacity_in<opentelemetry::common::KeyValue, alloc::alloc::Global>
+   fun:with_capacity_in<opentelemetry::common::KeyValue, alloc::alloc::Global>
+   fun:_ZN52_$LT$T$u20$as$u20$alloc..slice..hack..ConvertVec$GT$6to_vec17hd0d0e36e60c45b2fE
+   fun:to_vec<opentelemetry::common::KeyValue, alloc::alloc::Global>
+   fun:to_vec_in<opentelemetry::common::KeyValue, alloc::alloc::Global>
+   fun:_ZN5alloc5slice29_$LT$impl$u20$$u5b$T$u5d$$GT$6to_vec17h61b93f28982deeb1E
+   fun:_ZN17opentelemetry_sdk7metrics8internal17ValueMap$LT$A$GT$7measure17h280c0e119210d912E
+   fun:_ZN17opentelemetry_sdk7metrics8internal3sum12Sum$LT$T$GT$7measure17h3b0a2ba16f938df4E
+   fun:_ZN17opentelemetry_sdk7metrics8internal9aggregate25AggregateBuilder$LT$T$GT$3sum28_$u7b$$u7b$closure$u7d$$u7d$17hb656abc578f4b688E
+   fun:_ZN87_$LT$F$u20$as$u20$opentelemetry_sdk..metrics..internal..aggregate..Measure$LT$T$GT$$GT$4call17hd1f4198cce7433b4E
+   fun:_ZN17opentelemetry_sdk7metrics8internal9aggregate25AggregateBuilder$LT$T$GT$6filter28_$u7b$$u7b$closure$u7d$$u7d$17hb2dca64e763aca8bE
+   fun:_ZN87_$LT$F$u20$as$u20$opentelemetry_sdk..metrics..internal..aggregate..Measure$LT$T$GT$$GT$4call17h583d3bf5230472fbE
+   fun:_ZN146_$LT$opentelemetry_sdk..metrics..instrument..ResolvedMeasures$LT$T$GT$$u20$as$u20$opentelemetry..metrics..instruments..SyncInstrument$LT$T$GT$$GT$7measure17h083a06ebfe7c3bfbE
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h8846db2789f5ac44E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h8a6f5a0723c6076bE
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h2a453d827233f7deE
+   fun:new<alloc::sync::ArcInner<opentelemetry_sdk::metrics::meter::SdkMeter>>
+   fun:_ZN5alloc4sync12Arc$LT$T$GT$3new17h61ea65d8cbac729aE
+   fun:_ZN125_$LT$opentelemetry_sdk..metrics..meter_provider..SdkMeterProvider$u20$as$u20$opentelemetry..metrics..meter..MeterProvider$GT$16meter_with_scope17h74613aa81d34b0b0E
+   fun:_ZN13opentelemetry6global7metrics16meter_with_scope17hd6f44d625cfb29dcE
+   fun:_ZN15scuffle_metrics5tests13opentelemetry7example7request28_$u7b$$u7b$closure$u7d$$u7d$17he486ef47017ce13aE
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17hda62ca27a032e7ecE
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17hde123654896ffe72E
+   fun:_ZN3std4sync6poison4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h2a0d1bb5c04b85a6E
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc7raw_vec11finish_grow17h45a99516f748224eE
+   fun:_ZN5alloc7raw_vec20RawVecInner$LT$A$GT$14grow_amortized17h240c17776b22f472E
+   fun:grow_one<alloc::alloc::Global>
+   fun:_ZN5alloc7raw_vec19RawVec$LT$T$C$A$GT$8grow_one17hd27ab6706b8caa51E
+   fun:_ZN5alloc3vec16Vec$LT$T$C$A$GT$4push17h1ef5b5f9e3dc6eb5E
+   fun:_ZN17opentelemetry_sdk7metrics8pipeline8Pipeline8add_sync28_$u7b$$u7b$closure$u7d$$u7d$17h19077094efb43f7bE
+   fun:_ZN4core6result19Result$LT$T$C$E$GT$3map17ha8f62afa5aeee233E
+   fun:_ZN17opentelemetry_sdk7metrics8pipeline8Pipeline8add_sync17h52e5727288c9a839E
+   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Inserter$LT$T$GT$17cached_aggregator28_$u7b$$u7b$closure$u7d$$u7d$17h35d0864efbbba5f7E
+   fun:_ZN3std11collections4hash3map18Entry$LT$K$C$V$GT$14or_insert_with17h4a92061e9753fdd5E
+   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Inserter$LT$T$GT$17cached_aggregator17h668885de47ccf28dE
+   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Inserter$LT$T$GT$10instrument17h657de2db4568f039E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h1db2f37cf8f86d39E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h460dbae63a36b83bE
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h33ea73ff03e272dcE
+   fun:do_alloc<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17h95d838c67e39d7ccE
+   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h827197e7a3a11616E
+   fun:prepare_resize<alloc::alloc::Global>
+   fun:resize_inner<alloc::alloc::Global>
+   fun:reserve_rehash_inner<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17h2a4e495da84eefa7E
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17h1941766b3c549f74E
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$24find_or_find_insert_slot17h911632c6b41c1599E
+   fun:find_or_find_insert_slot<opentelemetry::common::InstrumentationScope, alloc::sync::Arc<opentelemetry_sdk::metrics::meter::SdkMeter, alloc::alloc::Global>, std::hash::random::RandomState, alloc::alloc::Global, opentelemetry::common::InstrumentationScope>
+   fun:_ZN9hashbrown3map28HashMap$LT$K$C$V$C$S$C$A$GT$6insert17h7eec5c08e84c7e01E
+   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$6insert17h458da6f17852fca0E
+   fun:_ZN125_$LT$opentelemetry_sdk..metrics..meter_provider..SdkMeterProvider$u20$as$u20$opentelemetry..metrics..meter..MeterProvider$GT$16meter_with_scope17h74613aa81d34b0b0E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h1db2f37cf8f86d39E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h460dbae63a36b83bE
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h33ea73ff03e272dcE
+   fun:do_alloc<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17h95d838c67e39d7ccE
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$17new_uninitialized17h79d37bfb4460ec52E
+   fun:_ZN76_$LT$hashbrown..raw..RawTable$LT$T$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h2485c6864c4917bdE
+   fun:_ZN83_$LT$hashbrown..map..HashMap$LT$K$C$V$C$S$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h4ecaa2b607326691E
+   fun:_ZN92_$LT$std..collections..hash..map..HashMap$LT$K$C$V$C$S$GT$$u20$as$u20$core..clone..Clone$GT$5clone17hffc2d9b93bce89d2E
+   fun:_ZN17opentelemetry_sdk8resource8Resource5merge17hc6f9c10791800881E
+   fun:_ZN17opentelemetry_sdk8resource8Resource17new_with_defaults17h40057cfcee23842dE
+   fun:_ZN15scuffle_metrics5tests13opentelemetry17hc3d8857403d9a25cE
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h1db2f37cf8f86d39E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h460dbae63a36b83bE
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h33ea73ff03e272dcE
+   fun:do_alloc<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17h95d838c67e39d7ccE
+   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h827197e7a3a11616E
+   fun:prepare_resize<alloc::alloc::Global>
+   fun:resize_inner<alloc::alloc::Global>
+   fun:reserve_rehash_inner<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17ha8c305cd28466071E
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17h980b9fa5542ee1a0E
+   fun:reserve<opentelemetry::common::InstrumentationScope, alloc::vec::Vec<opentelemetry_sdk::metrics::pipeline::InstrumentSync, alloc::alloc::Global>, std::hash::random::RandomState, alloc::alloc::Global>
+   fun:_ZN9hashbrown11rustc_entry62_$LT$impl$u20$hashbrown..map..HashMap$LT$K$C$V$C$S$C$A$GT$$GT$11rustc_entry17hc030b3bb8823c2e5E
+   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$5entry17h0a040f3ae954bb25E
+   fun:_ZN17opentelemetry_sdk7metrics8pipeline8Pipeline8add_sync28_$u7b$$u7b$closure$u7d$$u7d$17h19077094efb43f7bE
+   fun:_ZN4core6result19Result$LT$T$C$E$GT$3map17ha8f62afa5aeee233E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h1db2f37cf8f86d39E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h460dbae63a36b83bE
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h33ea73ff03e272dcE
+   fun:do_alloc<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17h95d838c67e39d7ccE
+   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h827197e7a3a11616E
+   fun:prepare_resize<alloc::alloc::Global>
+   fun:resize_inner<alloc::alloc::Global>
+   fun:reserve_rehash_inner<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17he134b191fea0cc90E
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17h287482a611b1fed7E
+   fun:reserve<opentelemetry_sdk::metrics::instrument::InstrumentId, core::result::Result<core::option::Option<alloc::sync::Arc<dyn opentelemetry_sdk::metrics::internal::aggregate::Measure<u64>, alloc::alloc::Global>>, opentelemetry_sdk::metrics::error::MetricError>, std::hash::random::RandomState, alloc::alloc::Global>
+   fun:_ZN9hashbrown11rustc_entry62_$LT$impl$u20$hashbrown..map..HashMap$LT$K$C$V$C$S$C$A$GT$$GT$11rustc_entry17hb42803118cb2b75fE
+   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$5entry17h4af53761794c8a92E
+   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Inserter$LT$T$GT$17cached_aggregator17h668885de47ccf28dE
+   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Inserter$LT$T$GT$10instrument17h657de2db4568f039E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h1db2f37cf8f86d39E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h460dbae63a36b83bE
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h33ea73ff03e272dcE
+   fun:do_alloc<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17h95d838c67e39d7ccE
+   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h827197e7a3a11616E
+   fun:with_capacity<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$16with_capacity_in17h6779cabc7f6c90ddE
+   fun:with_capacity<(alloc::vec::Vec<opentelemetry::common::KeyValue, alloc::alloc::Global>, alloc::sync::Arc<opentelemetry_sdk::metrics::internal::sum::Increment<u64>, alloc::alloc::Global>)>
+   fun:_ZN9hashbrown3map24HashMap$LT$K$C$V$C$S$GT$24with_capacity_and_hasher17h44f2916e6a75ad48E
+   fun:with_capacity_and_hasher<alloc::vec::Vec<opentelemetry::common::KeyValue, alloc::alloc::Global>, alloc::sync::Arc<opentelemetry_sdk::metrics::internal::sum::Increment<u64>, alloc::alloc::Global>, std::hash::random::RandomState>
+   fun:_ZN3std11collections4hash3map20HashMap$LT$K$C$V$GT$13with_capacity17h6206723f01b7f1c5E
+   fun:_ZN17opentelemetry_sdk7metrics8internal17ValueMap$LT$A$GT$3new17h9f63cb82d25a49dfE
+   fun:_ZN17opentelemetry_sdk7metrics8internal3sum12Sum$LT$T$GT$3new17hae23ea40ce30301cE
+   fun:_ZN17opentelemetry_sdk7metrics8internal9aggregate25AggregateBuilder$LT$T$GT$3sum17hc81203c9a6f88b8aE
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h594888680dfd53e3E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h638082ce8601f379E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h45f57653a3da2e6dE
+   fun:new<alloc::sync::ArcInner<signal_hook_registry::register::{closure_env#0}<tokio::signal::unix::signal_enable::{closure#0}::{closure_env#0}>>>
+   fun:new<signal_hook_registry::register::{closure_env#0}<tokio::signal::unix::signal_enable::{closure#0}::{closure_env#0}>>
+   fun:_ZN74_$LT$alloc..sync..Arc$LT$T$GT$$u20$as$u20$core..convert..From$LT$T$GT$$GT$4from17hfcd5164ddddffcdcE
+   fun:_ZN20signal_hook_registry23register_unchecked_impl17h55d5f49232c49945E
+   fun:_ZN20signal_hook_registry23register_sigaction_impl17h2a0584029ddcbfd6E
+   fun:_ZN20signal_hook_registry8register17hc94ff411a1a7dad9E
+   fun:_ZN5tokio6signal4unix13signal_enable28_$u7b$$u7b$closure$u7d$$u7d$17h60c94f7f850955ecE
+   fun:_ZN3std4sync6poison4once4Once9call_once28_$u7b$$u7b$closure$u7d$$u7d$17h957173443ce9b3feE
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once9call_once17h90d55ee2a1171a48E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h4fe6c287a71393afE
+   fun:_ZN5alloc5alloc6Global10alloc_impl17he900185fb2b09b15E
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h1a0d0a586ba0df52E
+   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$17try_new_uninit_in17hfb2631dcdd4a23aaE
+   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$13new_uninit_in17h7c16a705f3d450d0E
+   fun:_ZN5alloc11collections5btree4node21LeafNode$LT$K$C$V$GT$3new17hd8c168ffd1e8fd6cE
+   fun:_ZN5alloc11collections5btree4node117NodeRef$LT$alloc..collections..btree..node..marker..Owned$C$K$C$V$C$alloc..collections..btree..node..marker..Leaf$GT$8new_leaf17h54ce1f6548b6c928E
+   fun:_ZN5alloc11collections5btree3map5entry28VacantEntry$LT$K$C$V$C$A$GT$12insert_entry17hc25dfd4978612b10E
+   fun:insert<signal_hook_registry::ActionId, alloc::sync::Arc<(dyn core::ops::function::Fn<(&libc::unix::linux_like::linux::gnu::b64::x86_64::siginfo_t), Output=()> + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, alloc::alloc::Global>
+   fun:_ZN5alloc11collections5btree3map25BTreeMap$LT$K$C$V$C$A$GT$6insert17hd5f5f095f333d225E
+   fun:_ZN20signal_hook_registry23register_unchecked_impl17h55d5f49232c49945E
+   fun:_ZN20signal_hook_registry23register_sigaction_impl17h2a0584029ddcbfd6E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h4fe6c287a71393afE
+   fun:_ZN5alloc5alloc6Global10alloc_impl17he900185fb2b09b15E
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h1a0d0a586ba0df52E
+   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$17try_new_uninit_in17hfb2631dcdd4a23aaE
+   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$13new_uninit_in17h7c16a705f3d450d0E
+   fun:_ZN5alloc11collections5btree4node21LeafNode$LT$K$C$V$GT$3new17hd8c168ffd1e8fd6cE
+   fun:_ZN5alloc11collections5btree4node117NodeRef$LT$alloc..collections..btree..node..marker..Owned$C$K$C$V$C$alloc..collections..btree..node..marker..Leaf$GT$8new_leaf17h54ce1f6548b6c928E
+   fun:new<signal_hook_registry::ActionId, alloc::sync::Arc<(dyn core::ops::function::Fn<(&libc::unix::linux_like::linux::gnu::b64::x86_64::siginfo_t), Output=()> + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, alloc::alloc::Global>
+   fun:_ZN96_$LT$alloc..collections..btree..map..BTreeMap$LT$K$C$V$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone13clone_subtree17h0d6a3010b2cb992aE
+   fun:_ZN96_$LT$alloc..collections..btree..map..BTreeMap$LT$K$C$V$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h685f0ec7bd7e9e57E
+   fun:_ZN65_$LT$signal_hook_registry..Slot$u20$as$u20$core..clone..Clone$GT$5clone17hf8c65f281bf9623dE
+   fun:_ZN4core5clone5Clone5clone17h79416723748e1ab9E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h4fe6c287a71393afE
+   fun:_ZN5alloc5alloc6Global10alloc_impl17he900185fb2b09b15E
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h1a0d0a586ba0df52E
+   fun:do_alloc<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17heedb67fd32cb8b04E
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$17new_uninitialized17h7c144e5b23790e25E
+   fun:_ZN76_$LT$hashbrown..raw..RawTable$LT$T$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17hc5526492669e5861E
+   fun:_ZN83_$LT$hashbrown..map..HashMap$LT$K$C$V$C$S$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h881886e907822ed5E
+   fun:_ZN92_$LT$std..collections..hash..map..HashMap$LT$K$C$V$C$S$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h1e9ad10b4f194cf0E
+   fun:_ZN71_$LT$signal_hook_registry..SignalData$u20$as$u20$core..clone..Clone$GT$5clone17hd0679d9c87270943E
+   fun:_ZN20signal_hook_registry23register_unchecked_impl17h55d5f49232c49945E
+   fun:_ZN20signal_hook_registry23register_sigaction_impl17h2a0584029ddcbfd6E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h594888680dfd53e3E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h638082ce8601f379E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h45f57653a3da2e6dE
+   fun:new<alloc::sync::ArcInner<signal_hook_registry::register::{closure_env#0}<tokio::signal::unix::signal_enable::{closure#0}::{closure_env#0}>>>
+   fun:new<signal_hook_registry::register::{closure_env#0}<tokio::signal::unix::signal_enable::{closure#0}::{closure_env#0}>>
+   fun:_ZN74_$LT$alloc..sync..Arc$LT$T$GT$$u20$as$u20$core..convert..From$LT$T$GT$$GT$4from17hfcd5164ddddffcdcE
+   fun:_ZN20signal_hook_registry23register_unchecked_impl17h55d5f49232c49945E
+   fun:_ZN20signal_hook_registry23register_sigaction_impl17h2a0584029ddcbfd6E
+   fun:_ZN20signal_hook_registry8register17hc94ff411a1a7dad9E
+   fun:_ZN5tokio6signal4unix13signal_enable28_$u7b$$u7b$closure$u7d$$u7d$17h60c94f7f850955ecE
+   fun:_ZN3std4sync6poison4once4Once9call_once28_$u7b$$u7b$closure$u7d$$u7d$17h957173443ce9b3feE
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once9call_once17h90d55ee2a1171a48E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h4fe6c287a71393afE
+   fun:_ZN5alloc5alloc6Global10alloc_impl17he900185fb2b09b15E
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h1a0d0a586ba0df52E
+   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$17try_new_uninit_in17hfb2631dcdd4a23aaE
+   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$13new_uninit_in17h7c16a705f3d450d0E
+   fun:_ZN5alloc11collections5btree4node21LeafNode$LT$K$C$V$GT$3new17hd8c168ffd1e8fd6cE
+   fun:_ZN5alloc11collections5btree4node117NodeRef$LT$alloc..collections..btree..node..marker..Owned$C$K$C$V$C$alloc..collections..btree..node..marker..Leaf$GT$8new_leaf17h54ce1f6548b6c928E
+   fun:_ZN5alloc11collections5btree3map5entry28VacantEntry$LT$K$C$V$C$A$GT$12insert_entry17hc25dfd4978612b10E
+   fun:insert<signal_hook_registry::ActionId, alloc::sync::Arc<(dyn core::ops::function::Fn<(&libc::unix::linux_like::linux::gnu::b64::x86_64::siginfo_t), Output=()> + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, alloc::alloc::Global>
+   fun:_ZN5alloc11collections5btree3map25BTreeMap$LT$K$C$V$C$A$GT$6insert17hd5f5f095f333d225E
+   fun:_ZN20signal_hook_registry23register_unchecked_impl17h55d5f49232c49945E
+   fun:_ZN20signal_hook_registry23register_sigaction_impl17h2a0584029ddcbfd6E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h4fe6c287a71393afE
+   fun:_ZN5alloc5alloc6Global10alloc_impl17he900185fb2b09b15E
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h1a0d0a586ba0df52E
+   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$17try_new_uninit_in17hfb2631dcdd4a23aaE
+   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$13new_uninit_in17h7c16a705f3d450d0E
+   fun:_ZN5alloc11collections5btree4node21LeafNode$LT$K$C$V$GT$3new17hd8c168ffd1e8fd6cE
+   fun:_ZN5alloc11collections5btree4node117NodeRef$LT$alloc..collections..btree..node..marker..Owned$C$K$C$V$C$alloc..collections..btree..node..marker..Leaf$GT$8new_leaf17h54ce1f6548b6c928E
+   fun:new<signal_hook_registry::ActionId, alloc::sync::Arc<(dyn core::ops::function::Fn<(&libc::unix::linux_like::linux::gnu::b64::x86_64::siginfo_t), Output=()> + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, alloc::alloc::Global>
+   fun:_ZN96_$LT$alloc..collections..btree..map..BTreeMap$LT$K$C$V$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone13clone_subtree17h0d6a3010b2cb992aE
+   fun:_ZN96_$LT$alloc..collections..btree..map..BTreeMap$LT$K$C$V$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h685f0ec7bd7e9e57E
+   fun:_ZN65_$LT$signal_hook_registry..Slot$u20$as$u20$core..clone..Clone$GT$5clone17hf8c65f281bf9623dE
+   fun:_ZN4core5clone5Clone5clone17h79416723748e1ab9E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h4fe6c287a71393afE
+   fun:_ZN5alloc5alloc6Global10alloc_impl17he900185fb2b09b15E
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h1a0d0a586ba0df52E
+   fun:do_alloc<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17heedb67fd32cb8b04E
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$17new_uninitialized17h7c144e5b23790e25E
+   fun:_ZN76_$LT$hashbrown..raw..RawTable$LT$T$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17hc5526492669e5861E
+   fun:_ZN83_$LT$hashbrown..map..HashMap$LT$K$C$V$C$S$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h881886e907822ed5E
+   fun:_ZN92_$LT$std..collections..hash..map..HashMap$LT$K$C$V$C$S$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h1e9ad10b4f194cf0E
+   fun:_ZN71_$LT$signal_hook_registry..SignalData$u20$as$u20$core..clone..Clone$GT$5clone17hd0679d9c87270943E
+   fun:_ZN20signal_hook_registry23register_unchecked_impl17h55d5f49232c49945E
+   fun:_ZN20signal_hook_registry23register_sigaction_impl17h2a0584029ddcbfd6E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h39bc1777084a0a90E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h45002a16d7acc991E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h5a9fff90421a1877E
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17h473f417d902e2e9aE
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17h35e772492f32ab80E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17hdb9619b57e23e21aE
+   fun:_ZN3std4sync6poison4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h8299684ff8c8a171E
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once15call_once_force17hcc7e751e635a4848E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hbdb3dbb7a46cd7f7E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hf9dae8537c2e9ca5E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h39bc1777084a0a90E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h45002a16d7acc991E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h5a9fff90421a1877E
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17h473f417d902e2e9aE
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17h35e772492f32ab80E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17hdb9619b57e23e21aE
+   fun:_ZN3std4sync6poison4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h8299684ff8c8a171E
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once15call_once_force17hcc7e751e635a4848E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hbdb3dbb7a46cd7f7E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hf9dae8537c2e9ca5E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h39bc1777084a0a90E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h45002a16d7acc991E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h5a9fff90421a1877E
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17h473f417d902e2e9aE
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17h35e772492f32ab80E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17hdb9619b57e23e21aE
+   fun:_ZN3std4sync6poison4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h8299684ff8c8a171E
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once15call_once_force17hcc7e751e635a4848E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hbdb3dbb7a46cd7f7E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hf9dae8537c2e9ca5E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h39bc1777084a0a90E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h45002a16d7acc991E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h5a9fff90421a1877E
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17h473f417d902e2e9aE
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17h35e772492f32ab80E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17hdb9619b57e23e21aE
+   fun:_ZN3std4sync6poison4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h8299684ff8c8a171E
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once15call_once_force17hcc7e751e635a4848E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hbdb3dbb7a46cd7f7E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hf9dae8537c2e9ca5E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h39bc1777084a0a90E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h45002a16d7acc991E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h5a9fff90421a1877E
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17h473f417d902e2e9aE
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17h35e772492f32ab80E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17hdb9619b57e23e21aE
+   fun:_ZN3std4sync6poison4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h8299684ff8c8a171E
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once15call_once_force17hcc7e751e635a4848E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hbdb3dbb7a46cd7f7E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hf9dae8537c2e9ca5E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h39bc1777084a0a90E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h45002a16d7acc991E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h5a9fff90421a1877E
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17h473f417d902e2e9aE
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17h35e772492f32ab80E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17hdb9619b57e23e21aE
+   fun:_ZN3std4sync6poison4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h8299684ff8c8a171E
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once15call_once_force17hcc7e751e635a4848E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hbdb3dbb7a46cd7f7E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hf9dae8537c2e9ca5E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h9bc41cd85c9120f8E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h6ee2698467e22537E
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h4c3d9c7a569fb92bE
+   fun:do_alloc<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17h47dfa2ad915ca0f8E
+   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h82964376e2c52934E
+   fun:prepare_resize<alloc::alloc::Global>
+   fun:resize_inner<alloc::alloc::Global>
+   fun:reserve_rehash_inner<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17hd77f1b5ba88a5713E
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17hdb6ecbc9b83c8da6E
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$24find_or_find_insert_slot17hebb7598d04043d45E
+   fun:find_or_find_insert_slot<config::file::format::FileFormat, alloc::vec::Vec<&str, alloc::alloc::Global>, std::hash::random::RandomState, alloc::alloc::Global, config::file::format::FileFormat>
+   fun:_ZN9hashbrown3map28HashMap$LT$K$C$V$C$S$C$A$GT$6insert17hb160b0ecba0c1c22E
+   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$6insert17h79f2aa3902a93218E
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17h473f417d902e2e9aE
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h594888680dfd53e3E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h638082ce8601f379E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h45f57653a3da2e6dE
+   fun:new<alloc::sync::ArcInner<signal_hook_registry::register::{closure_env#0}<tokio::signal::unix::signal_enable::{closure#0}::{closure_env#0}>>>
+   fun:new<signal_hook_registry::register::{closure_env#0}<tokio::signal::unix::signal_enable::{closure#0}::{closure_env#0}>>
+   fun:_ZN74_$LT$alloc..sync..Arc$LT$T$GT$$u20$as$u20$core..convert..From$LT$T$GT$$GT$4from17hfcd5164ddddffcdcE
+   fun:_ZN20signal_hook_registry23register_unchecked_impl17h55d5f49232c49945E
+   fun:_ZN20signal_hook_registry23register_sigaction_impl17h2a0584029ddcbfd6E
+   fun:_ZN20signal_hook_registry8register17hc94ff411a1a7dad9E
+   fun:_ZN5tokio6signal4unix13signal_enable28_$u7b$$u7b$closure$u7d$$u7d$17h60c94f7f850955ecE
+   fun:_ZN3std4sync6poison4once4Once9call_once28_$u7b$$u7b$closure$u7d$$u7d$17h957173443ce9b3feE
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once9call_once17h90d55ee2a1171a48E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h4fe6c287a71393afE
+   fun:_ZN5alloc5alloc6Global10alloc_impl17he900185fb2b09b15E
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h1a0d0a586ba0df52E
+   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$17try_new_uninit_in17hfb2631dcdd4a23aaE
+   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$13new_uninit_in17h7c16a705f3d450d0E
+   fun:_ZN5alloc11collections5btree4node21LeafNode$LT$K$C$V$GT$3new17hd8c168ffd1e8fd6cE
+   fun:_ZN5alloc11collections5btree4node117NodeRef$LT$alloc..collections..btree..node..marker..Owned$C$K$C$V$C$alloc..collections..btree..node..marker..Leaf$GT$8new_leaf17h54ce1f6548b6c928E
+   fun:_ZN5alloc11collections5btree3map5entry28VacantEntry$LT$K$C$V$C$A$GT$12insert_entry17hc25dfd4978612b10E
+   fun:insert<signal_hook_registry::ActionId, alloc::sync::Arc<(dyn core::ops::function::Fn<(&libc::unix::linux_like::linux::gnu::b64::x86_64::siginfo_t), Output=()> + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, alloc::alloc::Global>
+   fun:_ZN5alloc11collections5btree3map25BTreeMap$LT$K$C$V$C$A$GT$6insert17hd5f5f095f333d225E
+   fun:_ZN20signal_hook_registry23register_unchecked_impl17h55d5f49232c49945E
+   fun:_ZN20signal_hook_registry23register_sigaction_impl17h2a0584029ddcbfd6E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h4fe6c287a71393afE
+   fun:_ZN5alloc5alloc6Global10alloc_impl17he900185fb2b09b15E
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h1a0d0a586ba0df52E
+   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$17try_new_uninit_in17hfb2631dcdd4a23aaE
+   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$13new_uninit_in17h7c16a705f3d450d0E
+   fun:_ZN5alloc11collections5btree4node21LeafNode$LT$K$C$V$GT$3new17hd8c168ffd1e8fd6cE
+   fun:_ZN5alloc11collections5btree4node117NodeRef$LT$alloc..collections..btree..node..marker..Owned$C$K$C$V$C$alloc..collections..btree..node..marker..Leaf$GT$8new_leaf17h54ce1f6548b6c928E
+   fun:new<signal_hook_registry::ActionId, alloc::sync::Arc<(dyn core::ops::function::Fn<(&libc::unix::linux_like::linux::gnu::b64::x86_64::siginfo_t), Output=()> + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, alloc::alloc::Global>
+   fun:_ZN96_$LT$alloc..collections..btree..map..BTreeMap$LT$K$C$V$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone13clone_subtree17h0d6a3010b2cb992aE
+   fun:_ZN96_$LT$alloc..collections..btree..map..BTreeMap$LT$K$C$V$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h685f0ec7bd7e9e57E
+   fun:_ZN65_$LT$signal_hook_registry..Slot$u20$as$u20$core..clone..Clone$GT$5clone17hf8c65f281bf9623dE
+   fun:_ZN4core5clone5Clone5clone17h79416723748e1ab9E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h4fe6c287a71393afE
+   fun:_ZN5alloc5alloc6Global10alloc_impl17he900185fb2b09b15E
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h1a0d0a586ba0df52E
+   fun:do_alloc<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17heedb67fd32cb8b04E
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$17new_uninitialized17h7c144e5b23790e25E
+   fun:_ZN76_$LT$hashbrown..raw..RawTable$LT$T$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17hc5526492669e5861E
+   fun:_ZN83_$LT$hashbrown..map..HashMap$LT$K$C$V$C$S$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h881886e907822ed5E
+   fun:_ZN92_$LT$std..collections..hash..map..HashMap$LT$K$C$V$C$S$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h1e9ad10b4f194cf0E
+   fun:_ZN71_$LT$signal_hook_registry..SignalData$u20$as$u20$core..clone..Clone$GT$5clone17hd0679d9c87270943E
+   fun:_ZN20signal_hook_registry23register_unchecked_impl17h55d5f49232c49945E
+   fun:_ZN20signal_hook_registry23register_sigaction_impl17h2a0584029ddcbfd6E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h594888680dfd53e3E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h638082ce8601f379E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h45f57653a3da2e6dE
+   fun:new<alloc::sync::ArcInner<signal_hook_registry::register::{closure_env#0}<tokio::signal::unix::signal_enable::{closure#0}::{closure_env#0}>>>
+   fun:new<signal_hook_registry::register::{closure_env#0}<tokio::signal::unix::signal_enable::{closure#0}::{closure_env#0}>>
+   fun:_ZN74_$LT$alloc..sync..Arc$LT$T$GT$$u20$as$u20$core..convert..From$LT$T$GT$$GT$4from17hfcd5164ddddffcdcE
+   fun:_ZN20signal_hook_registry23register_unchecked_impl17h55d5f49232c49945E
+   fun:_ZN20signal_hook_registry23register_sigaction_impl17h2a0584029ddcbfd6E
+   fun:_ZN20signal_hook_registry8register17hc94ff411a1a7dad9E
+   fun:_ZN5tokio6signal4unix13signal_enable28_$u7b$$u7b$closure$u7d$$u7d$17h60c94f7f850955ecE
+   fun:_ZN3std4sync6poison4once4Once9call_once28_$u7b$$u7b$closure$u7d$$u7d$17h957173443ce9b3feE
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once9call_once17h90d55ee2a1171a48E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h4fe6c287a71393afE
+   fun:_ZN5alloc5alloc6Global10alloc_impl17he900185fb2b09b15E
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h1a0d0a586ba0df52E
+   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$17try_new_uninit_in17hfb2631dcdd4a23aaE
+   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$13new_uninit_in17h7c16a705f3d450d0E
+   fun:_ZN5alloc11collections5btree4node21LeafNode$LT$K$C$V$GT$3new17hd8c168ffd1e8fd6cE
+   fun:_ZN5alloc11collections5btree4node117NodeRef$LT$alloc..collections..btree..node..marker..Owned$C$K$C$V$C$alloc..collections..btree..node..marker..Leaf$GT$8new_leaf17h54ce1f6548b6c928E
+   fun:_ZN5alloc11collections5btree3map5entry28VacantEntry$LT$K$C$V$C$A$GT$12insert_entry17hc25dfd4978612b10E
+   fun:insert<signal_hook_registry::ActionId, alloc::sync::Arc<(dyn core::ops::function::Fn<(&libc::unix::linux_like::linux::gnu::b64::x86_64::siginfo_t), Output=()> + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, alloc::alloc::Global>
+   fun:_ZN5alloc11collections5btree3map25BTreeMap$LT$K$C$V$C$A$GT$6insert17hd5f5f095f333d225E
+   fun:_ZN20signal_hook_registry23register_unchecked_impl17h55d5f49232c49945E
+   fun:_ZN20signal_hook_registry23register_sigaction_impl17h2a0584029ddcbfd6E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h4fe6c287a71393afE
+   fun:_ZN5alloc5alloc6Global10alloc_impl17he900185fb2b09b15E
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h1a0d0a586ba0df52E
+   fun:do_alloc<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17heedb67fd32cb8b04E
+   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h933ed8dff8a6e61fE
+   fun:prepare_resize<alloc::alloc::Global>
+   fun:resize_inner<alloc::alloc::Global>
+   fun:reserve_rehash_inner<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17h152541e8f40fda61E
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17h1bbcf3e94fb02f9eE
+   fun:reserve<i32, signal_hook_registry::Slot, std::hash::random::RandomState, alloc::alloc::Global>
+   fun:_ZN9hashbrown11rustc_entry62_$LT$impl$u20$hashbrown..map..HashMap$LT$K$C$V$C$S$C$A$GT$$GT$11rustc_entry17hdc7dfae15cc311fdE
+   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$5entry17he931bf76a8ad0275E
+   fun:_ZN20signal_hook_registry23register_unchecked_impl17h55d5f49232c49945E
+   fun:_ZN20signal_hook_registry23register_sigaction_impl17h2a0584029ddcbfd6E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h594888680dfd53e3E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h638082ce8601f379E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h45f57653a3da2e6dE
+   fun:new<alloc::sync::ArcInner<signal_hook_registry::register::{closure_env#0}<tokio::signal::unix::signal_enable::{closure#0}::{closure_env#0}>>>
+   fun:new<signal_hook_registry::register::{closure_env#0}<tokio::signal::unix::signal_enable::{closure#0}::{closure_env#0}>>
+   fun:_ZN74_$LT$alloc..sync..Arc$LT$T$GT$$u20$as$u20$core..convert..From$LT$T$GT$$GT$4from17hfcd5164ddddffcdcE
+   fun:_ZN20signal_hook_registry23register_unchecked_impl17h55d5f49232c49945E
+   fun:_ZN20signal_hook_registry23register_sigaction_impl17h2a0584029ddcbfd6E
+   fun:_ZN20signal_hook_registry8register17hc94ff411a1a7dad9E
+   fun:_ZN5tokio6signal4unix13signal_enable28_$u7b$$u7b$closure$u7d$$u7d$17h60c94f7f850955ecE
+   fun:_ZN3std4sync6poison4once4Once9call_once28_$u7b$$u7b$closure$u7d$$u7d$17h957173443ce9b3feE
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once9call_once17h90d55ee2a1171a48E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h4fe6c287a71393afE
+   fun:_ZN5alloc5alloc6Global10alloc_impl17he900185fb2b09b15E
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h1a0d0a586ba0df52E
+   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$17try_new_uninit_in17hfb2631dcdd4a23aaE
+   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$13new_uninit_in17h7c16a705f3d450d0E
+   fun:_ZN5alloc11collections5btree4node21LeafNode$LT$K$C$V$GT$3new17hd8c168ffd1e8fd6cE
+   fun:_ZN5alloc11collections5btree4node117NodeRef$LT$alloc..collections..btree..node..marker..Owned$C$K$C$V$C$alloc..collections..btree..node..marker..Leaf$GT$8new_leaf17h54ce1f6548b6c928E
+   fun:_ZN5alloc11collections5btree3map5entry28VacantEntry$LT$K$C$V$C$A$GT$12insert_entry17hc25dfd4978612b10E
+   fun:insert<signal_hook_registry::ActionId, alloc::sync::Arc<(dyn core::ops::function::Fn<(&libc::unix::linux_like::linux::gnu::b64::x86_64::siginfo_t), Output=()> + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, alloc::alloc::Global>
+   fun:_ZN5alloc11collections5btree3map25BTreeMap$LT$K$C$V$C$A$GT$6insert17hd5f5f095f333d225E
+   fun:_ZN20signal_hook_registry23register_unchecked_impl17h55d5f49232c49945E
+   fun:_ZN20signal_hook_registry23register_sigaction_impl17h2a0584029ddcbfd6E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h4fe6c287a71393afE
+   fun:_ZN5alloc5alloc6Global10alloc_impl17he900185fb2b09b15E
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h1a0d0a586ba0df52E
+   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$17try_new_uninit_in17hfb2631dcdd4a23aaE
+   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$13new_uninit_in17h7c16a705f3d450d0E
+   fun:_ZN5alloc11collections5btree4node21LeafNode$LT$K$C$V$GT$3new17hd8c168ffd1e8fd6cE
+   fun:_ZN5alloc11collections5btree4node117NodeRef$LT$alloc..collections..btree..node..marker..Owned$C$K$C$V$C$alloc..collections..btree..node..marker..Leaf$GT$8new_leaf17h54ce1f6548b6c928E
+   fun:new<signal_hook_registry::ActionId, alloc::sync::Arc<(dyn core::ops::function::Fn<(&libc::unix::linux_like::linux::gnu::b64::x86_64::siginfo_t), Output=()> + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, alloc::alloc::Global>
+   fun:_ZN96_$LT$alloc..collections..btree..map..BTreeMap$LT$K$C$V$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone13clone_subtree17h0d6a3010b2cb992aE
+   fun:_ZN96_$LT$alloc..collections..btree..map..BTreeMap$LT$K$C$V$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h685f0ec7bd7e9e57E
+   fun:_ZN65_$LT$signal_hook_registry..Slot$u20$as$u20$core..clone..Clone$GT$5clone17hf8c65f281bf9623dE
+   fun:_ZN4core5clone5Clone5clone17h79416723748e1ab9E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h4fe6c287a71393afE
+   fun:_ZN5alloc5alloc6Global10alloc_impl17he900185fb2b09b15E
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h1a0d0a586ba0df52E
+   fun:do_alloc<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17heedb67fd32cb8b04E
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$17new_uninitialized17h7c144e5b23790e25E
+   fun:_ZN76_$LT$hashbrown..raw..RawTable$LT$T$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17hc5526492669e5861E
+   fun:_ZN83_$LT$hashbrown..map..HashMap$LT$K$C$V$C$S$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h881886e907822ed5E
+   fun:_ZN92_$LT$std..collections..hash..map..HashMap$LT$K$C$V$C$S$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h1e9ad10b4f194cf0E
+   fun:_ZN71_$LT$signal_hook_registry..SignalData$u20$as$u20$core..clone..Clone$GT$5clone17hd0679d9c87270943E
+   fun:_ZN20signal_hook_registry23register_unchecked_impl17h55d5f49232c49945E
+   fun:_ZN20signal_hook_registry23register_sigaction_impl17h2a0584029ddcbfd6E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h39bc1777084a0a90E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h45002a16d7acc991E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h5a9fff90421a1877E
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17h473f417d902e2e9aE
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17h35e772492f32ab80E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17hdb9619b57e23e21aE
+   fun:_ZN3std4sync6poison4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h8299684ff8c8a171E
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once15call_once_force17hcc7e751e635a4848E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hbdb3dbb7a46cd7f7E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hf9dae8537c2e9ca5E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h39bc1777084a0a90E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h45002a16d7acc991E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h5a9fff90421a1877E
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17h473f417d902e2e9aE
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17h35e772492f32ab80E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17hdb9619b57e23e21aE
+   fun:_ZN3std4sync6poison4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h8299684ff8c8a171E
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once15call_once_force17hcc7e751e635a4848E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hbdb3dbb7a46cd7f7E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hf9dae8537c2e9ca5E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h39bc1777084a0a90E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h45002a16d7acc991E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h5a9fff90421a1877E
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17h473f417d902e2e9aE
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17h35e772492f32ab80E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17hdb9619b57e23e21aE
+   fun:_ZN3std4sync6poison4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h8299684ff8c8a171E
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once15call_once_force17hcc7e751e635a4848E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hbdb3dbb7a46cd7f7E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hf9dae8537c2e9ca5E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h39bc1777084a0a90E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h45002a16d7acc991E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h5a9fff90421a1877E
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17h473f417d902e2e9aE
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17h35e772492f32ab80E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17hdb9619b57e23e21aE
+   fun:_ZN3std4sync6poison4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h8299684ff8c8a171E
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once15call_once_force17hcc7e751e635a4848E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hbdb3dbb7a46cd7f7E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hf9dae8537c2e9ca5E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h39bc1777084a0a90E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h45002a16d7acc991E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h5a9fff90421a1877E
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17h473f417d902e2e9aE
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17h35e772492f32ab80E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17hdb9619b57e23e21aE
+   fun:_ZN3std4sync6poison4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h8299684ff8c8a171E
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once15call_once_force17hcc7e751e635a4848E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hbdb3dbb7a46cd7f7E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hf9dae8537c2e9ca5E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h39bc1777084a0a90E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h45002a16d7acc991E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h5a9fff90421a1877E
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17h473f417d902e2e9aE
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17h35e772492f32ab80E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17hdb9619b57e23e21aE
+   fun:_ZN3std4sync6poison4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h8299684ff8c8a171E
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once15call_once_force17hcc7e751e635a4848E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hbdb3dbb7a46cd7f7E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hf9dae8537c2e9ca5E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h9bc41cd85c9120f8E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h6ee2698467e22537E
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h4c3d9c7a569fb92bE
+   fun:do_alloc<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17h47dfa2ad915ca0f8E
+   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h82964376e2c52934E
+   fun:prepare_resize<alloc::alloc::Global>
+   fun:resize_inner<alloc::alloc::Global>
+   fun:reserve_rehash_inner<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17hd77f1b5ba88a5713E
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17hdb6ecbc9b83c8da6E
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$24find_or_find_insert_slot17hebb7598d04043d45E
+   fun:find_or_find_insert_slot<config::file::format::FileFormat, alloc::vec::Vec<&str, alloc::alloc::Global>, std::hash::random::RandomState, alloc::alloc::Global, config::file::format::FileFormat>
+   fun:_ZN9hashbrown3map28HashMap$LT$K$C$V$C$S$C$A$GT$6insert17hb160b0ecba0c1c22E
+   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$6insert17h79f2aa3902a93218E
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17h473f417d902e2e9aE
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h39bc1777084a0a90E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h45002a16d7acc991E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h5a9fff90421a1877E
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17h473f417d902e2e9aE
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17h35e772492f32ab80E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17hdb9619b57e23e21aE
+   fun:_ZN3std4sync6poison4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h8299684ff8c8a171E
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once15call_once_force17hcc7e751e635a4848E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hbdb3dbb7a46cd7f7E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hf9dae8537c2e9ca5E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h39bc1777084a0a90E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h45002a16d7acc991E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h5a9fff90421a1877E
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17h473f417d902e2e9aE
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17h35e772492f32ab80E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17hdb9619b57e23e21aE
+   fun:_ZN3std4sync6poison4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h8299684ff8c8a171E
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once15call_once_force17hcc7e751e635a4848E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hbdb3dbb7a46cd7f7E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hf9dae8537c2e9ca5E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h39bc1777084a0a90E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h45002a16d7acc991E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h5a9fff90421a1877E
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17h473f417d902e2e9aE
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17h35e772492f32ab80E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17hdb9619b57e23e21aE
+   fun:_ZN3std4sync6poison4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h8299684ff8c8a171E
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once15call_once_force17hcc7e751e635a4848E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hbdb3dbb7a46cd7f7E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hf9dae8537c2e9ca5E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h39bc1777084a0a90E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h45002a16d7acc991E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h5a9fff90421a1877E
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17h473f417d902e2e9aE
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17h35e772492f32ab80E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17hdb9619b57e23e21aE
+   fun:_ZN3std4sync6poison4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h8299684ff8c8a171E
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once15call_once_force17hcc7e751e635a4848E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hbdb3dbb7a46cd7f7E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hf9dae8537c2e9ca5E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h39bc1777084a0a90E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h45002a16d7acc991E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h5a9fff90421a1877E
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17h473f417d902e2e9aE
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17h35e772492f32ab80E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17hdb9619b57e23e21aE
+   fun:_ZN3std4sync6poison4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h8299684ff8c8a171E
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once15call_once_force17hcc7e751e635a4848E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hbdb3dbb7a46cd7f7E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hf9dae8537c2e9ca5E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h39bc1777084a0a90E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h45002a16d7acc991E
+   fun:allocate
+   fun:_ZN5alloc5alloc15exchange_malloc17h5a9fff90421a1877E
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17h473f417d902e2e9aE
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17h35e772492f32ab80E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17hdb9619b57e23e21aE
+   fun:_ZN3std4sync6poison4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h8299684ff8c8a171E
+   fun:_ZN3std3sys4sync4once5futex4Once4call17hdf8bb96a8f9f2232E
+   fun:_ZN3std4sync6poison4once4Once15call_once_force17hcc7e751e635a4848E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hbdb3dbb7a46cd7f7E
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hf9dae8537c2e9ca5E
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:_ZN5alloc5alloc5alloc17h9bc41cd85c9120f8E
+   fun:_ZN5alloc5alloc6Global10alloc_impl17h6ee2698467e22537E
+   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h4c3d9c7a569fb92bE
+   fun:do_alloc<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17h47dfa2ad915ca0f8E
+   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h82964376e2c52934E
+   fun:prepare_resize<alloc::alloc::Global>
+   fun:resize_inner<alloc::alloc::Global>
+   fun:reserve_rehash_inner<alloc::alloc::Global>
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17hd77f1b5ba88a5713E
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17hdb6ecbc9b83c8da6E
+   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$24find_or_find_insert_slot17hebb7598d04043d45E
+   fun:find_or_find_insert_slot<config::file::format::FileFormat, alloc::vec::Vec<&str, alloc::alloc::Global>, std::hash::random::RandomState, alloc::alloc::Global, config::file::format::FileFormat>
+   fun:_ZN9hashbrown3map28HashMap$LT$K$C$V$C$S$C$A$GT$6insert17hb160b0ecba0c1c22E
+   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$6insert17h79f2aa3902a93218E
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17h473f417d902e2e9aE
+}
