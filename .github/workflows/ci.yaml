@@ -170,9 +170,7 @@ jobs:
 
   grind:
     name: Grind
-    if: |
-      startsWith(github.ref, 'automation/brawl/try/') ||
-      startsWith(github.ref, 'automation/brawl/merge/')
+    if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
