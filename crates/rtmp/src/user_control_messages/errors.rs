@@ -1,21 +1,19 @@
-use std::fmt;
-
 use crate::chunk::ChunkEncodeError;
-use crate::macros::from_error;
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum EventMessagesError {
-    ChunkEncode(ChunkEncodeError),
+    #[error("chunk encode error: {0}")]
+    ChunkEncode(#[from] ChunkEncodeError),
 }
 
-from_error!(EventMessagesError, Self::ChunkEncode, ChunkEncodeError);
+#[cfg(test)]
+#[cfg_attr(all(test, coverage_nightly), coverage(off))]
+mod tests {
+    use super::*;
 
-impl fmt::Display for EventMessagesError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match &self {
-            Self::ChunkEncode(e) => {
-                write!(f, "chunk encode error: {}", e)
-            }
-        }
+    #[test]
+    fn test_error_display() {
+        let error = EventMessagesError::ChunkEncode(ChunkEncodeError::UnknownReadState);
+        assert_eq!(format!("{}", error), "chunk encode error: unknown read state");
     }
 }

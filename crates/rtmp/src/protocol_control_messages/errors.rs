@@ -1,22 +1,26 @@
 use std::io;
 
 use crate::chunk::ChunkEncodeError;
-use crate::macros::from_error;
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum ProtocolControlMessageError {
-    IO(io::Error),
-    ChunkEncode(ChunkEncodeError),
+    #[error("io error: {0}")]
+    Io(#[from] io::Error),
+    #[error("chunk encode error: {0}")]
+    ChunkEncode(#[from] ChunkEncodeError),
 }
 
-from_error!(ProtocolControlMessageError, Self::IO, io::Error);
-from_error!(ProtocolControlMessageError, Self::ChunkEncode, ChunkEncodeError);
+#[cfg(test)]
+#[cfg_attr(all(test, coverage_nightly), coverage(off))]
+mod tests {
+    use super::*;
 
-impl std::fmt::Display for ProtocolControlMessageError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            Self::IO(e) => write!(f, "io error: {}", e),
-            Self::ChunkEncode(e) => write!(f, "chunk encode error: {}", e),
-        }
+    #[test]
+    fn test_error_display() {
+        let error = ProtocolControlMessageError::ChunkEncode(ChunkEncodeError::UnknownReadState);
+        assert_eq!(error.to_string(), "chunk encode error: unknown read state");
+
+        let error = ProtocolControlMessageError::Io(std::io::Error::from(std::io::ErrorKind::Other));
+        assert_eq!(error.to_string(), "io error: other error");
     }
 }

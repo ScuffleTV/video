@@ -6,12 +6,16 @@ use super::define;
 use super::define::SchemaVersion;
 use super::errors::DigestError;
 
+/// A digest processor.
+///
+/// This is used to process the digest of a message.
 pub struct DigestProcessor<'a> {
     data: Bytes,
     key: &'a [u8],
 }
 
 impl<'a> DigestProcessor<'a> {
+    /// Create a new digest processor.
     pub const fn new(data: Bytes, key: &'a [u8]) -> Self {
         Self { data, key }
     }
@@ -30,6 +34,7 @@ impl<'a> DigestProcessor<'a> {
         }
     }
 
+    /// Generate and fill digest based on the schema version.
     pub fn generate_and_fill_digest(&self, version: SchemaVersion) -> Result<(Bytes, [u8; 32], Bytes), DigestError> {
         let (left_part, _, right_part) = self.cook_raw_message(version)?;
         let computed_digest = self.make_digest(&left_part, &right_part)?;
@@ -82,6 +87,7 @@ impl<'a> DigestProcessor<'a> {
         Ok((left_part, digest_data, right_part))
     }
 
+    /// Make a digest from the left and right parts using the key.
     pub fn make_digest(&self, left: &[u8], right: &[u8]) -> Result<[u8; 32], DigestError> {
         // New hmac from the key
         let mut mac = Hmac::<Sha256>::new_from_slice(self.key).unwrap();
