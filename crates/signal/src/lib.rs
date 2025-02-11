@@ -214,6 +214,7 @@ mod tests {
         }
     }
 
+    #[cfg(not(valgrind))] // test is time-sensitive
     #[tokio::test]
     async fn signal_handler() {
         let mut handler = SignalHandler::with_signals([SignalKind::user_defined1()])
@@ -239,6 +240,7 @@ mod tests {
         assert_eq!(recv, SignalKind::user_defined2(), "expected SIGUSR2");
     }
 
+    #[cfg(not(valgrind))] // test is time-sensitive
     #[tokio::test]
     async fn add_signal() {
         let mut handler = SignalHandler::new();
@@ -261,6 +263,7 @@ mod tests {
         assert_eq!(recv, SignalKind::user_defined2(), "expected SIGUSR2");
     }
 
+    #[cfg(not(valgrind))] // test is time-sensitive
     #[tokio::test]
     async fn no_signals() {
         let mut handler = SignalHandler::default();

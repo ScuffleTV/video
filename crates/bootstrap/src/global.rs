@@ -312,8 +312,8 @@ impl<T: GlobalWithoutConfig> Global for T {
     }
 }
 
-#[cfg(test)]
 #[cfg_attr(all(test, coverage_nightly), coverage(off))]
+#[cfg(test)]
 mod tests {
     use std::sync::Arc;
     use std::thread;

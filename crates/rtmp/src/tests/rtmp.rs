@@ -9,6 +9,7 @@ use crate::channels::{ChannelData, UniqueID};
 use crate::Session;
 
 #[tokio::test]
+#[cfg(not(valgrind))] // test is time-sensitive, consider refactoring?
 async fn test_basic_rtmp_clean() {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:0").await.expect("failed to bind");
     let addr = listener.local_addr().unwrap();
@@ -102,6 +103,7 @@ async fn test_basic_rtmp_clean() {
 }
 
 #[tokio::test]
+#[cfg(not(valgrind))] // test is time-sensitive, consider refactoring?
 async fn test_basic_rtmp_unclean() {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:0").await.expect("failed to bind");
     let addr = listener.local_addr().unwrap();

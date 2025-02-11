@@ -21,7 +21,7 @@ harness = false
 path = "benchmarks/dataloader.rs"
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)', 'cfg(valgrind)'] }
 
 [dependencies]
 tokio = { version = "1", default-features = false, features = ["time", "sync", "rt"] }

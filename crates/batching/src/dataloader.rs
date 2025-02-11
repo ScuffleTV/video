@@ -294,7 +294,7 @@ where
 }
 
 #[cfg_attr(all(coverage_nightly, test), coverage(off))]
-#[cfg(test)]
+#[cfg(all(test, not(valgrind)))] // all tests are time-sensitive
 mod tests {
     use std::sync::atomic::AtomicUsize;
 
