@@ -1,5 +1,5 @@
 {
-   scuffle_bootstrap global::tests::default_global
+   ignore pthread_create
    Memcheck:Leak
    match-leak-kinds: possible
    fun:calloc
@@ -7,1153 +7,146 @@
    fun:allocate_dtv
    fun:_dl_allocate_tls
    fun:allocate_stack
-   fun:pthread_create@@GLIBC_2.34
-   fun:_ZN3std3sys3pal4unix6thread6Thread3new17he1793c71df66b318E
-   fun:_ZN3std6thread7Builder16spawn_unchecked_17hb941d8654433e0a6E
-   fun:_ZN3std6thread7Builder15spawn_unchecked17h4901e6e64e447cf9E
-   fun:spawn<scuffle_bootstrap::global::tests::default_global::{async_block#0}::{closure_env#0}, ()>
-   fun:_ZN3std6thread5spawn17h23b6889f6a8d48feE
-   fun:_ZN17scuffle_bootstrap6global5tests14default_global28_$u7b$$u7b$closure$u7d$$u7d$17hb9e07c920d29021aE
-   fun:_ZN72_$LT$core..pin..Pin$LT$P$GT$$u20$as$u20$core..future..future..Future$GT$4poll17h4bbd8c4359dec3e3E
-   fun:_ZN72_$LT$core..pin..Pin$LT$P$GT$$u20$as$u20$core..future..future..Future$GT$4poll17heb7c36afbc762a5aE
-   fun:_ZN5tokio7runtime9scheduler14current_thread9CoreGuard8block_on28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$closure$u7d$$u7d$17h62e3b0312604e61fE
-   fun:with_budget<core::task::poll::Poll<()>, tokio::runtime::scheduler::current_thread::{impl#8}::block_on::{closure#0}::{closure#0}::{closure_env#0}<core::pin::Pin<&mut core::pin::Pin<&mut dyn core::future::future::Future<Output=()>>>>>
-   fun:budget<core::task::poll::Poll<()>, tokio::runtime::scheduler::current_thread::{impl#8}::block_on::{closure#0}::{closure#0}::{closure_env#0}<core::pin::Pin<&mut core::pin::Pin<&mut dyn core::future::future::Future<Output=()>>>>>
-   fun:_ZN5tokio7runtime9scheduler14current_thread9CoreGuard8block_on28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$closure$u7d$$u7d$17h9ce9f5ae7b5f97b8E
+   fun:pthread_create@@*
+   ...
 }
 {
-   scuffle_bootstrap global::tests::default_global_no_config
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:calloc
-   fun:calloc
-   fun:allocate_dtv
-   fun:_dl_allocate_tls
-   fun:allocate_stack
-   fun:pthread_create@@GLIBC_2.34
-   fun:_ZN3std3sys3pal4unix6thread6Thread3new17he1793c71df66b318E
-   fun:_ZN3std6thread7Builder16spawn_unchecked_17hf54950045d0f3dd2E
-   fun:_ZN3std6thread7Builder15spawn_unchecked17hf95465767a43f31bE
-   fun:spawn<scuffle_bootstrap::global::tests::default_global_no_config::{async_block#0}::{closure_env#0}, ()>
-   fun:_ZN3std6thread5spawn17h9a80364e17ee679eE
-   fun:_ZN17scuffle_bootstrap6global5tests24default_global_no_config28_$u7b$$u7b$closure$u7d$$u7d$17h333d1aec6479e4d1E
-   fun:_ZN72_$LT$core..pin..Pin$LT$P$GT$$u20$as$u20$core..future..future..Future$GT$4poll17h4bbd8c4359dec3e3E
-   fun:_ZN72_$LT$core..pin..Pin$LT$P$GT$$u20$as$u20$core..future..future..Future$GT$4poll17heb7c36afbc762a5aE
-   fun:_ZN5tokio7runtime9scheduler14current_thread9CoreGuard8block_on28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$closure$u7d$$u7d$17h62e3b0312604e61fE
-   fun:with_budget<core::task::poll::Poll<()>, tokio::runtime::scheduler::current_thread::{impl#8}::block_on::{closure#0}::{closure#0}::{closure_env#0}<core::pin::Pin<&mut core::pin::Pin<&mut dyn core::future::future::Future<Output=()>>>>>
-   fun:budget<core::task::poll::Poll<()>, tokio::runtime::scheduler::current_thread::{impl#8}::block_on::{closure#0}::{closure#0}::{closure_env#0}<core::pin::Pin<&mut core::pin::Pin<&mut dyn core::future::future::Future<Output=()>>>>>
-   fun:_ZN5tokio7runtime9scheduler14current_thread9CoreGuard8block_on28_$u7b$$u7b$closure$u7d$$u7d$28_$u7b$$u7b$closure$u7d$$u7d$17h9ce9f5ae7b5f97b8E
-}
-{
-   scuffle_ffmpeg log::tests::test_log_callback_tracing
+   ignore tracing_subscriber::registry::extensions::ExtensionsInner::insert
    Memcheck:Leak
    match-leak-kinds: possible
    fun:malloc
-   fun:_ZN5alloc5alloc5alloc17hb4b62fc0ce6064c9E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17heaa4de3d808fd676E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17hfa368eb59df52072E
-   fun:do_alloc<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17he2823fa96141e275E
-   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h010ad4ed8d103dc5E
-   fun:prepare_resize<alloc::alloc::Global>
-   fun:resize_inner<alloc::alloc::Global>
-   fun:reserve_rehash_inner<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17hddec2cb3488c105fE
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17h4a6a859906199522E
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$24find_or_find_insert_slot17h28c33edd75899972E
-   fun:find_or_find_insert_slot<core::any::TypeId, alloc::boxed::Box<(dyn core::any::Any + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, core::hash::BuildHasherDefault<tracing_subscriber::registry::extensions::IdHasher>, alloc::alloc::Global, core::any::TypeId>
-   fun:_ZN9hashbrown3map28HashMap$LT$K$C$V$C$S$C$A$GT$6insert17h19f15321345f23aaE
-   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$6insert17h795d92ab172fc163E
-   fun:_ZN18tracing_subscriber8registry10extensions15ExtensionsInner6insert17hcb7c0c28b0e28becE
+   ...
+   fun:_ZN18tracing_subscriber8registry10extensions15ExtensionsInner6insert*
 }
 {
-   scuffle_ffmpeg log::tests::test_log_callback_tracing
+   ignore regex_automata::util::captures::GroupInfoInner::add_explicit_group
    Memcheck:Leak
    match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h5f54b79c67bc6048E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h3def38bf2dae4879E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17hfc899adab74a412eE
-   fun:do_alloc<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17h1674ec9a2f5c15c3E
-   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17hda65c924b69a4aa4E
-   fun:prepare_resize<alloc::alloc::Global>
-   fun:resize_inner<alloc::alloc::Global>
-   fun:reserve_rehash_inner<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17h8c0b33dc971a1471E
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17h57814139ebca4947E
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$24find_or_find_insert_slot17hd963c5b1b07d4753E
-   fun:find_or_find_insert_slot<alloc::sync::Arc<str, alloc::alloc::Global>, regex_automata::util::primitives::SmallIndex, std::hash::random::RandomState, alloc::alloc::Global, alloc::sync::Arc<str, alloc::alloc::Global>>
-   fun:_ZN9hashbrown3map28HashMap$LT$K$C$V$C$S$C$A$GT$6insert17hd76fd5762c49822bE
-   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$6insert17hb59cab484d389d01E
-   fun:_ZN14regex_automata4util8captures14GroupInfoInner18add_explicit_group17hb4a10d63265f27afE
+   ...
+   fun:_ZN14regex_automata4util8captures14GroupInfoInner18add_explicit_group*
 }
 {
-   scuffle_ffmpeg log::tests::test_log_callback_tracing_deprecated_message
+   ignore opentelemetry_sdk::metrics::meter::InstrumentResolver<T>::measures
    Memcheck:Leak
    match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17hb4b62fc0ce6064c9E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17heaa4de3d808fd676E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17hfa368eb59df52072E
-   fun:do_alloc<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17he2823fa96141e275E
-   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h010ad4ed8d103dc5E
-   fun:prepare_resize<alloc::alloc::Global>
-   fun:resize_inner<alloc::alloc::Global>
-   fun:reserve_rehash_inner<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17hddec2cb3488c105fE
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17h4a6a859906199522E
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$24find_or_find_insert_slot17h28c33edd75899972E
-   fun:find_or_find_insert_slot<core::any::TypeId, alloc::boxed::Box<(dyn core::any::Any + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, core::hash::BuildHasherDefault<tracing_subscriber::registry::extensions::IdHasher>, alloc::alloc::Global, core::any::TypeId>
-   fun:_ZN9hashbrown3map28HashMap$LT$K$C$V$C$S$C$A$GT$6insert17h19f15321345f23aaE
-   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$6insert17h795d92ab172fc163E
-   fun:_ZN18tracing_subscriber8registry10extensions15ExtensionsInner6insert17hcb7c0c28b0e28becE
+   ...
+   fun:_ZN17opentelemetry_sdk7metrics5meter27InstrumentResolver$LT$T$GT$8measures
 }
 {
-   scuffle_ffmpeg-90c5aa06eb46fbd1 --exact log::tests::test_log_callback_tracing_deprecated_message
+   ignore opentelemetry_sdk::metrics::meter::SdkMeter::new
    Memcheck:Leak
    match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h5f54b79c67bc6048E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h3def38bf2dae4879E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17hfc899adab74a412eE
-   fun:do_alloc<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17h1674ec9a2f5c15c3E
-   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17hda65c924b69a4aa4E
-   fun:prepare_resize<alloc::alloc::Global>
-   fun:resize_inner<alloc::alloc::Global>
-   fun:reserve_rehash_inner<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17h8c0b33dc971a1471E
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17h57814139ebca4947E
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$24find_or_find_insert_slot17hd963c5b1b07d4753E
-   fun:find_or_find_insert_slot<alloc::sync::Arc<str, alloc::alloc::Global>, regex_automata::util::primitives::SmallIndex, std::hash::random::RandomState, alloc::alloc::Global, alloc::sync::Arc<str, alloc::alloc::Global>>
-   fun:_ZN9hashbrown3map28HashMap$LT$K$C$V$C$S$C$A$GT$6insert17hd76fd5762c49822bE
-   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$6insert17hb59cab484d389d01E
-   fun:_ZN14regex_automata4util8captures14GroupInfoInner18add_explicit_group17hb4a10d63265f27afE
-}
-{
-   scuffle_metrics tests::opentelemetry
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h5f78ccd2a0b9a188E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h94b9c7177465f843E
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17hba2568858291b5daE
-   fun:new<opentelemetry_sdk::metrics::internal::aggregate::{impl#2}::sum::{closure_env#1}<u64>>
-   fun:_ZN17opentelemetry_sdk7metrics8pipeline12aggregate_fn7box_val17h3c669e53325e2fb0E
-   fun:_ZN17opentelemetry_sdk7metrics8pipeline12aggregate_fn17hc0f7dca09a7a1ed4E
-   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Inserter$LT$T$GT$17cached_aggregator28_$u7b$$u7b$closure$u7d$$u7d$17hc13b8a3789d9fae4E
-   fun:_ZN3std11collections4hash3map18Entry$LT$K$C$V$GT$14or_insert_with17h41b35c19d72840ddE
-   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Inserter$LT$T$GT$17cached_aggregator17he3501209b3215144E
-   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Inserter$LT$T$GT$10instrument17h358445379b2b986aE
-   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Resolver$LT$T$GT$8measures17h61163d99a9ad2a33E
-   fun:_ZN17opentelemetry_sdk7metrics5meter27InstrumentResolver$LT$T$GT$8measures17hebbf1f4324b2ba20E
-}
-{
-   scuffle_metrics tests::opentelemetry
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h5f78ccd2a0b9a188E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h94b9c7177465f843E
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17hba2568858291b5daE
+   ...
    fun:new<alloc::sync::ArcInner<opentelemetry_sdk::metrics::internal::sum::Increment<u64>>>
-   fun:_ZN5alloc4sync12Arc$LT$T$GT$3new17h60b433bea62a51bcE
-   fun:_ZN17opentelemetry_sdk7metrics8internal17ValueMap$LT$A$GT$7measure17h1c2380ca56395109E
-   fun:_ZN17opentelemetry_sdk7metrics8internal3sum12Sum$LT$T$GT$7measure17h6c825cc7a0ef3ecbE
-   fun:_ZN17opentelemetry_sdk7metrics8internal9aggregate25AggregateBuilder$LT$T$GT$3sum28_$u7b$$u7b$closure$u7d$$u7d$17h46ee169156fad07cE
-   fun:_ZN87_$LT$F$u20$as$u20$opentelemetry_sdk..metrics..internal..aggregate..Measure$LT$T$GT$$GT$4call17h93379f23b537e048E
-   fun:_ZN17opentelemetry_sdk7metrics8internal9aggregate25AggregateBuilder$LT$T$GT$6filter28_$u7b$$u7b$closure$u7d$$u7d$17hb4418965dec81895E
-   fun:_ZN87_$LT$F$u20$as$u20$opentelemetry_sdk..metrics..internal..aggregate..Measure$LT$T$GT$$GT$4call17hdc526d7de816ef77E
-   fun:_ZN146_$LT$opentelemetry_sdk..metrics..instrument..ResolvedMeasures$LT$T$GT$$u20$as$u20$opentelemetry..metrics..instruments..SyncInstrument$LT$T$GT$$GT$7measure17hb3f6fc225a4ee361E
+   ...
 }
 {
-   scuffle_metrics tests::opentelemetry
+   ignore std::sync::once_lock::OnceLock::get_or_init
    Memcheck:Leak
    match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h5f78ccd2a0b9a188E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h94b9c7177465f843E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h082d206a7aa05e6fE
-   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$17try_new_uninit_in17h1f3de3177bac6670E
-   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$13new_uninit_in17h42168e686f52ef2bE
-   fun:new_uninit<alloc::sync::ArcInner<std::sync::mutex::Mutex<std::collections::hash::map::HashMap<alloc::borrow::Cow<str>, opentelemetry_sdk::metrics::instrument::InstrumentId, std::hash::random::RandomState>>>>
-   fun:_ZN68_$LT$alloc..sync..Arc$LT$T$GT$$u20$as$u20$core..default..Default$GT$7default17h41e972b1fbbbb6f2E
-   fun:_ZN17opentelemetry_sdk7metrics5meter8SdkMeter3new17h17be7d50a0b86546E
-   fun:_ZN125_$LT$opentelemetry_sdk..metrics..meter_provider..SdkMeterProvider$u20$as$u20$opentelemetry..metrics..meter..MeterProvider$GT$16meter_with_scope17h304d3b7de201d13bE
-   fun:_ZN13opentelemetry6global7metrics16meter_with_scope17h111b66e649e29e1dE
-   fun:_ZN15scuffle_metrics5tests13opentelemetry7example7request28_$u7b$$u7b$closure$u7d$$u7d$17h89fe8c1cbd7bda58E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17h5a59dfa712216aa2E
+   ...
+   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init*
+   ...
 }
 {
-   scuffle_metrics tests::opentelemetry
+   ignore opentelemetry::global::metrics::meter_with_scope
    Memcheck:Leak
    match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc7raw_vec20RawVecInner$LT$A$GT$15try_allocate_in17h47129abf88e5bd9bE
-   fun:_ZN5alloc7raw_vec20RawVecInner$LT$A$GT$16with_capacity_in17hb86640e39817d6cfE
-   fun:with_capacity_in<opentelemetry_sdk::metrics::pipeline::Inserter<u64>, alloc::alloc::Global>
-   fun:with_capacity_in<opentelemetry_sdk::metrics::pipeline::Inserter<u64>, alloc::alloc::Global>
-   fun:with_capacity<opentelemetry_sdk::metrics::pipeline::Inserter<u64>>
-   fun:_ZN111_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter_nested..SpecFromIterNested$LT$T$C$I$GT$$GT$9from_iter17ha39bb0c08c73db48E
-   fun:_ZN98_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter..SpecFromIter$LT$T$C$I$GT$$GT$9from_iter17h97e1e998e61aa76aE
-   fun:_ZN95_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$core..iter..traits..collect..FromIterator$LT$T$GT$$GT$9from_iter17h74aed1c6f8625903E
-   fun:_ZN4core4iter6traits8iterator8Iterator7collect17h129b61ffe207a833E
-   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Resolver$LT$T$GT$3new17hbabe6dd641214571E
-   fun:_ZN17opentelemetry_sdk7metrics5meter8SdkMeter3new17h17be7d50a0b86546E
-   fun:_ZN125_$LT$opentelemetry_sdk..metrics..meter_provider..SdkMeterProvider$u20$as$u20$opentelemetry..metrics..meter..MeterProvider$GT$16meter_with_scope17h304d3b7de201d13bE
-   fun:_ZN13opentelemetry6global7metrics16meter_with_scope17h111b66e649e29e1dE
-   fun:_ZN15scuffle_metrics5tests13opentelemetry7example7request28_$u7b$$u7b$closure$u7d$$u7d$17h89fe8c1cbd7bda58E
+   ...
+   fun:_ZN13opentelemetry6global7metrics16meter_with_scope*
+   ...
 }
 {
-   scuffle_metrics tests::opentelemetry
+   ignore opentelemetry::metrics::instruments::SyncInstrument::measure
    Memcheck:Leak
    match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc7raw_vec20RawVecInner$LT$A$GT$15try_allocate_in17h47129abf88e5bd9bE
-   fun:_ZN5alloc7raw_vec20RawVecInner$LT$A$GT$16with_capacity_in17hb86640e39817d6cfE
-   fun:with_capacity_in<opentelemetry_sdk::metrics::pipeline::Inserter<i64>, alloc::alloc::Global>
-   fun:with_capacity_in<opentelemetry_sdk::metrics::pipeline::Inserter<i64>, alloc::alloc::Global>
-   fun:with_capacity<opentelemetry_sdk::metrics::pipeline::Inserter<i64>>
-   fun:_ZN111_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter_nested..SpecFromIterNested$LT$T$C$I$GT$$GT$9from_iter17h8654a5c660d5b985E
-   fun:_ZN98_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter..SpecFromIter$LT$T$C$I$GT$$GT$9from_iter17h380a9568794e5e99E
-   fun:_ZN95_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$core..iter..traits..collect..FromIterator$LT$T$GT$$GT$9from_iter17he1e2c758393fb31aE
-   fun:_ZN4core4iter6traits8iterator8Iterator7collect17h20ab087975db37efE
-   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Resolver$LT$T$GT$3new17h9abbf1894a1786a5E
-   fun:_ZN17opentelemetry_sdk7metrics5meter8SdkMeter3new17h17be7d50a0b86546E
-   fun:_ZN125_$LT$opentelemetry_sdk..metrics..meter_provider..SdkMeterProvider$u20$as$u20$opentelemetry..metrics..meter..MeterProvider$GT$16meter_with_scope17h304d3b7de201d13bE
-   fun:_ZN13opentelemetry6global7metrics16meter_with_scope17h111b66e649e29e1dE
-   fun:_ZN15scuffle_metrics5tests13opentelemetry7example7request28_$u7b$$u7b$closure$u7d$$u7d$17h89fe8c1cbd7bda58E
+   ...
+   fun:_ZN146_$LT$opentelemetry_sdk..metrics..instrument..ResolvedMeasures$LT$T$GT$$u20$as$u20$opentelemetry..metrics..instruments..SyncInstrument$LT$T$GT$$GT$7measure*
 }
 {
-   scuffle_metrics tests::opentelemetry
+   ignore opentelemetry_sdk::metrics::pipeline::Inserter::cached_aggregator
    Memcheck:Leak
    match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc7raw_vec20RawVecInner$LT$A$GT$15try_allocate_in17h47129abf88e5bd9bE
-   fun:_ZN5alloc7raw_vec20RawVecInner$LT$A$GT$16with_capacity_in17hb86640e39817d6cfE
-   fun:with_capacity_in<opentelemetry_sdk::metrics::pipeline::Inserter<f64>, alloc::alloc::Global>
-   fun:with_capacity_in<opentelemetry_sdk::metrics::pipeline::Inserter<f64>, alloc::alloc::Global>
-   fun:with_capacity<opentelemetry_sdk::metrics::pipeline::Inserter<f64>>
-   fun:_ZN111_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter_nested..SpecFromIterNested$LT$T$C$I$GT$$GT$9from_iter17h603c825e8c5edf2dE
-   fun:_ZN98_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$alloc..vec..spec_from_iter..SpecFromIter$LT$T$C$I$GT$$GT$9from_iter17he0c1bae9cfbbc3a3E
-   fun:_ZN95_$LT$alloc..vec..Vec$LT$T$GT$$u20$as$u20$core..iter..traits..collect..FromIterator$LT$T$GT$$GT$9from_iter17h1288460b2fbc1839E
-   fun:_ZN4core4iter6traits8iterator8Iterator7collect17hf215f420f0d1b539E
-   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Resolver$LT$T$GT$3new17h42210981dc637a3bE
-   fun:_ZN17opentelemetry_sdk7metrics5meter8SdkMeter3new17h17be7d50a0b86546E
-   fun:_ZN125_$LT$opentelemetry_sdk..metrics..meter_provider..SdkMeterProvider$u20$as$u20$opentelemetry..metrics..meter..MeterProvider$GT$16meter_with_scope17h304d3b7de201d13bE
-   fun:_ZN13opentelemetry6global7metrics16meter_with_scope17h111b66e649e29e1dE
-   fun:_ZN15scuffle_metrics5tests13opentelemetry7example7request28_$u7b$$u7b$closure$u7d$$u7d$17h89fe8c1cbd7bda58E
+   ...
+   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Inserter$LT$T$GT$17cached_aggregator*
+   ...
 }
 {
-   scuffle_metrics tests::opentelemetry
+   ignore opentelemetry_sdk::metrics::meter_provider::SdkMeterProvider::meter_with_scope
    Memcheck:Leak
    match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc7raw_vec20RawVecInner$LT$A$GT$15try_allocate_in17h47129abf88e5bd9bE
-   fun:_ZN5alloc7raw_vec20RawVecInner$LT$A$GT$16with_capacity_in17hb86640e39817d6cfE
-   fun:with_capacity_in<opentelemetry::common::KeyValue, alloc::alloc::Global>
-   fun:with_capacity_in<opentelemetry::common::KeyValue, alloc::alloc::Global>
-   fun:_ZN52_$LT$T$u20$as$u20$alloc..slice..hack..ConvertVec$GT$6to_vec17h7aa045d9190b3fd6E
-   fun:to_vec<opentelemetry::common::KeyValue, alloc::alloc::Global>
-   fun:to_vec_in<opentelemetry::common::KeyValue, alloc::alloc::Global>
-   fun:_ZN5alloc5slice29_$LT$impl$u20$$u5b$T$u5d$$GT$6to_vec17h41120219478d3173E
-   fun:_ZN17opentelemetry_sdk7metrics8internal17ValueMap$LT$A$GT$7measure17h1c2380ca56395109E
-   fun:_ZN17opentelemetry_sdk7metrics8internal3sum12Sum$LT$T$GT$7measure17h6c825cc7a0ef3ecbE
-   fun:_ZN17opentelemetry_sdk7metrics8internal9aggregate25AggregateBuilder$LT$T$GT$3sum28_$u7b$$u7b$closure$u7d$$u7d$17h46ee169156fad07cE
-   fun:_ZN87_$LT$F$u20$as$u20$opentelemetry_sdk..metrics..internal..aggregate..Measure$LT$T$GT$$GT$4call17h93379f23b537e048E
-   fun:_ZN17opentelemetry_sdk7metrics8internal9aggregate25AggregateBuilder$LT$T$GT$6filter28_$u7b$$u7b$closure$u7d$$u7d$17hb4418965dec81895E
-   fun:_ZN87_$LT$F$u20$as$u20$opentelemetry_sdk..metrics..internal..aggregate..Measure$LT$T$GT$$GT$4call17hdc526d7de816ef77E
-   fun:_ZN146_$LT$opentelemetry_sdk..metrics..instrument..ResolvedMeasures$LT$T$GT$$u20$as$u20$opentelemetry..metrics..instruments..SyncInstrument$LT$T$GT$$GT$7measure17hb3f6fc225a4ee361E
+   ...
+   fun:_ZN125_$LT$opentelemetry_sdk..metrics..meter_provider..SdkMeterProvider$u20$as$u20$opentelemetry..metrics..meter..MeterProvider$GT$16meter_with_scope*
 }
 {
-   scuffle_metrics tests::opentelemetry
+   ignore opentelemetry_sdk::resource::Resource::new_with_defaults in scuffle_metrics tests::opentelemetry
    Memcheck:Leak
    match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h5f78ccd2a0b9a188E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h94b9c7177465f843E
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17hba2568858291b5daE
-   fun:new<alloc::sync::ArcInner<opentelemetry_sdk::metrics::meter::SdkMeter>>
-   fun:_ZN5alloc4sync12Arc$LT$T$GT$3new17h686a77a0ee4982b4E
-   fun:_ZN125_$LT$opentelemetry_sdk..metrics..meter_provider..SdkMeterProvider$u20$as$u20$opentelemetry..metrics..meter..MeterProvider$GT$16meter_with_scope17h304d3b7de201d13bE
-   fun:_ZN13opentelemetry6global7metrics16meter_with_scope17h111b66e649e29e1dE
-   fun:_ZN15scuffle_metrics5tests13opentelemetry7example7request28_$u7b$$u7b$closure$u7d$$u7d$17h89fe8c1cbd7bda58E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17h5a59dfa712216aa2E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17h4d9ae200fa618420E
-   fun:_ZN3std4sync4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h8779b93f08d24c56E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
+   ...
+   fun:_ZN17opentelemetry_sdk8resource8Resource17new_with_defaults*
+   fun:_ZN15scuffle_metrics5tests13opentelemetry*
 }
 {
-   scuffle_metrics tests::opentelemetry
+   ignore opentelemetry_sdk::metrics::pipeline::Pipeline::add_sync
    Memcheck:Leak
    match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc7raw_vec11finish_grow17h45397626a2665962E
-   fun:_ZN5alloc7raw_vec20RawVecInner$LT$A$GT$14grow_amortized17hd4d7a3b9a6d9f3e2E
-   fun:grow_one<alloc::alloc::Global>
-   fun:_ZN5alloc7raw_vec19RawVec$LT$T$C$A$GT$8grow_one17hce16834fdc30efd1E
-   fun:_ZN5alloc3vec16Vec$LT$T$C$A$GT$4push17h32c97262303b5080E
-   fun:_ZN17opentelemetry_sdk7metrics8pipeline8Pipeline8add_sync28_$u7b$$u7b$closure$u7d$$u7d$17h51af2afb68a57ac6E
-   fun:_ZN4core6result19Result$LT$T$C$E$GT$3map17h57dcdc82a5e8dc51E
-   fun:_ZN17opentelemetry_sdk7metrics8pipeline8Pipeline8add_sync17hc732e3e91ff5d4e7E
-   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Inserter$LT$T$GT$17cached_aggregator28_$u7b$$u7b$closure$u7d$$u7d$17hc13b8a3789d9fae4E
-   fun:_ZN3std11collections4hash3map18Entry$LT$K$C$V$GT$14or_insert_with17h41b35c19d72840ddE
-   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Inserter$LT$T$GT$17cached_aggregator17he3501209b3215144E
-   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Inserter$LT$T$GT$10instrument17h358445379b2b986aE
+   ...
+   fun:_ZN17opentelemetry_sdk7metrics8pipeline8Pipeline8add_sync28_$u7b$$u7b$closure$u7d$$u7d$*
+   ...
 }
 {
-   scuffle_metrics tests::opentelemetry
+   ignore opentelemetry_sdk::metrics::internal::sum::Sum::new
    Memcheck:Leak
    match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h22f15b9b8cf7f3a4E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h2e728bba6e479ef6E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h44ee84770fec3ffeE
-   fun:do_alloc<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17hb732f0061432d933E
-   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h4a3b6b655edfa8ccE
-   fun:prepare_resize<alloc::alloc::Global>
-   fun:resize_inner<alloc::alloc::Global>
-   fun:reserve_rehash_inner<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17h818576c5fb2d67d3E
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17ha95ca7aec0f2da12E
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$24find_or_find_insert_slot17ha738bb452defb8f3E
-   fun:find_or_find_insert_slot<opentelemetry::common::InstrumentationScope, alloc::sync::Arc<opentelemetry_sdk::metrics::meter::SdkMeter, alloc::alloc::Global>, std::hash::random::RandomState, alloc::alloc::Global, opentelemetry::common::InstrumentationScope>
-   fun:_ZN9hashbrown3map28HashMap$LT$K$C$V$C$S$C$A$GT$6insert17h6ead642de0fa9412E
-   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$6insert17he518ff663fccd63bE
-   fun:_ZN125_$LT$opentelemetry_sdk..metrics..meter_provider..SdkMeterProvider$u20$as$u20$opentelemetry..metrics..meter..MeterProvider$GT$16meter_with_scope17h304d3b7de201d13bE
+   ...
+   fun:_ZN17opentelemetry_sdk7metrics8internal9aggregate25AggregateBuilder$LT$T$GT$3sum*
+   ...
 }
 {
-   scuffle_metrics tests::opentelemetry
+   ignore config::file::format::all_extensions
    Memcheck:Leak
    match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h22f15b9b8cf7f3a4E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h2e728bba6e479ef6E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h44ee84770fec3ffeE
-   fun:do_alloc<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17hb732f0061432d933E
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$17new_uninitialized17h4c352742650efb87E
-   fun:_ZN76_$LT$hashbrown..raw..RawTable$LT$T$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h08c085eb2fac8ce7E
-   fun:_ZN83_$LT$hashbrown..map..HashMap$LT$K$C$V$C$S$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h3132d4ee64d065f0E
-   fun:_ZN92_$LT$std..collections..hash..map..HashMap$LT$K$C$V$C$S$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h8f169eddf69d2cccE
-   fun:_ZN17opentelemetry_sdk8resource8Resource5merge17hc24fdf3a9a16c65cE
-   fun:_ZN17opentelemetry_sdk8resource8Resource17new_with_defaults17h456492fa10fd6e40E
-   fun:_ZN15scuffle_metrics5tests13opentelemetry17hbec6d2a60c07a363E
+   ...
+   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$*
+   ...
 }
 {
-   scuffle_metrics tests::opentelemetry
+   ignore std::sync::once::Once::call_once
    Memcheck:Leak
    match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h22f15b9b8cf7f3a4E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h2e728bba6e479ef6E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h44ee84770fec3ffeE
-   fun:do_alloc<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17hb732f0061432d933E
-   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h4a3b6b655edfa8ccE
-   fun:prepare_resize<alloc::alloc::Global>
-   fun:resize_inner<alloc::alloc::Global>
-   fun:reserve_rehash_inner<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17hef183b59a99c20acE
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17hcc7ed3daaec2b824E
-   fun:reserve<opentelemetry::common::InstrumentationScope, alloc::vec::Vec<opentelemetry_sdk::metrics::pipeline::InstrumentSync, alloc::alloc::Global>, std::hash::random::RandomState, alloc::alloc::Global>
-   fun:_ZN9hashbrown11rustc_entry62_$LT$impl$u20$hashbrown..map..HashMap$LT$K$C$V$C$S$C$A$GT$$GT$11rustc_entry17h696e8c3a8cf53f47E
-   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$5entry17hc661dff69494a2c2E
-   fun:_ZN17opentelemetry_sdk7metrics8pipeline8Pipeline8add_sync28_$u7b$$u7b$closure$u7d$$u7d$17h51af2afb68a57ac6E
-   fun:_ZN4core6result19Result$LT$T$C$E$GT$3map17h57dcdc82a5e8dc51E
+   ...
+   fun:_ZN3std4sync4once4Once9call_once*
+   ...
 }
 {
-   scuffle_metrics tests::opentelemetry
+   ignore signal_hook_registry::register
    Memcheck:Leak
    match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h22f15b9b8cf7f3a4E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h2e728bba6e479ef6E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h44ee84770fec3ffeE
-   fun:do_alloc<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17hb732f0061432d933E
-   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h4a3b6b655edfa8ccE
-   fun:prepare_resize<alloc::alloc::Global>
-   fun:resize_inner<alloc::alloc::Global>
-   fun:reserve_rehash_inner<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17h4293103965e3c286E
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17h3886cd3875b1c904E
-   fun:reserve<opentelemetry_sdk::metrics::instrument::InstrumentId, core::result::Result<core::option::Option<alloc::sync::Arc<dyn opentelemetry_sdk::metrics::internal::aggregate::Measure<u64>, alloc::alloc::Global>>, opentelemetry_sdk::metrics::error::MetricError>, std::hash::random::RandomState, alloc::alloc::Global>
-   fun:_ZN9hashbrown11rustc_entry62_$LT$impl$u20$hashbrown..map..HashMap$LT$K$C$V$C$S$C$A$GT$$GT$11rustc_entry17h4f3909370fc9fe9eE
-   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$5entry17h860475164bd396ddE
-   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Inserter$LT$T$GT$17cached_aggregator17he3501209b3215144E
-   fun:_ZN17opentelemetry_sdk7metrics8pipeline17Inserter$LT$T$GT$10instrument17h358445379b2b986aE
+   ...
+   fun:_ZN20signal_hook_registry8register*
+   ...
 }
 {
-   scuffle_metrics tests::opentelemetry
+   ignore signal_hook_registry::Slot::clone
    Memcheck:Leak
    match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h22f15b9b8cf7f3a4E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h2e728bba6e479ef6E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h44ee84770fec3ffeE
-   fun:do_alloc<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17hb732f0061432d933E
-   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h4a3b6b655edfa8ccE
-   fun:with_capacity<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$16with_capacity_in17h97e8b5bf0c59bbfcE
-   fun:with_capacity<(alloc::vec::Vec<opentelemetry::common::KeyValue, alloc::alloc::Global>, alloc::sync::Arc<opentelemetry_sdk::metrics::internal::sum::Increment<u64>, alloc::alloc::Global>)>
-   fun:_ZN9hashbrown3map24HashMap$LT$K$C$V$C$S$GT$24with_capacity_and_hasher17hc349f97f593135c6E
-   fun:with_capacity_and_hasher<alloc::vec::Vec<opentelemetry::common::KeyValue, alloc::alloc::Global>, alloc::sync::Arc<opentelemetry_sdk::metrics::internal::sum::Increment<u64>, alloc::alloc::Global>, std::hash::random::RandomState>
-   fun:_ZN3std11collections4hash3map20HashMap$LT$K$C$V$GT$13with_capacity17h04763a40d7a4c072E
-   fun:_ZN17opentelemetry_sdk7metrics8internal17ValueMap$LT$A$GT$3new17heceb2506f12e7965E
-   fun:_ZN17opentelemetry_sdk7metrics8internal3sum12Sum$LT$T$GT$3new17h8eab2a6b49abce8dE
-   fun:_ZN17opentelemetry_sdk7metrics8internal9aggregate25AggregateBuilder$LT$T$GT$3sum17h2dd4df79900e2aaeE
+   ...
+   fun:_ZN65_$LT$signal_hook_registry..Slot$u20$as$u20$core..clone..Clone$GT$5clone*
+   ...
 }
 {
-   scuffle_settings tests::file_error
+   ignore signal_hook_registry::register_sigaction_impl
    Memcheck:Leak
    match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h9efadf1d56f3d709E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h1c764e3bb2e41008E
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17hfa8edd5bc484252aE
-   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17hca7bb46c7dd11fb0E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17hcb64cf095b460eadE
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17h756200a88628ad6bE
-   fun:_ZN3std4sync4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h79185514c1dd17c5E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once15call_once_force17h36dc41b652020d12E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hb3c93fa49dbf5be2E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hb65f2020e2873bedE
+   ...
+   fun:_ZN20signal_hook_registry23register_sigaction_impl*
+   ...
 }
 {
-   scuffle_settings tests::file_error
+   ignore tokio::runtime::blocking::pool::Spawner::spawn_task
    Memcheck:Leak
    match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h9efadf1d56f3d709E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h1c764e3bb2e41008E
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17hfa8edd5bc484252aE
-   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17hca7bb46c7dd11fb0E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17hcb64cf095b460eadE
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17h756200a88628ad6bE
-   fun:_ZN3std4sync4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h79185514c1dd17c5E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once15call_once_force17h36dc41b652020d12E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hb3c93fa49dbf5be2E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hb65f2020e2873bedE
-}
-{
-   scuffle_settings tests::file_error
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h9efadf1d56f3d709E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h1c764e3bb2e41008E
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17hfa8edd5bc484252aE
-   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17hca7bb46c7dd11fb0E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17hcb64cf095b460eadE
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17h756200a88628ad6bE
-   fun:_ZN3std4sync4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h79185514c1dd17c5E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once15call_once_force17h36dc41b652020d12E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hb3c93fa49dbf5be2E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hb65f2020e2873bedE
-}
-{
-   scuffle_settings tests::file_error
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h9efadf1d56f3d709E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h1c764e3bb2e41008E
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17hfa8edd5bc484252aE
-   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17hca7bb46c7dd11fb0E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17hcb64cf095b460eadE
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17h756200a88628ad6bE
-   fun:_ZN3std4sync4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h79185514c1dd17c5E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once15call_once_force17h36dc41b652020d12E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hb3c93fa49dbf5be2E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hb65f2020e2873bedE
-}
-{
-   scuffle_settings tests::file_error
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h9efadf1d56f3d709E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h1c764e3bb2e41008E
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17hfa8edd5bc484252aE
-   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17hca7bb46c7dd11fb0E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17hcb64cf095b460eadE
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17h756200a88628ad6bE
-   fun:_ZN3std4sync4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h79185514c1dd17c5E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once15call_once_force17h36dc41b652020d12E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hb3c93fa49dbf5be2E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hb65f2020e2873bedE
-}
-{
-   scuffle_settings tests::file_error
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h9efadf1d56f3d709E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h1c764e3bb2e41008E
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17hfa8edd5bc484252aE
-   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17hca7bb46c7dd11fb0E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17hcb64cf095b460eadE
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17h756200a88628ad6bE
-   fun:_ZN3std4sync4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h79185514c1dd17c5E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once15call_once_force17h36dc41b652020d12E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hb3c93fa49dbf5be2E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hb65f2020e2873bedE
-}
-{
-   scuffle_settings tests::file_error
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h659e5a174aab269bE
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h6a6ffd802f13e6d8E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17haae7c2188b31cc4dE
-   fun:do_alloc<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17h7d14039d991138d3E
-   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h05bd1ef6c8be8cb7E
-   fun:prepare_resize<alloc::alloc::Global>
-   fun:resize_inner<alloc::alloc::Global>
-   fun:reserve_rehash_inner<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17h3d500e974eeda5b1E
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17hb4d8e086f0fd2fadE
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$24find_or_find_insert_slot17h220307051d59733dE
-   fun:find_or_find_insert_slot<config::file::format::FileFormat, alloc::vec::Vec<&str, alloc::alloc::Global>, std::hash::random::RandomState, alloc::alloc::Global, config::file::format::FileFormat>
-   fun:_ZN9hashbrown3map28HashMap$LT$K$C$V$C$S$C$A$GT$6insert17h67d7e0139b669be5E
-   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$6insert17h055a42a3ed4dde75E
-   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17hca7bb46c7dd11fb0E
-}
-{
-   scuffle_settings tests::parse_file
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h9efadf1d56f3d709E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h1c764e3bb2e41008E
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17hfa8edd5bc484252aE
-   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17hca7bb46c7dd11fb0E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17hcb64cf095b460eadE
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17h756200a88628ad6bE
-   fun:_ZN3std4sync4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h79185514c1dd17c5E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once15call_once_force17h36dc41b652020d12E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hb3c93fa49dbf5be2E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hb65f2020e2873bedE
-}
-{
-   scuffle_settings-16b51d7556d77468 --exact tests::parse_file
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h9efadf1d56f3d709E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h1c764e3bb2e41008E
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17hfa8edd5bc484252aE
-   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17hca7bb46c7dd11fb0E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17hcb64cf095b460eadE
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17h756200a88628ad6bE
-   fun:_ZN3std4sync4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h79185514c1dd17c5E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once15call_once_force17h36dc41b652020d12E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hb3c93fa49dbf5be2E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hb65f2020e2873bedE
-}
-{
-   scuffle_settings-16b51d7556d77468 --exact tests::parse_file
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h9efadf1d56f3d709E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h1c764e3bb2e41008E
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17hfa8edd5bc484252aE
-   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17hca7bb46c7dd11fb0E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17hcb64cf095b460eadE
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17h756200a88628ad6bE
-   fun:_ZN3std4sync4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h79185514c1dd17c5E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once15call_once_force17h36dc41b652020d12E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hb3c93fa49dbf5be2E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hb65f2020e2873bedE
-}
-{
-   scuffle_settings-16b51d7556d77468 --exact tests::parse_file
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h9efadf1d56f3d709E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h1c764e3bb2e41008E
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17hfa8edd5bc484252aE
-   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17hca7bb46c7dd11fb0E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17hcb64cf095b460eadE
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17h756200a88628ad6bE
-   fun:_ZN3std4sync4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h79185514c1dd17c5E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once15call_once_force17h36dc41b652020d12E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hb3c93fa49dbf5be2E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hb65f2020e2873bedE
-}
-{
-   scuffle_settings-16b51d7556d77468 --exact tests::parse_file
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h9efadf1d56f3d709E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h1c764e3bb2e41008E
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17hfa8edd5bc484252aE
-   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17hca7bb46c7dd11fb0E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17hcb64cf095b460eadE
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17h756200a88628ad6bE
-   fun:_ZN3std4sync4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h79185514c1dd17c5E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once15call_once_force17h36dc41b652020d12E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hb3c93fa49dbf5be2E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hb65f2020e2873bedE
-}
-{
-   scuffle_settings-16b51d7556d77468 --exact tests::parse_file
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h9efadf1d56f3d709E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h1c764e3bb2e41008E
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17hfa8edd5bc484252aE
-   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17hca7bb46c7dd11fb0E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17hcb64cf095b460eadE
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17h756200a88628ad6bE
-   fun:_ZN3std4sync4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h79185514c1dd17c5E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once15call_once_force17h36dc41b652020d12E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hb3c93fa49dbf5be2E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hb65f2020e2873bedE
-}
-{
-   scuffle_settings-16b51d7556d77468 --exact tests::parse_file
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h659e5a174aab269bE
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h6a6ffd802f13e6d8E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17haae7c2188b31cc4dE
-   fun:do_alloc<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17h7d14039d991138d3E
-   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h05bd1ef6c8be8cb7E
-   fun:prepare_resize<alloc::alloc::Global>
-   fun:resize_inner<alloc::alloc::Global>
-   fun:reserve_rehash_inner<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17h3d500e974eeda5b1E
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17hb4d8e086f0fd2fadE
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$24find_or_find_insert_slot17h220307051d59733dE
-   fun:find_or_find_insert_slot<config::file::format::FileFormat, alloc::vec::Vec<&str, alloc::alloc::Global>, std::hash::random::RandomState, alloc::alloc::Global, config::file::format::FileFormat>
-   fun:_ZN9hashbrown3map28HashMap$LT$K$C$V$C$S$C$A$GT$6insert17h67d7e0139b669be5E
-   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$6insert17h055a42a3ed4dde75E
-   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17hca7bb46c7dd11fb0E
-}
-{
-   scuffle_signal bootstrap::tests::bootstrap_service_force_shutdown
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17ha082a64b4542f6a0E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h5e4e5a2dfa79547bE
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17h8c5c9f4d103e4c31E
-   fun:new<alloc::sync::ArcInner<signal_hook_registry::register::{closure_env#0}<tokio::signal::unix::signal_enable::{closure#0}::{closure_env#0}>>>
-   fun:new<signal_hook_registry::register::{closure_env#0}<tokio::signal::unix::signal_enable::{closure#0}::{closure_env#0}>>
-   fun:_ZN74_$LT$alloc..sync..Arc$LT$T$GT$$u20$as$u20$core..convert..From$LT$T$GT$$GT$4from17h6f8611b3f0de53e8E
-   fun:_ZN20signal_hook_registry23register_unchecked_impl17h26f4cd8d8ec033a0E
-   fun:_ZN20signal_hook_registry23register_sigaction_impl17hd971822dbb4b749dE
-   fun:_ZN20signal_hook_registry8register17h7271c2ae3303e00aE
-   fun:_ZN5tokio6signal4unix13signal_enable28_$u7b$$u7b$closure$u7d$$u7d$17heb2d245a2c6eda51E
-   fun:_ZN3std4sync4once4Once9call_once28_$u7b$$u7b$closure$u7d$$u7d$17h22444be751c1cbf6E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once9call_once17h09401db605971aebE
-}
-{
-   scuffle_signal bootstrap::tests::bootstrap_service_force_shutdown
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17ha5a864a4fce41f56E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17hf10fc6e642449c69E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h9813d96dd739e258E
-   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$17try_new_uninit_in17h6759d7ba10d5ba43E
-   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$13new_uninit_in17h260109ca4b3e612dE
-   fun:_ZN5alloc11collections5btree4node21LeafNode$LT$K$C$V$GT$3new17h86b51fd5a219463bE
-   fun:new_leaf<signal_hook_registry::ActionId, alloc::sync::Arc<(dyn core::ops::function::Fn<(&libc::unix::linux_like::linux::gnu::b64::x86_64::siginfo_t), Output=()> + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, alloc::alloc::Global>
-   fun:_ZN5alloc11collections5btree3map5entry28VacantEntry$LT$K$C$V$C$A$GT$6insert17h268c3de8af529eb4E
-   fun:_ZN5alloc11collections5btree3map25BTreeMap$LT$K$C$V$C$A$GT$6insert17hfcdc194dde6e0d52E
-   fun:_ZN20signal_hook_registry23register_unchecked_impl17h26f4cd8d8ec033a0E
-   fun:_ZN20signal_hook_registry23register_sigaction_impl17hd971822dbb4b749dE
-   fun:_ZN20signal_hook_registry8register17h7271c2ae3303e00aE
-}
-{
-   scuffle_signal bootstrap::tests::bootstrap_service_force_shutdown
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17ha5a864a4fce41f56E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17hf10fc6e642449c69E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h9813d96dd739e258E
-   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$17try_new_uninit_in17h6759d7ba10d5ba43E
-   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$13new_uninit_in17h260109ca4b3e612dE
-   fun:_ZN5alloc11collections5btree4node21LeafNode$LT$K$C$V$GT$3new17h86b51fd5a219463bE
-   fun:new_leaf<signal_hook_registry::ActionId, alloc::sync::Arc<(dyn core::ops::function::Fn<(&libc::unix::linux_like::linux::gnu::b64::x86_64::siginfo_t), Output=()> + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, alloc::alloc::Global>
-   fun:_ZN5alloc11collections5btree4node127NodeRef$LT$alloc..collections..btree..node..marker..Owned$C$K$C$V$C$alloc..collections..btree..node..marker..LeafOrInternal$GT$3new17h8fe975488d8a2df4E
-   fun:_ZN96_$LT$alloc..collections..btree..map..BTreeMap$LT$K$C$V$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone13clone_subtree17hb080ddcaaa9ec9e3E
-   fun:_ZN96_$LT$alloc..collections..btree..map..BTreeMap$LT$K$C$V$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h15f5c3c936f663a0E
-   fun:_ZN65_$LT$signal_hook_registry..Slot$u20$as$u20$core..clone..Clone$GT$5clone17h6a0a80bf64113f0bE
-   fun:_ZN4core5clone5Clone5clone17hd6bbe3528e41f641E
-}
-{
-   scuffle_signal bootstrap::tests::bootstrap_service_force_shutdown
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17ha5a864a4fce41f56E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17hf10fc6e642449c69E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h9813d96dd739e258E
-   fun:do_alloc<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17hc27f57a0ea16e1e4E
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$17new_uninitialized17hcf915499f36cd74eE
-   fun:_ZN76_$LT$hashbrown..raw..RawTable$LT$T$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h1a0c72faff4d490dE
-   fun:_ZN83_$LT$hashbrown..map..HashMap$LT$K$C$V$C$S$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h7801c64f2899fd40E
-   fun:_ZN92_$LT$std..collections..hash..map..HashMap$LT$K$C$V$C$S$GT$$u20$as$u20$core..clone..Clone$GT$5clone17hbd1736b76ad32867E
-   fun:_ZN71_$LT$signal_hook_registry..SignalData$u20$as$u20$core..clone..Clone$GT$5clone17h107a282a7ca4d7abE
-   fun:_ZN20signal_hook_registry23register_unchecked_impl17h26f4cd8d8ec033a0E
-   fun:_ZN20signal_hook_registry23register_sigaction_impl17hd971822dbb4b749dE
-}
-{
-   scuffle_settings tests::templates
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h9efadf1d56f3d709E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h1c764e3bb2e41008E
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17hfa8edd5bc484252aE
-   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17hca7bb46c7dd11fb0E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17hcb64cf095b460eadE
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17h756200a88628ad6bE
-   fun:_ZN3std4sync4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h79185514c1dd17c5E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once15call_once_force17h36dc41b652020d12E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hb3c93fa49dbf5be2E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hb65f2020e2873bedE
-}
-{
-   scuffle_settings tests::templates
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h9efadf1d56f3d709E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h1c764e3bb2e41008E
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17hfa8edd5bc484252aE
-   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17hca7bb46c7dd11fb0E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17hcb64cf095b460eadE
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17h756200a88628ad6bE
-   fun:_ZN3std4sync4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h79185514c1dd17c5E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once15call_once_force17h36dc41b652020d12E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hb3c93fa49dbf5be2E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hb65f2020e2873bedE
-}
-{
-   scuffle_settings tests::templates
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h9efadf1d56f3d709E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h1c764e3bb2e41008E
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17hfa8edd5bc484252aE
-   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17hca7bb46c7dd11fb0E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17hcb64cf095b460eadE
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17h756200a88628ad6bE
-   fun:_ZN3std4sync4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h79185514c1dd17c5E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once15call_once_force17h36dc41b652020d12E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hb3c93fa49dbf5be2E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hb65f2020e2873bedE
-}
-{
-   scuffle_settings tests::templates
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h9efadf1d56f3d709E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h1c764e3bb2e41008E
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17hfa8edd5bc484252aE
-   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17hca7bb46c7dd11fb0E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17hcb64cf095b460eadE
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17h756200a88628ad6bE
-   fun:_ZN3std4sync4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h79185514c1dd17c5E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once15call_once_force17h36dc41b652020d12E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hb3c93fa49dbf5be2E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hb65f2020e2873bedE
-}
-{
-   scuffle_settings tests::templates
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h9efadf1d56f3d709E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h1c764e3bb2e41008E
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17hfa8edd5bc484252aE
-   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17hca7bb46c7dd11fb0E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17hcb64cf095b460eadE
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17h756200a88628ad6bE
-   fun:_ZN3std4sync4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h79185514c1dd17c5E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once15call_once_force17h36dc41b652020d12E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hb3c93fa49dbf5be2E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hb65f2020e2873bedE
-}
-{
-   scuffle_settings tests::templates
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h9efadf1d56f3d709E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h1c764e3bb2e41008E
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17hfa8edd5bc484252aE
-   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17hca7bb46c7dd11fb0E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$11get_or_init28_$u7b$$u7b$closure$u7d$$u7d$17hcb64cf095b460eadE
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize28_$u7b$$u7b$closure$u7d$$u7d$17h756200a88628ad6bE
-   fun:_ZN3std4sync4once4Once15call_once_force28_$u7b$$u7b$closure$u7d$$u7d$17h79185514c1dd17c5E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once15call_once_force17h36dc41b652020d12E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$10initialize17hb3c93fa49dbf5be2E
-   fun:_ZN3std4sync9once_lock17OnceLock$LT$T$GT$15get_or_try_init17hb65f2020e2873bedE
-}
-{
-   scuffle_settings tests::templates
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17h659e5a174aab269bE
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h6a6ffd802f13e6d8E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17haae7c2188b31cc4dE
-   fun:do_alloc<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17h7d14039d991138d3E
-   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h05bd1ef6c8be8cb7E
-   fun:prepare_resize<alloc::alloc::Global>
-   fun:resize_inner<alloc::alloc::Global>
-   fun:reserve_rehash_inner<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17h3d500e974eeda5b1E
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17hb4d8e086f0fd2fadE
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$24find_or_find_insert_slot17h220307051d59733dE
-   fun:find_or_find_insert_slot<config::file::format::FileFormat, alloc::vec::Vec<&str, alloc::alloc::Global>, std::hash::random::RandomState, alloc::alloc::Global, config::file::format::FileFormat>
-   fun:_ZN9hashbrown3map28HashMap$LT$K$C$V$C$S$C$A$GT$6insert17h67d7e0139b669be5E
-   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$6insert17h055a42a3ed4dde75E
-   fun:_ZN6config4file6format14all_extensions28_$u7b$$u7b$closure$u7d$$u7d$17hca7bb46c7dd11fb0E
-}
-{
-   scuffle_signal bootstrap::tests::bootstrap_service_no_signals
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17ha082a64b4542f6a0E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h5e4e5a2dfa79547bE
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17h8c5c9f4d103e4c31E
-   fun:new<alloc::sync::ArcInner<signal_hook_registry::register::{closure_env#0}<tokio::signal::unix::signal_enable::{closure#0}::{closure_env#0}>>>
-   fun:new<signal_hook_registry::register::{closure_env#0}<tokio::signal::unix::signal_enable::{closure#0}::{closure_env#0}>>
-   fun:_ZN74_$LT$alloc..sync..Arc$LT$T$GT$$u20$as$u20$core..convert..From$LT$T$GT$$GT$4from17h6f8611b3f0de53e8E
-   fun:_ZN20signal_hook_registry23register_unchecked_impl17h26f4cd8d8ec033a0E
-   fun:_ZN20signal_hook_registry23register_sigaction_impl17hd971822dbb4b749dE
-   fun:_ZN20signal_hook_registry8register17h7271c2ae3303e00aE
-   fun:_ZN5tokio6signal4unix13signal_enable28_$u7b$$u7b$closure$u7d$$u7d$17heb2d245a2c6eda51E
-   fun:_ZN3std4sync4once4Once9call_once28_$u7b$$u7b$closure$u7d$$u7d$17h22444be751c1cbf6E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once9call_once17h09401db605971aebE
-}
-{
-   scuffle_signal bootstrap::tests::bootstrap_service_no_signals
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17ha5a864a4fce41f56E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17hf10fc6e642449c69E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h9813d96dd739e258E
-   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$17try_new_uninit_in17h6759d7ba10d5ba43E
-   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$13new_uninit_in17h260109ca4b3e612dE
-   fun:_ZN5alloc11collections5btree4node21LeafNode$LT$K$C$V$GT$3new17h86b51fd5a219463bE
-   fun:new_leaf<signal_hook_registry::ActionId, alloc::sync::Arc<(dyn core::ops::function::Fn<(&libc::unix::linux_like::linux::gnu::b64::x86_64::siginfo_t), Output=()> + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, alloc::alloc::Global>
-   fun:_ZN5alloc11collections5btree3map5entry28VacantEntry$LT$K$C$V$C$A$GT$6insert17h268c3de8af529eb4E
-   fun:_ZN5alloc11collections5btree3map25BTreeMap$LT$K$C$V$C$A$GT$6insert17hfcdc194dde6e0d52E
-   fun:_ZN20signal_hook_registry23register_unchecked_impl17h26f4cd8d8ec033a0E
-   fun:_ZN20signal_hook_registry23register_sigaction_impl17hd971822dbb4b749dE
-   fun:_ZN20signal_hook_registry8register17h7271c2ae3303e00aE
-}
-{
-   scuffle_signal bootstrap::tests::bootstrap_service_no_signals
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17ha5a864a4fce41f56E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17hf10fc6e642449c69E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h9813d96dd739e258E
-   fun:do_alloc<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17hc27f57a0ea16e1e4E
-   fun:_ZN9hashbrown3raw13RawTableInner22fallible_with_capacity17h25e50a2e8ff87565E
-   fun:prepare_resize<alloc::alloc::Global>
-   fun:resize_inner<alloc::alloc::Global>
-   fun:reserve_rehash_inner<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$14reserve_rehash17ha5d3b37256fdb976E
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$7reserve17h14dd6dd7d971ae74E
-   fun:reserve<i32, signal_hook_registry::Slot, std::hash::random::RandomState, alloc::alloc::Global>
-   fun:_ZN9hashbrown11rustc_entry62_$LT$impl$u20$hashbrown..map..HashMap$LT$K$C$V$C$S$C$A$GT$$GT$11rustc_entry17h6a8b91f3d98c9dacE
-   fun:_ZN3std11collections4hash3map24HashMap$LT$K$C$V$C$S$GT$5entry17hfeba9987c2079d69E
-   fun:_ZN20signal_hook_registry23register_unchecked_impl17h26f4cd8d8ec033a0E
-   fun:_ZN20signal_hook_registry23register_sigaction_impl17hd971822dbb4b749dE
-}
-{
-   scuffle_signal bootstrap::tests::bootstrap_service_no_timeout
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17ha082a64b4542f6a0E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h5e4e5a2dfa79547bE
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17h8c5c9f4d103e4c31E
-   fun:new<alloc::sync::ArcInner<signal_hook_registry::register::{closure_env#0}<tokio::signal::unix::signal_enable::{closure#0}::{closure_env#0}>>>
-   fun:new<signal_hook_registry::register::{closure_env#0}<tokio::signal::unix::signal_enable::{closure#0}::{closure_env#0}>>
-   fun:_ZN74_$LT$alloc..sync..Arc$LT$T$GT$$u20$as$u20$core..convert..From$LT$T$GT$$GT$4from17h6f8611b3f0de53e8E
-   fun:_ZN20signal_hook_registry23register_unchecked_impl17h26f4cd8d8ec033a0E
-   fun:_ZN20signal_hook_registry23register_sigaction_impl17hd971822dbb4b749dE
-   fun:_ZN20signal_hook_registry8register17h7271c2ae3303e00aE
-   fun:_ZN5tokio6signal4unix13signal_enable28_$u7b$$u7b$closure$u7d$$u7d$17heb2d245a2c6eda51E
-   fun:_ZN3std4sync4once4Once9call_once28_$u7b$$u7b$closure$u7d$$u7d$17h22444be751c1cbf6E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once9call_once17h09401db605971aebE
-}
-{
-   scuffle_signal bootstrap::tests::bootstrap_service_no_timeout
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17ha5a864a4fce41f56E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17hf10fc6e642449c69E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h9813d96dd739e258E
-   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$17try_new_uninit_in17h6759d7ba10d5ba43E
-   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$13new_uninit_in17h260109ca4b3e612dE
-   fun:_ZN5alloc11collections5btree4node21LeafNode$LT$K$C$V$GT$3new17h86b51fd5a219463bE
-   fun:new_leaf<signal_hook_registry::ActionId, alloc::sync::Arc<(dyn core::ops::function::Fn<(&libc::unix::linux_like::linux::gnu::b64::x86_64::siginfo_t), Output=()> + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, alloc::alloc::Global>
-   fun:_ZN5alloc11collections5btree3map5entry28VacantEntry$LT$K$C$V$C$A$GT$6insert17h268c3de8af529eb4E
-   fun:_ZN5alloc11collections5btree3map25BTreeMap$LT$K$C$V$C$A$GT$6insert17hfcdc194dde6e0d52E
-   fun:_ZN20signal_hook_registry23register_unchecked_impl17h26f4cd8d8ec033a0E
-   fun:_ZN20signal_hook_registry23register_sigaction_impl17hd971822dbb4b749dE
-   fun:_ZN20signal_hook_registry8register17h7271c2ae3303e00aE
-}
-{
-   scuffle_signal bootstrap::tests::bootstrap_service_no_timeout
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17ha5a864a4fce41f56E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17hf10fc6e642449c69E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h9813d96dd739e258E
-   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$17try_new_uninit_in17h6759d7ba10d5ba43E
-   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$13new_uninit_in17h260109ca4b3e612dE
-   fun:_ZN5alloc11collections5btree4node21LeafNode$LT$K$C$V$GT$3new17h86b51fd5a219463bE
-   fun:new_leaf<signal_hook_registry::ActionId, alloc::sync::Arc<(dyn core::ops::function::Fn<(&libc::unix::linux_like::linux::gnu::b64::x86_64::siginfo_t), Output=()> + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, alloc::alloc::Global>
-   fun:_ZN5alloc11collections5btree4node127NodeRef$LT$alloc..collections..btree..node..marker..Owned$C$K$C$V$C$alloc..collections..btree..node..marker..LeafOrInternal$GT$3new17h8fe975488d8a2df4E
-   fun:_ZN96_$LT$alloc..collections..btree..map..BTreeMap$LT$K$C$V$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone13clone_subtree17hb080ddcaaa9ec9e3E
-   fun:_ZN96_$LT$alloc..collections..btree..map..BTreeMap$LT$K$C$V$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h15f5c3c936f663a0E
-   fun:_ZN65_$LT$signal_hook_registry..Slot$u20$as$u20$core..clone..Clone$GT$5clone17h6a0a80bf64113f0bE
-   fun:_ZN4core5clone5Clone5clone17hd6bbe3528e41f641E
-}
-{
-   scuffle_signal bootstrap::tests::bootstrap_service_no_timeout
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17ha5a864a4fce41f56E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17hf10fc6e642449c69E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h9813d96dd739e258E
-   fun:do_alloc<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17hc27f57a0ea16e1e4E
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$17new_uninitialized17hcf915499f36cd74eE
-   fun:_ZN76_$LT$hashbrown..raw..RawTable$LT$T$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h1a0c72faff4d490dE
-   fun:_ZN83_$LT$hashbrown..map..HashMap$LT$K$C$V$C$S$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h7801c64f2899fd40E
-   fun:_ZN92_$LT$std..collections..hash..map..HashMap$LT$K$C$V$C$S$GT$$u20$as$u20$core..clone..Clone$GT$5clone17hbd1736b76ad32867E
-   fun:_ZN71_$LT$signal_hook_registry..SignalData$u20$as$u20$core..clone..Clone$GT$5clone17h107a282a7ca4d7abE
-   fun:_ZN20signal_hook_registry23register_unchecked_impl17h26f4cd8d8ec033a0E
-   fun:_ZN20signal_hook_registry23register_sigaction_impl17hd971822dbb4b749dE
-}
-{
-   scuffle_signal bootstrap::tests::bootstrap_service_timeout_force_shutdown
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17ha082a64b4542f6a0E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h5e4e5a2dfa79547bE
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17h8c5c9f4d103e4c31E
-   fun:new<alloc::sync::ArcInner<signal_hook_registry::register::{closure_env#0}<tokio::signal::unix::signal_enable::{closure#0}::{closure_env#0}>>>
-   fun:new<signal_hook_registry::register::{closure_env#0}<tokio::signal::unix::signal_enable::{closure#0}::{closure_env#0}>>
-   fun:_ZN74_$LT$alloc..sync..Arc$LT$T$GT$$u20$as$u20$core..convert..From$LT$T$GT$$GT$4from17h6f8611b3f0de53e8E
-   fun:_ZN20signal_hook_registry23register_unchecked_impl17h26f4cd8d8ec033a0E
-   fun:_ZN20signal_hook_registry23register_sigaction_impl17hd971822dbb4b749dE
-   fun:_ZN20signal_hook_registry8register17h7271c2ae3303e00aE
-   fun:_ZN5tokio6signal4unix13signal_enable28_$u7b$$u7b$closure$u7d$$u7d$17heb2d245a2c6eda51E
-   fun:_ZN3std4sync4once4Once9call_once28_$u7b$$u7b$closure$u7d$$u7d$17h22444be751c1cbf6E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once9call_once17h09401db605971aebE
-}
-{
-   scuffle_signal bootstrap::tests::bootstrap_service_timeout_force_shutdown
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17ha5a864a4fce41f56E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17hf10fc6e642449c69E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h9813d96dd739e258E
-   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$17try_new_uninit_in17h6759d7ba10d5ba43E
-   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$13new_uninit_in17h260109ca4b3e612dE
-   fun:_ZN5alloc11collections5btree4node21LeafNode$LT$K$C$V$GT$3new17h86b51fd5a219463bE
-   fun:new_leaf<signal_hook_registry::ActionId, alloc::sync::Arc<(dyn core::ops::function::Fn<(&libc::unix::linux_like::linux::gnu::b64::x86_64::siginfo_t), Output=()> + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, alloc::alloc::Global>
-   fun:_ZN5alloc11collections5btree3map5entry28VacantEntry$LT$K$C$V$C$A$GT$6insert17h268c3de8af529eb4E
-   fun:_ZN5alloc11collections5btree3map25BTreeMap$LT$K$C$V$C$A$GT$6insert17hfcdc194dde6e0d52E
-   fun:_ZN20signal_hook_registry23register_unchecked_impl17h26f4cd8d8ec033a0E
-   fun:_ZN20signal_hook_registry23register_sigaction_impl17hd971822dbb4b749dE
-   fun:_ZN20signal_hook_registry8register17h7271c2ae3303e00aE
-}
-{
-   scuffle_signal bootstrap::tests::bootstrap_service_timeout_force_shutdown
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17ha5a864a4fce41f56E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17hf10fc6e642449c69E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h9813d96dd739e258E
-   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$17try_new_uninit_in17h6759d7ba10d5ba43E
-   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$13new_uninit_in17h260109ca4b3e612dE
-   fun:_ZN5alloc11collections5btree4node21LeafNode$LT$K$C$V$GT$3new17h86b51fd5a219463bE
-   fun:new_leaf<signal_hook_registry::ActionId, alloc::sync::Arc<(dyn core::ops::function::Fn<(&libc::unix::linux_like::linux::gnu::b64::x86_64::siginfo_t), Output=()> + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, alloc::alloc::Global>
-   fun:_ZN5alloc11collections5btree4node127NodeRef$LT$alloc..collections..btree..node..marker..Owned$C$K$C$V$C$alloc..collections..btree..node..marker..LeafOrInternal$GT$3new17h8fe975488d8a2df4E
-   fun:_ZN96_$LT$alloc..collections..btree..map..BTreeMap$LT$K$C$V$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone13clone_subtree17hb080ddcaaa9ec9e3E
-   fun:_ZN96_$LT$alloc..collections..btree..map..BTreeMap$LT$K$C$V$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h15f5c3c936f663a0E
-   fun:_ZN65_$LT$signal_hook_registry..Slot$u20$as$u20$core..clone..Clone$GT$5clone17h6a0a80bf64113f0bE
-   fun:_ZN4core5clone5Clone5clone17hd6bbe3528e41f641E
-}
-{
-   scuffle_signal bootstrap::tests::bootstrap_service_timeout_force_shutdown
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17ha5a864a4fce41f56E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17hf10fc6e642449c69E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h9813d96dd739e258E
-   fun:do_alloc<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17hc27f57a0ea16e1e4E
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$17new_uninitialized17hcf915499f36cd74eE
-   fun:_ZN76_$LT$hashbrown..raw..RawTable$LT$T$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h1a0c72faff4d490dE
-   fun:_ZN83_$LT$hashbrown..map..HashMap$LT$K$C$V$C$S$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h7801c64f2899fd40E
-   fun:_ZN92_$LT$std..collections..hash..map..HashMap$LT$K$C$V$C$S$GT$$u20$as$u20$core..clone..Clone$GT$5clone17hbd1736b76ad32867E
-   fun:_ZN71_$LT$signal_hook_registry..SignalData$u20$as$u20$core..clone..Clone$GT$5clone17h107a282a7ca4d7abE
-   fun:_ZN20signal_hook_registry23register_unchecked_impl17h26f4cd8d8ec033a0E
-   fun:_ZN20signal_hook_registry23register_sigaction_impl17hd971822dbb4b749dE
-}
-{
-   scuffle_signal bootstrap::tests::default_bootstrap_service
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17ha082a64b4542f6a0E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17h5e4e5a2dfa79547bE
-   fun:allocate
-   fun:_ZN5alloc5alloc15exchange_malloc17h8c5c9f4d103e4c31E
-   fun:new<alloc::sync::ArcInner<signal_hook_registry::register::{closure_env#0}<tokio::signal::unix::signal_enable::{closure#0}::{closure_env#0}>>>
-   fun:new<signal_hook_registry::register::{closure_env#0}<tokio::signal::unix::signal_enable::{closure#0}::{closure_env#0}>>
-   fun:_ZN74_$LT$alloc..sync..Arc$LT$T$GT$$u20$as$u20$core..convert..From$LT$T$GT$$GT$4from17h6f8611b3f0de53e8E
-   fun:_ZN20signal_hook_registry23register_unchecked_impl17h26f4cd8d8ec033a0E
-   fun:_ZN20signal_hook_registry23register_sigaction_impl17hd971822dbb4b749dE
-   fun:_ZN20signal_hook_registry8register17h7271c2ae3303e00aE
-   fun:_ZN5tokio6signal4unix13signal_enable28_$u7b$$u7b$closure$u7d$$u7d$17heb2d245a2c6eda51E
-   fun:_ZN3std4sync4once4Once9call_once28_$u7b$$u7b$closure$u7d$$u7d$17h22444be751c1cbf6E
-   fun:_ZN3std3sys4sync4once5futex4Once4call17h145fbd026d17cf56E
-   fun:_ZN3std4sync4once4Once9call_once17h09401db605971aebE
-}
-{
-   scuffle_signal bootstrap::tests::default_bootstrap_service
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17ha5a864a4fce41f56E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17hf10fc6e642449c69E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h9813d96dd739e258E
-   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$17try_new_uninit_in17h6759d7ba10d5ba43E
-   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$13new_uninit_in17h260109ca4b3e612dE
-   fun:_ZN5alloc11collections5btree4node21LeafNode$LT$K$C$V$GT$3new17h86b51fd5a219463bE
-   fun:new_leaf<signal_hook_registry::ActionId, alloc::sync::Arc<(dyn core::ops::function::Fn<(&libc::unix::linux_like::linux::gnu::b64::x86_64::siginfo_t), Output=()> + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, alloc::alloc::Global>
-   fun:_ZN5alloc11collections5btree3map5entry28VacantEntry$LT$K$C$V$C$A$GT$6insert17h268c3de8af529eb4E
-   fun:_ZN5alloc11collections5btree3map25BTreeMap$LT$K$C$V$C$A$GT$6insert17hfcdc194dde6e0d52E
-   fun:_ZN20signal_hook_registry23register_unchecked_impl17h26f4cd8d8ec033a0E
-   fun:_ZN20signal_hook_registry23register_sigaction_impl17hd971822dbb4b749dE
-   fun:_ZN20signal_hook_registry8register17h7271c2ae3303e00aE
-}
-{
-   scuffle_signal bootstrap::tests::default_bootstrap_service
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17ha5a864a4fce41f56E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17hf10fc6e642449c69E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h9813d96dd739e258E
-   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$17try_new_uninit_in17h6759d7ba10d5ba43E
-   fun:_ZN5alloc5boxed16Box$LT$T$C$A$GT$13new_uninit_in17h260109ca4b3e612dE
-   fun:_ZN5alloc11collections5btree4node21LeafNode$LT$K$C$V$GT$3new17h86b51fd5a219463bE
-   fun:new_leaf<signal_hook_registry::ActionId, alloc::sync::Arc<(dyn core::ops::function::Fn<(&libc::unix::linux_like::linux::gnu::b64::x86_64::siginfo_t), Output=()> + core::marker::Send + core::marker::Sync), alloc::alloc::Global>, alloc::alloc::Global>
-   fun:_ZN5alloc11collections5btree4node127NodeRef$LT$alloc..collections..btree..node..marker..Owned$C$K$C$V$C$alloc..collections..btree..node..marker..LeafOrInternal$GT$3new17h8fe975488d8a2df4E
-   fun:_ZN96_$LT$alloc..collections..btree..map..BTreeMap$LT$K$C$V$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone13clone_subtree17hb080ddcaaa9ec9e3E
-   fun:_ZN96_$LT$alloc..collections..btree..map..BTreeMap$LT$K$C$V$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h15f5c3c936f663a0E
-   fun:_ZN65_$LT$signal_hook_registry..Slot$u20$as$u20$core..clone..Clone$GT$5clone17h6a0a80bf64113f0bE
-   fun:_ZN4core5clone5Clone5clone17hd6bbe3528e41f641E
-}
-{
-   scuffle_signal bootstrap::tests::default_bootstrap_service
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:malloc
-   fun:_ZN5alloc5alloc5alloc17ha5a864a4fce41f56E
-   fun:_ZN5alloc5alloc6Global10alloc_impl17hf10fc6e642449c69E
-   fun:_ZN63_$LT$alloc..alloc..Global$u20$as$u20$core..alloc..Allocator$GT$8allocate17h9813d96dd739e258E
-   fun:do_alloc<alloc::alloc::Global>
-   fun:_ZN9hashbrown3raw13RawTableInner17new_uninitialized17hc27f57a0ea16e1e4E
-   fun:_ZN9hashbrown3raw21RawTable$LT$T$C$A$GT$17new_uninitialized17hcf915499f36cd74eE
-   fun:_ZN76_$LT$hashbrown..raw..RawTable$LT$T$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h1a0c72faff4d490dE
-   fun:_ZN83_$LT$hashbrown..map..HashMap$LT$K$C$V$C$S$C$A$GT$$u20$as$u20$core..clone..Clone$GT$5clone17h7801c64f2899fd40E
-   fun:_ZN92_$LT$std..collections..hash..map..HashMap$LT$K$C$V$C$S$GT$$u20$as$u20$core..clone..Clone$GT$5clone17hbd1736b76ad32867E
-   fun:_ZN71_$LT$signal_hook_registry..SignalData$u20$as$u20$core..clone..Clone$GT$5clone17h107a282a7ca4d7abE
-   fun:_ZN20signal_hook_registry23register_unchecked_impl17h26f4cd8d8ec033a0E
-   fun:_ZN20signal_hook_registry23register_sigaction_impl17hd971822dbb4b749dE
+   ...
+   fun:_ZN5tokio7runtime8blocking4pool7Spawner10spawn_task*
+   ...
 }
