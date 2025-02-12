@@ -5,22 +5,33 @@ use anyhow::Context;
 #[derive(Debug, Clone, serde_derive::Deserialize)]
 #[serde(default)]
 pub struct XTaskMetadata {
+    /// Allows you to provide a list of combinations that should be skipped.
+    /// Meaning, that these combinations will not be tested on supersets.
     #[serde(alias = "skip-feature-sets")]
     pub skip_feature_sets: BTreeSet<BTreeSet<String>>,
+    /// Allows you to skip optional dependencies.
     #[serde(alias = "skip-optional-dependencies")]
     pub skip_optional_dependencies: bool,
+    /// Allows you to provide a list of extra features that should be tested.
     #[serde(alias = "extra-features")]
     pub extra_features: BTreeSet<String>,
+    /// Allows you to provide a list of features that should be denied.
     #[serde(alias = "deny-list")]
     pub deny_list: BTreeSet<String>,
+    /// Allows you to provide a list of features that should be always included.
     #[serde(alias = "always-include-features")]
     pub always_include_features: BTreeSet<String>,
+    /// Allows you to provide the maximum number of features that should be tested.
     #[serde(alias = "max-combination-size")]
     pub max_combination_size: Option<usize>,
+    /// Allows you to provide a list of features that should be allowed.
     #[serde(alias = "allow-list")]
     pub allow_list: BTreeSet<String>,
+    /// A set of features that are considered strictly additive meaning that they only
+    /// add new functionality and do not change the behavior of the crate.
     #[serde(alias = "additive-features")]
     pub additive_features: BTreeSet<String>,
+    /// Whether to skip the power set.
     pub skip: bool,
 }
 
