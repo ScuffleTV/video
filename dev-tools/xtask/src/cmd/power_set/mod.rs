@@ -4,8 +4,10 @@ use anyhow::Context;
 
 mod utils;
 
-use crate::{cmd::IGNORED_PACKAGES, utils::{cargo_cmd, comma_delimited}};
 use utils::{parse_features, test_package_features, XTaskMetadata};
+
+use crate::cmd::IGNORED_PACKAGES;
+use crate::utils::{cargo_cmd, comma_delimited};
 
 #[derive(Debug, Clone, clap::Parser)]
 pub struct PowerSet {
