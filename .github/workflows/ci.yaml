@@ -38,7 +38,7 @@ jobs:
           components: clippy
           shared-key: clippy
           tools: just,cargo-hakari
-          cache-action: WarpBuilds/rust-cache@v2
+          cache-backend: warp
 
       - name: Disable Hakari
         if: ${{ github.event_name == 'push' }}
@@ -117,7 +117,7 @@ jobs:
           tools: cargo-nextest,cargo-llvm-cov
           components: llvm-tools-preview
           shared-key: test
-          cache-action: WarpBuilds/rust-cache@v2
+          cache-backend: warp
 
       # Note; we don't run the powerset here because it's very slow on CI
       # Perhaps we should consider it at some point.
@@ -176,7 +176,7 @@ jobs:
           tools: cargo-nextest,cargo-llvm-cov
           components: llvm-tools-preview
           shared-key: grind
-          cache-action: WarpBuilds/rust-cache@v2
+          cache-backend: warp
 
       - name: Install Valgrind
         run: |
@@ -210,7 +210,7 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           components: rust-docs
           shared-key: docs
-          cache-action: WarpBuilds/rust-cache@v2
+          cache-backend: warp
 
       - name: Build docs
         run: |

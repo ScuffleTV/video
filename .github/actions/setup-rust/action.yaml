@@ -14,10 +14,10 @@ inputs:
   tools:
     description: "The tools to install"
     required: false
-  cache-action:
-    description: "The action to use for the cache"
+  cache-backend:
+    description: "The backend to use for the cache"
     required: false
-    default: "Swatinem/rust-cache@v2"
+    default: github
 runs:
   using: "composite"
   steps:
@@ -27,8 +27,14 @@ runs:
         toolchain: ${{ inputs.toolchain }}
         components: ${{ inputs.components }}
 
-    - uses: ${{ inputs.cache-action }}
-      if: ${{ inputs.shared-key }}
+    - uses: Swatinem/rust-cache@v2
+      if: ${{ inputs.shared-key && inputs.cache-backend == 'github' }}
+      with:
+        prefix-key: "v0-rust-${{ steps.setup-rust.outputs.cachekey }}"
+        shared-key: ${{ inputs.shared-key }}
+
+    - uses: WarpBuilds/rust-cache@v2
+      if: ${{ inputs.shared-key && inputs.cache-backend == 'warp' }}
       with:
         prefix-key: "v0-rust-${{ steps.setup-rust.outputs.cachekey }}"
         shared-key: ${{ inputs.shared-key }}
