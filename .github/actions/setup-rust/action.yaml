@@ -14,6 +14,10 @@ inputs:
   tools:
     description: "The tools to install"
     required: false
+  cache-action:
+    description: "The action to use for the cache"
+    required: false
+    default: "Swatinem/rust-cache@v2"
 runs:
   using: "composite"
   steps:
@@ -23,7 +27,7 @@ runs:
         toolchain: ${{ inputs.toolchain }}
         components: ${{ inputs.components }}
 
-    - uses: Swatinem/rust-cache@v2
+    - uses: ${{ inputs.cache-action }}
       if: ${{ inputs.shared-key }}
       with:
         prefix-key: "v0-rust-${{ steps.setup-rust.outputs.cachekey }}"
