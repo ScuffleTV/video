@@ -37,7 +37,7 @@ extended-numbers = []
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
-[package.metadata.xtask]
+[package.metadata.xtask.powerset]
 additive-features = [
     "prometheus",
     "tracing",

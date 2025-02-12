@@ -14,7 +14,6 @@ keywords = ["transmuxer", "media", "streaming"]
 byteorder = "1.5"
 bytes = "1.5"
 
-
 scuffle-h264.workspace = true
 scuffle-h265.workspace = true
 scuffle-mp4.workspace = true
