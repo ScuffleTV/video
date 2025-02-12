@@ -2,8 +2,12 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use anyhow::Context;
 
+mod utils;
+
+use utils::{parse_features, test_package_features, XTaskMetadata};
+
 use crate::cmd::IGNORED_PACKAGES;
-use crate::utils::{cargo_cmd, comma_delimited, parse_features, test_package_features, XTaskMetadata};
+use crate::utils::{cargo_cmd, comma_delimited};
 
 #[derive(Debug, Clone, clap::Parser)]
 pub struct PowerSet {

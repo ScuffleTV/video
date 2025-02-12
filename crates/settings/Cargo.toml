@@ -40,7 +40,7 @@ all-formats = ["toml", "json", "yaml", "json5", "ini", "ron"]
 full = ["all-formats", "templates", "cli", "bootstrap"]
 bootstrap = ["scuffle-bootstrap", "anyhow", "cli"]
 
-[package.metadata.xtask]
+[package.metadata.xtask.powerset]
 additive-features = [
     "cli",
     "ron",

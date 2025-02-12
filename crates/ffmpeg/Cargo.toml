@@ -45,7 +45,7 @@ tracing = ["dep:tracing"]
 static = ["ffmpeg-sys-next/static"]
 build = ["ffmpeg-sys-next/build", "static"]
 
-[package.metadata.xtask]
+[package.metadata.xtask.powerset]
 # Note: build is not an additive feature because it changes the build.rs and therefore
 # requires a full rebuild of the crate.
 additive-features = [

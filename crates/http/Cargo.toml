@@ -119,7 +119,7 @@ default = [
     "tracing",
 ]
 
-[package.metadata.xtask]
+[package.metadata.xtask.powerset]
 additive-features = [
     "error-backtrace",
     "http1",

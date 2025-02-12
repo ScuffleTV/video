@@ -54,7 +54,7 @@ opentelemetry-logs = ["opentelemetry", "opentelemetry-appender-tracing"]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
-[package.metadata.xtask]
+[package.metadata.xtask.powerset]
 additive-features = [
     "default",
     "prometheus",
