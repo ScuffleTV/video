@@ -6,21 +6,21 @@ use scuffle_amf0::Amf0Value;
 use scuffle_bytes_util::BytesCursorExt;
 use scuffle_future_ext::FutureExt;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::sync::oneshot;
 
 use super::define::RtmpCommand;
 use super::errors::SessionError;
-use crate::channels::{ChannelData, DataProducer, PublishRequest, UniqueID};
+use super::handler::SessionData;
+use super::SessionHandler;
 use crate::chunk::{ChunkDecoder, ChunkEncoder, CHUNK_SIZE};
+use crate::handshake;
 use crate::handshake::{HandshakeServer, ServerHandshakeState};
 use crate::messages::{MessageParser, RtmpMessageData};
 use crate::netconnection::NetConnection;
 use crate::netstream::NetStreamWriter;
 use crate::protocol_control_messages::ProtocolControlMessagesWriter;
 use crate::user_control_messages::EventMessagesWriter;
-use crate::{handshake, PublishProducer};
 
-pub struct Session<S> {
+pub struct Session<S, H> {
     /// When you connect via rtmp, you specify the app name in the url
     /// For example: rtmp://localhost:1935/live/xyz
     /// The app name is "live"
@@ -30,14 +30,12 @@ pub struct Session<S> {
     /// RTMP connection, However we can publish multiple streams per RTMP
     /// connection (using different stream keys) and or play multiple streams
     /// per RTMP connection (using different stream keys) as per the RTMP spec.
-    app_name: Option<String>,
-
-    /// This is a unique id for this session
-    /// This is issued when the client connects to the server
-    uid: Option<UniqueID>,
+    app_name: Option<Box<str>>,
 
     /// Used to read and write data
     io: S,
+
+    handler: H,
 
     /// Buffer to read data into
     read_buf: BytesMut,
@@ -55,44 +53,28 @@ pub struct Session<S> {
     /// This is used to convert rtmp messages into chunks
     chunk_encoder: ChunkEncoder,
 
-    /// StreamID
-    stream_id: u32,
-
-    /// Data Producer
-    data_producer: DataProducer,
-
     /// Is Publishing
-    is_publishing: bool,
-
-    /// when the publisher connects and tries to publish a stream, we need to
-    /// send a publish request to the server
-    publish_request_producer: PublishProducer,
+    publishing_stream_ids: Vec<u32>,
 }
 
-impl<S> Session<S> {
-    pub fn new(io: S, data_producer: DataProducer, publish_request_producer: PublishProducer) -> Self {
+impl<S, H> Session<S, H> {
+    /// Create a new session.
+    pub fn new(io: S, handler: H) -> Self {
         Self {
-            uid: None,
             app_name: None,
             io,
+            handler,
             skip_read: false,
             chunk_decoder: ChunkDecoder::default(),
             chunk_encoder: ChunkEncoder::default(),
             read_buf: BytesMut::new(),
             write_buf: Vec::new(),
-            data_producer,
-            stream_id: 0,
-            is_publishing: false,
-            publish_request_producer,
+            publishing_stream_ids: Vec::new(),
         }
-    }
-
-    pub fn uid(&self) -> Option<UniqueID> {
-        self.uid
     }
 }
 
-impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin> Session<S> {
+impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin, H: SessionHandler> Session<S, H> {
     /// Run the session to completion
     /// The result of the return value will be true if all publishers have
     /// disconnected If any publishers are still connected, the result will be
@@ -131,7 +113,7 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin> Session<S> {
         // However most clients just disconnect without cleanly stopping the subscrition
         // streams (play streams) So we just check that all publishers have disconnected
         // cleanly
-        Ok(!self.is_publishing)
+        Ok(self.publishing_stream_ids.is_empty())
     }
 
     /// This is the first stage of the session
@@ -240,13 +222,17 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin> Session<S> {
                 self.on_set_chunk_size(chunk_size as usize)?;
             }
             RtmpMessageData::AudioData { data } => {
-                self.on_data(stream_id, ChannelData::Audio { timestamp, data }).await?;
+                self.handler
+                    .on_data(stream_id, SessionData::Audio { timestamp, data })
+                    .await?;
             }
             RtmpMessageData::VideoData { data } => {
-                self.on_data(stream_id, ChannelData::Video { timestamp, data }).await?;
+                self.handler
+                    .on_data(stream_id, SessionData::Video { timestamp, data })
+                    .await?;
             }
-            RtmpMessageData::AmfData { data } => {
-                self.on_data(stream_id, ChannelData::Metadata { timestamp, data }).await?;
+            RtmpMessageData::Amf0Data { data } => {
+                self.handler.on_data(stream_id, SessionData::Amf0 { timestamp, data }).await?;
             }
         }
 
@@ -257,25 +243,6 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin> Session<S> {
     async fn send_set_chunk_size(&mut self) -> Result<(), SessionError> {
         ProtocolControlMessagesWriter::write_set_chunk_size(&self.chunk_encoder, &mut self.write_buf, CHUNK_SIZE as u32)?;
         self.chunk_encoder.set_chunk_size(CHUNK_SIZE);
-
-        Ok(())
-    }
-
-    /// on_data is called when we receive a data message from the client (a
-    /// published_stream) Such as audio, video, or metadata
-    /// We then forward the data to the specified publisher
-    async fn on_data(&self, stream_id: u32, data: ChannelData) -> Result<(), SessionError> {
-        if stream_id != self.stream_id || !self.is_publishing {
-            return Err(SessionError::UnknownStreamID(stream_id));
-        };
-
-        if matches!(
-            self.data_producer.send(data).with_timeout(Duration::from_secs(2)).await,
-            Err(_) | Ok(Err(_))
-        ) {
-            tracing::debug!("Publisher dropped");
-            return Err(SessionError::PublisherDropped);
-        }
 
         Ok(())
     }
@@ -371,7 +338,7 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin> Session<S> {
             }
         };
 
-        self.app_name = Some(app_name.to_string());
+        self.app_name = Some(Box::from(app_name.as_ref()));
 
         // The only AMF encoding supported by this server is AMF0
         // So we ignore the objectEncoding value sent by the client
@@ -430,10 +397,10 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin> Session<S> {
             _ => 0.0,
         } as u32;
 
-        if self.stream_id == stream_id && self.is_publishing {
-            self.stream_id = 0;
-            self.is_publishing = false;
-        }
+        self.handler.on_unpublish(stream_id).await?;
+
+        // Remove the stream id from the list of publishing stream ids
+        self.publishing_stream_ids.retain(|id| *id != stream_id);
 
         NetStreamWriter::write_on_status(
             &self.chunk_encoder,
@@ -468,29 +435,11 @@ impl<S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin> Session<S> {
             return Err(SessionError::NoAppName);
         };
 
-        let (response, waiter) = oneshot::channel();
+        self.handler
+            .on_publish(stream_id, app_name.as_ref(), stream_name.as_ref())
+            .await?;
 
-        if self
-            .publish_request_producer
-            .send(PublishRequest {
-                app_name: app_name.clone(),
-                stream_name: stream_name.to_string(),
-                response,
-            })
-            .await
-            .is_err()
-        {
-            return Err(SessionError::PublishRequestDenied);
-        }
-
-        let Ok(uid) = waiter.await else {
-            return Err(SessionError::PublishRequestDenied);
-        };
-
-        self.uid = Some(uid);
-
-        self.is_publishing = true;
-        self.stream_id = stream_id;
+        self.publishing_stream_ids.push(stream_id);
 
         EventMessagesWriter::write_stream_begin(&self.chunk_encoder, &mut self.write_buf, stream_id)?;
 

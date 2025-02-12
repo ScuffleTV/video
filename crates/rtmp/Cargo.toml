@@ -12,7 +12,7 @@ keywords = ["rtmp", "server", "streaming"]
 
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(valgrind)'] }
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)', 'cfg(valgrind)'] }
 
 [dependencies]
 byteorder = "1.5"
@@ -28,6 +28,7 @@ tokio = { version = "1.36", features = ["io-util", "sync"] }
 futures = "0.3"
 async-trait = "0.1"
 tracing = "0.1"
+thiserror = "2.0"
 
 scuffle-amf0.workspace = true
 scuffle-workspace-hack.workspace = true

@@ -1,24 +1,26 @@
-use std::fmt;
-
 use scuffle_amf0::Amf0WriteError;
 
 use crate::chunk::ChunkEncodeError;
-use crate::macros::from_error;
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum NetConnectionError {
-    Amf0Write(Amf0WriteError),
-    ChunkEncode(ChunkEncodeError),
+    #[error("amf0 write error: {0}")]
+    Amf0Write(#[from] Amf0WriteError),
+    #[error("chunk encode error: {0}")]
+    ChunkEncode(#[from] ChunkEncodeError),
 }
 
-from_error!(NetConnectionError, Self::Amf0Write, Amf0WriteError);
-from_error!(NetConnectionError, Self::ChunkEncode, ChunkEncodeError);
+#[cfg(test)]
+#[cfg_attr(all(test, coverage_nightly), coverage(off))]
+mod tests {
+    use super::*;
 
-impl fmt::Display for NetConnectionError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Self::Amf0Write(err) => write!(f, "amf0 write error: {}", err),
-            Self::ChunkEncode(err) => write!(f, "chunk encode error: {}", err),
-        }
+    #[test]
+    fn test_error_display() {
+        let error = NetConnectionError::Amf0Write(Amf0WriteError::NormalStringTooLong);
+        assert_eq!(error.to_string(), "amf0 write error: normal string too long");
+
+        let error = NetConnectionError::ChunkEncode(ChunkEncodeError::UnknownReadState);
+        assert_eq!(error.to_string(), "chunk encode error: unknown read state");
     }
 }
