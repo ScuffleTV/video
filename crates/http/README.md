@@ -28,6 +28,7 @@ This crate aims to fill that gap.
 - `http3`: Enables support for HTTP/3. Disabled by default.
 - `tracing`: Enables logging with [`tracing`](https://crates.io/crates/tracing). Disabled by default.
 - `tls-rustls`: Enables support for TLS with [`rustls`](https://crates.io/crates/rustls). Disabled by default.
+- `http3-tls-rustls`: Enables both `http3` and `tls-rustls` features. Disabled by default.
 
 ## Example
 
