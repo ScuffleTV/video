@@ -22,7 +22,7 @@ env:
 jobs:
   clippy:
     name: Clippy
-    runs-on: ubuntu-24.04
+    runs-on: buildjet-16vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@v4
         with:
@@ -38,6 +38,7 @@ jobs:
           components: clippy
           shared-key: clippy
           tools: just,cargo-hakari
+          cache-backend: buildjet
 
       - name: Disable Hakari
         if: ${{ github.event_name == 'push' }}
@@ -100,7 +101,7 @@ jobs:
 
   test:
     name: Test
-    runs-on: ubuntu-24.04
+    runs-on: buildjet-16vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@v4
         with:
@@ -158,7 +159,7 @@ jobs:
   grind:
     name: Grind
     if: ${{ github.event_name == 'push' }}
-    runs-on: ubuntu-24.04
+    runs-on: buildjet-16vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@v4
         with:
@@ -174,6 +175,7 @@ jobs:
           tools: cargo-nextest,cargo-llvm-cov
           components: llvm-tools-preview
           shared-key: grind
+          cache-backend: buildjet
 
       - name: Install Valgrind
         run: |
@@ -190,7 +192,7 @@ jobs:
 
   docs:
     name: Docs
-    runs-on: ubuntu-24.04
+    runs-on: buildjet-16vcpu-ubuntu-2204
     permissions:
       pull-requests: write
     steps:
@@ -207,6 +209,7 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           components: rust-docs
           shared-key: docs
+          cache-backend: buildjet
 
       - name: Build docs
         run: |
