@@ -36,7 +36,7 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           components: clippy
-          shared-key: clippy
+          shared-key: clippy-${{ github.event_name }}
           tools: just,cargo-hakari
           cache-backend: blacksmith
 
