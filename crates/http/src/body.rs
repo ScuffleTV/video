@@ -1,85 +1,95 @@
+use std::fmt::Debug;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
 use bytes::{Buf, Bytes};
 use http_body::Frame;
 
-#[cfg(feature = "h3")]
-use crate::backend::quic::QuicIncomingBody;
-
-pub struct IncomingBody {
-    inner: IncomingBodyInner,
+/// An error that can occur when reading the body of an incoming request.
+#[derive(thiserror::Error, Debug)]
+pub enum IncomingBodyError {
+    #[error("hyper error: {0}")]
+    #[cfg(any(feature = "http1", feature = "http2"))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "http1", feature = "http2"))))]
+    Hyper(#[from] hyper::Error),
+    #[error("quic error: {0}")]
+    #[cfg(feature = "http3")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
+    Quic(#[from] h3::Error),
 }
 
-impl IncomingBody {
-    #[cfg_attr(not(any(feature = "http3", feature = "http1", feature = "http2")), allow(dead_code))]
-    pub(crate) fn new(inner: impl Into<IncomingBodyInner>) -> Self {
-        Self { inner: inner.into() }
-    }
+/// The body of an incoming request.
+///
+/// This enum is used to abstract away the differences between the body types of HTTP/1, HTTP/2 and HTTP/3.
+/// It implements the [`http_body::Body`] trait.
+pub enum IncomingBody {
+    #[cfg(any(feature = "http1", feature = "http2"))]
+    #[cfg_attr(docsrs, doc(cfg(any(feature = "http1", feature = "http2"))))]
+    Hyper(hyper::body::Incoming),
+    #[cfg(feature = "http3")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
+    Quic(crate::backend::h3::body::QuicIncomingBody<h3_quinn::RecvStream>),
+}
 
-    #[cfg_attr(not(any(feature = "http3", feature = "http1", feature = "http2")), allow(dead_code))]
-    pub(crate) fn empty() -> Self {
-        Self {
-            inner: IncomingBodyInner::Empty,
-        }
+#[cfg(any(feature = "http1", feature = "http2"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "http1", feature = "http2"))))]
+impl From<hyper::body::Incoming> for IncomingBody {
+    fn from(body: hyper::body::Incoming) -> Self {
+        IncomingBody::Hyper(body)
     }
 }
 
-impl std::fmt::Debug for IncomingBody {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("IncomingBody").finish()
+#[cfg(feature = "http3")]
+#[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
+impl From<crate::backend::h3::body::QuicIncomingBody<h3_quinn::RecvStream>> for IncomingBody {
+    fn from(body: crate::backend::h3::body::QuicIncomingBody<h3_quinn::RecvStream>) -> Self {
+        IncomingBody::Quic(body)
     }
-}
-
-#[derive(derive_more::From)]
-pub(crate) enum IncomingBodyInner {
-    #[cfg(feature = "hyper")]
-    Tcp(#[from] hyper::body::Incoming),
-    #[cfg(feature = "h3")]
-    Quic(#[from] QuicIncomingBody),
-    #[cfg_attr(not(any(feature = "http3", feature = "http1", feature = "http2")), allow(dead_code))]
-    Empty,
 }
 
 impl http_body::Body for IncomingBody {
     type Data = Bytes;
-    type Error = crate::Error;
+    type Error = IncomingBodyError;
 
-    fn poll_frame(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Result<Frame<Self::Data>, Self::Error>>> {
-        #[cfg(not(any(feature = "http3", feature = "http1", feature = "http2")))]
-        let _ = cx;
-
-        match &mut self.inner {
-            #[cfg(feature = "hyper")]
-            IncomingBodyInner::Tcp(body) => Pin::new(body).poll_frame(cx).map_err(Into::into),
-            #[cfg(feature = "h3")]
-            IncomingBodyInner::Quic(body) => Pin::new(body).poll_frame(cx).map_err(Into::into),
-            IncomingBodyInner::Empty => Poll::Ready(None),
+    fn is_end_stream(&self) -> bool {
+        match self {
+            #[cfg(any(feature = "http1", feature = "http2"))]
+            IncomingBody::Hyper(body) => body.is_end_stream(),
+            #[cfg(feature = "http3")]
+            IncomingBody::Quic(body) => body.is_end_stream(),
+            #[cfg(not(any(feature = "http1", feature = "http2", feature = "http3")))]
+            _ => false,
         }
     }
 
-    fn is_end_stream(&self) -> bool {
-        match &self.inner {
-            #[cfg(feature = "hyper")]
-            IncomingBodyInner::Tcp(body) => body.is_end_stream(),
-            #[cfg(feature = "h3")]
-            IncomingBodyInner::Quic(body) => body.is_end_stream(),
-            IncomingBodyInner::Empty => true,
+    fn poll_frame(
+        self: std::pin::Pin<&mut Self>,
+        _cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<Result<http_body::Frame<Self::Data>, Self::Error>>> {
+        match self.get_mut() {
+            #[cfg(any(feature = "http1", feature = "http2"))]
+            IncomingBody::Hyper(body) => std::pin::Pin::new(body).poll_frame(_cx).map_err(Into::into),
+            #[cfg(feature = "http3")]
+            IncomingBody::Quic(body) => std::pin::Pin::new(body).poll_frame(_cx).map_err(Into::into),
+            #[cfg(not(any(feature = "http1", feature = "http2", feature = "http3")))]
+            _ => std::task::Poll::Ready(None),
         }
     }
 
     fn size_hint(&self) -> http_body::SizeHint {
-        match &self.inner {
-            #[cfg(feature = "hyper")]
-            IncomingBodyInner::Tcp(body) => body.size_hint(),
-            #[cfg(feature = "h3")]
-            IncomingBodyInner::Quic(body) => body.size_hint(),
-            IncomingBodyInner::Empty => http_body::SizeHint::with_exact(0),
+        match self {
+            #[cfg(any(feature = "http1", feature = "http2"))]
+            IncomingBody::Hyper(body) => body.size_hint(),
+            #[cfg(feature = "http3")]
+            IncomingBody::Quic(body) => body.size_hint(),
+            #[cfg(not(any(feature = "http1", feature = "http2", feature = "http3")))]
+            _ => http_body::SizeHint::default(),
         }
     }
 }
 
 pin_project_lite::pin_project! {
+    /// A wrapper around an HTTP body that tracks the size of the data that is read from it.
     pub struct TrackedBody<B, T> {
         #[pin]
         body: B,
@@ -93,40 +103,70 @@ impl<B, T> TrackedBody<B, T> {
     }
 }
 
-pub trait Tracker: Send + Sync + 'static {
-    type Error: Into<crate::Error> + Send + Sync + 'static;
+/// An error that can occur when tracking the body of an incoming request.
+#[derive(thiserror::Error)]
+pub enum TrackedBodyError<B, T>
+where
+    B: http_body::Body,
+    T: Tracker,
+{
+    #[error("body error: {0}")]
+    Body(B::Error),
+    #[error("tracker error: {0}")]
+    Tracker(T::Error),
+}
 
+impl<B, T> Debug for TrackedBodyError<B, T>
+where
+    B: http_body::Body,
+    B::Error: Debug,
+    T: Tracker,
+    T::Error: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TrackedBodyError::Body(err) => f.debug_tuple("TrackedBodyError::Body").field(err).finish(),
+            TrackedBodyError::Tracker(err) => f.debug_tuple("TrackedBodyError::Tracker").field(err).finish(),
+        }
+    }
+}
+
+/// A trait for tracking the size of the data that is read from an HTTP body.
+pub trait Tracker: Send + Sync + 'static {
+    type Error;
+
+    /// Called when data is read from the body.
+    ///
+    /// The `size` parameter is the size of the data that is remaining to be read from the body.
     fn on_data(&self, size: usize) -> Result<(), Self::Error> {
         let _ = size;
         Ok(())
     }
-
-    fn on_close(&self) {}
 }
 
 impl<B, T> http_body::Body for TrackedBody<B, T>
 where
     B: http_body::Body,
-    B::Error: Into<crate::Error> + Send + Sync + 'static,
     T: Tracker,
 {
     type Data = B::Data;
-    type Error = crate::Error;
+    type Error = TrackedBodyError<B, T>;
 
     fn poll_frame(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Result<Frame<Self::Data>, Self::Error>>> {
         let this = self.project();
+
         match this.body.poll_frame(cx) {
             Poll::Pending => Poll::Pending,
             Poll::Ready(frame) => {
                 if let Some(Ok(frame)) = &frame {
                     if let Some(data) = frame.data_ref() {
                         if let Err(err) = this.tracker.on_data(data.remaining()) {
-                            return Poll::Ready(Some(Err(err.into())));
+                            return Poll::Ready(Some(Err(TrackedBodyError::Tracker(err))));
                         }
                     }
                 }
 
-                Poll::Ready(frame.transpose().map_err(Into::into).transpose())
+                Poll::Ready(frame.transpose().map_err(TrackedBodyError::Body).transpose())
             }
         }
     }
@@ -138,12 +178,4 @@ where
     fn size_hint(&self) -> http_body::SizeHint {
         self.body.size_hint()
     }
-}
-
-#[cfg_attr(not(any(feature = "http3", feature = "http1", feature = "http2")), allow(dead_code))]
-pub(crate) fn has_body(method: &http::Method) -> bool {
-    !matches!(
-        method,
-        &http::Method::GET | &http::Method::HEAD | &http::Method::OPTIONS | &http::Method::CONNECT | &http::Method::TRACE
-    )
 }

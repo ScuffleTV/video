@@ -10,128 +10,69 @@ license = "MIT OR Apache-2.0"
 description = "A high-performance HTTP server supporting HTTP/1.1, HTTP/2, and HTTP/3."
 keywords = ["http", "server", "http1", "http2", "http3"]
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(coverage_nightly)'] }
+
 [dependencies]
-tokio = { version = "1", features = ["net", "sync", "time", "rt"], default-features = false }
-http = { version = "1" }
-http-body = { version = "1" }
-pin-project-lite = { version = "0.2" }
-thiserror = { version = "2.0.0" }
-derive_more = { version = "1.0.0", features = ["debug", "from"] }
-futures = { version = "0.3" }
-bytes = { version = "1" }
-libc = { version = "0.2" }
-httpdate = { version = "1" }
-itoa = { version = "1" }
-smallvec = { version = "1" }
-spin = { version = "0.9" }
-async-trait = { version = "0.1" }
-scuffle-future-ext.workspace = true
-# For extra services features
-tower-service = { version = "0.3", optional = true }
-axum-core = { version = "0.4", optional = true }
-
-# for tls-rustls features
-rustls = { version = "0.23", optional = true }
-# for tls-rustls-pem features
-rustls-pemfile = { version = "2.2", optional = true }
-tokio-rustls = { version = "0.26", optional = true }
-
-# For tracing features
-tracing = { version = "0.1", optional = true }
-
-# For http3 features
-h3 = { version = "0", optional = true }
-scuffle-h3-webtransport = { workspace = true, optional = true }
-
-# For http3-quinn features
-h3-quinn = { version = "0", optional = true }
-quinn = { version = "0.11", optional = true }
-
-hyper = { version = "1.5.1", optional = true, features = ["server"] } # http1, http2
-hyper-util = { version = "0.1.10", optional = true, features = ["server", "tokio"] } # http1, http2
-
+tokio = { version = "1.43.0" }
+thiserror = "2.0.11"
+futures = { version = "0.3.31", default-features = false }
+bon = "3.3.2"
+pin-project-lite = "0.2.16"
 scuffle-context.workspace = true
+
+# HTTP parsing
+http = "1.2.0"
+http-body = "1.0.1"
+bytes = "1.9.0"
+
+# Tracing
+tracing = { version = "0.1.41", optional = true }
+
+# HTTP/1.1, HTTP/2
+hyper = { version = "1.6.0", default-features = false, features = ["server"], optional = true }
+hyper-util = { version = "0.1.10", default-features = false, features = ["server", "tokio"], optional = true }
+libc = { version = "0.2.169", default-features = false, optional = true }
+
+# QUIC + HTTP/3
+quinn = { version = "0.11.6", default-features = false, features = ["platform-verifier", "runtime-tokio", "rustls-ring", "aws-lc-rs"], optional = true }
+h3-quinn = { version = "0.0.7", default-features = false, optional = true }
+h3 = { version = "0.0.6", default-features = false, optional = true }
+
+# TLS
+tokio-rustls = { version = "0.26.1", default-features = false, features = ["aws_lc_rs", "tls12"], optional = true }
+rustls = { version = "0.23.21", default-features = false, features = ["aws_lc_rs", "std", "tls12"], optional = true }
+
+# Tower Services
+tower = { version = "0.5.2", default-features = false, features = ["make"], optional = true }
+
 scuffle-workspace-hack.workspace = true
 
+[dev-dependencies]
+# The http3 feature requires a custom build flag (see .cargo/config.toml)
+reqwest = { version = "0.12.12", default-features = false, features = ["rustls-tls", "http2", "http3"] }
+axum = { version = "0.8.1" }
+rustls-pemfile = "2.2.0"
+tokio-test = "0.4.4"
+scuffle-future-ext.workspace = true
+
+# https://doc.rust-lang.org/cargo/reference/features.html#dependency-features
 [features]
-error-backtrace = []
+default = ["http1", "http2", "tower"]
+tracing = ["dep:tracing", "quinn?/log", "h3-quinn?/tracing", "h3?/tracing", "tokio-rustls?/logging", "rustls?/logging"]
+http1 = ["dep:hyper", "dep:hyper-util", "dep:libc", "hyper/http1", "hyper-util/http1"]
+http2 = ["dep:hyper", "dep:hyper-util", "dep:libc", "hyper/http2", "hyper-util/http2"]
+http3 = ["dep:quinn", "dep:h3-quinn", "dep:h3"]
+tls-rustls = ["dep:tokio-rustls", "dep:rustls"]
+http3-tls-rustls = ["http3", "tls-rustls"]
+tower = ["dep:tower"]
 
-http1 = [
-    "hyper/http1",
-    "hyper-util/http1",
-]
-
-http2 = [
-    "hyper/http2",
-    "hyper-util/http2",
-]
-
-http3 = [
-    "h3",
-    "quic-quinn",
-]
-
-http3-webtransport = [
-    "http3",
-    "quic-quinn",
-    "scuffle-h3-webtransport",
-]
-
-# Quinn is a quic backend for http3
-quic-quinn = [
-    "http3",
-    "h3-quinn",
-    "quinn",
-]
-
-tls-rustls = [
-    "rustls",
-    "tokio-rustls",
-]
-
-tls-rustls-pem = [
-    "tls-rustls",
-    "rustls-pemfile",
-]
-
-tracing = [
-    "dep:tracing",
-]
-
-tower = [
-    "dep:tower-service",
-]
-
-axum = [
-    "dep:axum-core",
-    "tower",
-]
-
-http3-default = [
-    "http3",
-    "quic-quinn",
-    "tls-rustls",
-]
-
-default = [
-    "http1",
-    "http2",
-    "tracing",
-]
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [package.metadata.xtask]
-additive-features = [
-    "error-backtrace",
-    "http1",
-    "http2",
-    "http3",
-    "http3-webtransport",
-    "quic-quinn",
-    "tls-rustls",
-    "tls-rustls-pem",
-    "tracing",
-    "tower",
-    "axum",
-    "http3-default",
-    "default",
+additive-features = ["tracing"]
+skip-feature-sets = [
+    ["http3"]
 ]

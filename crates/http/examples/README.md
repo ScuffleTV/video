@@ -2,11 +2,12 @@
 
 Examples of using the `scuffle-http` crate.
 
-- [tcp](./tcp) - An example of how to use the crate to make a simple HTTP server.
+- [axum](./src/axum.rs) - Example of creating a cpu profile.
+- [simple_service](./src/simple_service.rs) - Example of creating a server which hosts a simple service.
 
 ## Status
 
-This crate is currently under development and is not yet stable, unit tests are not yet fully implemented.
+This crate is currently under development and is not yet stable.
 
 Unit tests are not yet fully implemented. Use at your own risk.
 

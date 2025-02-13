@@ -2,18 +2,28 @@
 name = "scuffle-http-examples"
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/scufflecloud/scuffle"
+authors = ["Scuffle <opensource@scuffle.cloud>"]
+readme = "README.md"
+documentation = "https://docs.rs/scuffle-http-examples"
+license = "MIT OR Apache-2.0"
+description = "Examples for scuffle-http"
+keywords = ["http", "server", "http1", "http2", "http3"]
 
 [[example]]
-name = "scuffle-http-tcp"
-path = "src/tcp.rs"
+name = "scuffle-http-axum"
+path = "src/axum.rs"
 
-[dependencies]
-scuffle-http = { workspace = true, features = ["http1", "http2", "tracing"] }
-tokio = { version = "1", features = ["full"] }
-tracing = "0.1"
-tracing-subscriber = "0.3"
-http-body = "1"
-http-body-util = "0.1.2"
-http = "1"
-bytes = "1"
+[[example]]
+name = "scuffle-http-simple-service"
+path = "src/simple_service.rs"
+
+[dev-dependencies]
+axum = { version = "0.8.1", features = ["macros", "ws"] }
+tokio = { version = "1.43.0", features = ["macros", "rt-multi-thread"] }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+rustls = "0.23.21"
+rustls-pemfile = "2.2.0"
+scuffle-http = { workspace = true, features = ["tls-rustls", "http3", "tracing"] }
 scuffle-workspace-hack.workspace = true
