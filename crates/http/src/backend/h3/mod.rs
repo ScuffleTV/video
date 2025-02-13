@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::io;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
@@ -53,7 +54,12 @@ where
         let crypto = h3_quinn::quinn::crypto::rustls::QuicServerConfig::try_from(self.rustls_config)?;
         let server_config = h3_quinn::quinn::ServerConfig::with_crypto(Arc::new(crypto));
 
-        let endpoint = h3_quinn::quinn::Endpoint::server(server_config, self.bind)?;
+        // Bind the UDP socket
+        let socket = std::net::UdpSocket::bind(self.bind)?;
+
+        // Runtime for the quinn endpoint
+        let runtime = h3_quinn::quinn::default_runtime()
+            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "no async runtime found"))?;
 
         // Create a child context for the workers so we can shut them down if one of them fails without shutting down the main context
         let (worker_ctx, worker_handler) = self.ctx.new_child();
@@ -61,9 +67,18 @@ where
         let workers = (0..self.worker_tasks).map(|_n| {
             let ctx = worker_ctx.clone();
             let service_factory = self.service_factory.clone();
-            let endpoint = endpoint.clone();
+            let server_config = server_config.clone();
+            let socket = socket.try_clone().expect("failed to clone socket");
+            let runtime = Arc::clone(&runtime);
 
             let worker_fut = async move {
+                let endpoint = h3_quinn::quinn::Endpoint::new(
+                    h3_quinn::quinn::EndpointConfig::default(),
+                    Some(server_config),
+                    socket,
+                    runtime,
+                )?;
+
                 #[cfg(feature = "tracing")]
                 tracing::trace!("waiting for connections");
 
@@ -175,7 +190,7 @@ where
 
                         #[cfg(feature = "tracing")]
                         if let Err(err) = _res {
-                            tracing::warn!("error: {}", err);
+                            tracing::warn!(err = %err, "error handling connection");
                         }
                     });
                 }
@@ -183,6 +198,8 @@ where
                 // shut down gracefully
                 // wait for connections to be closed before exiting
                 endpoint.wait_idle().await;
+
+                Ok::<_, crate::error::Error<F>>(())
             };
 
             #[cfg(feature = "tracing")]

@@ -16,7 +16,7 @@ where
     #[error("{0}")]
     #[cfg(all(feature = "http3", feature = "tls-rustls"))]
     #[cfg_attr(docsrs, doc(cfg(all(feature = "http3", feature = "tls-rustls"))))]
-    NoInitialCipherSuite(#[from] quinn::crypto::rustls::NoInitialCipherSuite),
+    NoInitialCipherSuite(#[from] h3_quinn::quinn::crypto::rustls::NoInitialCipherSuite),
     #[error("h3 error: {0}")]
     #[cfg(feature = "http3")]
     #[cfg_attr(docsrs, doc(cfg(feature = "http3")))]
