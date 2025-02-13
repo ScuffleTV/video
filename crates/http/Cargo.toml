@@ -32,6 +32,7 @@ tracing = { version = "0.1.41", optional = true }
 # HTTP/1.1, HTTP/2
 hyper = { version = "1.6.0", default-features = false, features = ["server"], optional = true }
 hyper-util = { version = "0.1.10", default-features = false, features = ["server", "tokio"], optional = true }
+libc = { version = "0.2.169", default-features = false, optional = true }
 
 # QUIC + HTTP/3
 quinn = { version = "0.11.6", default-features = false, features = ["platform-verifier", "runtime-tokio", "rustls-ring", "aws-lc-rs"], optional = true }
@@ -59,8 +60,8 @@ scuffle-future-ext.workspace = true
 [features]
 default = ["http1", "http2", "tower"]
 tracing = ["dep:tracing", "quinn?/log", "h3-quinn?/tracing", "h3?/tracing", "tokio-rustls?/logging", "rustls?/logging"]
-http1 = ["dep:hyper", "dep:hyper-util", "hyper/http1", "hyper-util/http1"]
-http2 = ["dep:hyper", "dep:hyper-util", "hyper/http2", "hyper-util/http2"]
+http1 = ["dep:hyper", "dep:hyper-util", "dep:libc", "hyper/http1", "hyper-util/http1"]
+http2 = ["dep:hyper", "dep:hyper-util", "dep:libc", "hyper/http2", "hyper-util/http2"]
 http3 = ["dep:quinn", "dep:h3-quinn", "dep:h3"]
 tls-rustls = ["dep:tokio-rustls", "dep:rustls"]
 http3-tls-rustls = ["http3", "tls-rustls"]

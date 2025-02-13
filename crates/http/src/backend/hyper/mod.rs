@@ -10,6 +10,7 @@ use crate::service::{HttpService, HttpServiceFactory};
 
 mod handler;
 mod stream;
+mod utils;
 
 /// A backend that handles incoming HTTP connections using a hyper backend.
 ///
@@ -89,11 +90,12 @@ where
 
                     let (mut stream, addr) = match listener.accept().with_context(ctx.clone()).await {
                         Some(Ok((tcp_stream, addr))) => (stream::Stream::Tcp(tcp_stream), addr),
-                        Some(Err(_e)) => {
+                        Some(Err(e)) if utils::is_fatal_tcp_error(&e) => {
                             #[cfg(feature = "tracing")]
-                            tracing::warn!(err = %_e, "failed to accept tcp connection");
-                            continue;
+                            tracing::error!(err = %e, "failed to accept tcp connection");
+                            return;
                         }
+                        Some(Err(_)) => continue,
                         None => {
                             #[cfg(feature = "tracing")]
                             tracing::trace!("context done, stopping listener");
