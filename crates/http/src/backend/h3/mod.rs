@@ -55,8 +55,11 @@ where
 
         let endpoint = h3_quinn::quinn::Endpoint::server(server_config, self.bind)?;
 
-        let tasks = (0..self.worker_tasks).map(|_n| {
-            let ctx = self.ctx.clone();
+        // Create a child context for the workers so we can shut them down if one of them fails without shutting down the main context
+        let (worker_ctx, worker_handler) = self.ctx.new_child();
+
+        let workers = (0..self.worker_tasks).map(|_n| {
+            let ctx = worker_ctx.clone();
             let service_factory = self.service_factory.clone();
             let endpoint = endpoint.clone();
 
@@ -70,14 +73,26 @@ where
 
                     tokio::spawn(async move {
                         let _res: Result<_, Error<F>> = async move {
-                            let conn = new_conn.await?;
+                            let Some(conn) = new_conn.with_context(&ctx).await.transpose()? else {
+                                #[cfg(feature = "tracing")]
+                                tracing::trace!("context done while accepting connection");
+                                return Ok(());
+                            };
                             let addr = conn.remote_address();
 
                             #[cfg(feature = "tracing")]
                             tracing::debug!(addr = %addr, "accepted quic connection");
 
                             let connection_fut = async move {
-                                let mut h3_conn = h3::server::Connection::new(h3_quinn::Connection::new(conn)).await?;
+                                let Some(mut h3_conn) = h3::server::Connection::new(h3_quinn::Connection::new(conn))
+                                    .with_context(&ctx)
+                                    .await
+                                    .transpose()?
+                                else {
+                                    #[cfg(feature = "tracing")]
+                                    tracing::trace!("context done while establishing connection");
+                                    return Ok(());
+                                };
 
                                 // make a new service for this connection
                                 let http_service = service_factory
@@ -173,10 +188,16 @@ where
             #[cfg(feature = "tracing")]
             let worker_fut = worker_fut.instrument(tracing::trace_span!("worker", n = _n));
 
-            worker_fut
+            tokio::spawn(worker_fut)
         });
 
-        futures::future::join_all(tasks).await;
+        if let Err(e) = futures::future::try_join_all(workers).await {
+            #[cfg(feature = "tracing")]
+            tracing::error!(err = %e, "error running workers");
+        }
+
+        drop(worker_ctx);
+        worker_handler.shutdown().await;
 
         #[cfg(feature = "tracing")]
         tracing::debug!("all workers finished");
