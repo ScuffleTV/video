@@ -22,7 +22,7 @@ env:
 jobs:
   clippy:
     name: Clippy
-    runs-on: blacksmith-16vcpu-ubuntu-2204
+    runs-on: blacksmith-8vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@v4
         with:
@@ -101,7 +101,7 @@ jobs:
 
   test:
     name: Test
-    runs-on: blacksmith-16vcpu-ubuntu-2204
+    runs-on: blacksmith-8vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@v4
         with:
@@ -160,7 +160,7 @@ jobs:
   grind:
     name: Grind
     if: ${{ github.event_name == 'push' }}
-    runs-on: blacksmith-16vcpu-ubuntu-2204
+    runs-on: blacksmith-8vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@v4
         with:
@@ -193,7 +193,7 @@ jobs:
 
   docs:
     name: Docs
-    runs-on: blacksmith-16vcpu-ubuntu-2204
+    runs-on: blacksmith-8vcpu-ubuntu-2204
     permissions:
       pull-requests: write
     steps:
