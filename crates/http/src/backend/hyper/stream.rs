@@ -1,5 +1,3 @@
-use std::io;
-
 use tokio::io::{AsyncRead, AsyncWrite};
 
 /// A stream that can be either a TCP stream or a TLS stream.
@@ -18,11 +16,11 @@ impl Stream {
     /// If the stream is already a TLS stream, this function will return the stream unchanged.
     #[cfg(feature = "tls-rustls")]
     #[cfg_attr(docsrs, doc(cfg(feature = "tls-rustls")))]
-    pub async fn try_accept_tls(self, tls_acceptor: &tokio_rustls::TlsAcceptor) -> io::Result<Self> {
+    pub async fn try_accept_tls(self, tls_acceptor: &tokio_rustls::TlsAcceptor) -> std::io::Result<Self> {
         match self {
             Stream::Tcp(stream) => {
                 let stream = tls_acceptor.accept(stream).await?;
-                return Ok(Self::Tls(stream));
+                Ok(Self::Tls(stream))
             }
             Stream::Tls(_) => Ok(self),
         }

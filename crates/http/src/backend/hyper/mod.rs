@@ -1,6 +1,5 @@
 use std::fmt::Debug;
 use std::net::SocketAddr;
-use std::sync::Arc;
 
 use scuffle_context::ContextFutExt;
 #[cfg(feature = "tracing")]
@@ -52,6 +51,7 @@ where
     ///
     /// This function will bind to the address specified in `bind`, listen for incoming connections and handle requests.
     #[cfg_attr(feature = "tracing", tracing::instrument(skip_all, fields(bind = %self.bind)))]
+    #[allow(unused_mut)] // allow the unused `mut self`
     pub async fn run(mut self) -> Result<(), Error<F>> {
         #[cfg(feature = "tracing")]
         tracing::debug!("starting server");
@@ -70,9 +70,11 @@ where
         std_listener.set_nonblocking(true)?;
 
         #[cfg(feature = "tls-rustls")]
-        let tls_acceptor = self.rustls_config.map(|c| tokio_rustls::TlsAcceptor::from(Arc::new(c)));
+        let tls_acceptor = self
+            .rustls_config
+            .map(|c| tokio_rustls::TlsAcceptor::from(std::sync::Arc::new(c)));
 
-        let tasks = (0..self.worker_tasks).map(|n| {
+        let tasks = (0..self.worker_tasks).map(|_n| {
             let service_factory = self.service_factory.clone();
             let ctx = self.ctx.clone();
             let std_listener = std_listener.try_clone().expect("failed to clone listener");
@@ -87,13 +89,11 @@ where
 
                     let (mut stream, addr) = match listener.accept().with_context(ctx.clone()).await {
                         Some(Ok((tcp_stream, addr))) => (stream::Stream::Tcp(tcp_stream), addr),
-                        #[cfg(feature = "tracing")]
-                        Some(Err(e)) => {
-                            tracing::warn!(err = %e, "failed to accept tcp connection");
+                        Some(Err(_e)) => {
+                            #[cfg(feature = "tracing")]
+                            tracing::warn!(err = %_e, "failed to accept tcp connection");
                             continue;
                         }
-                        #[cfg(not(feature = "tracing"))]
-                        Some(Err(_)) => continue,
                         None => {
                             #[cfg(feature = "tracing")]
                             tracing::trace!("context done, stopping listener");
@@ -118,13 +118,11 @@ where
 
                             stream = match stream.try_accept_tls(&tls_acceptor).with_context(&ctx).await {
                                 Some(Ok(stream)) => stream,
-                                #[cfg(feature = "tracing")]
-                                Some(Err(err)) => {
-                                    tracing::warn!(err = %err, "failed to accept tls connection");
+                                Some(Err(_err)) => {
+                                    #[cfg(feature = "tracing")]
+                                    tracing::warn!(err = %_err, "failed to accept tls connection");
                                     return;
                                 }
-                                #[cfg(not(feature = "tracing"))]
-                                Some(Err(_)) => return,
                                 None => {
                                     #[cfg(feature = "tracing")]
                                     tracing::trace!("context done, stopping tls acceptor");
@@ -139,13 +137,11 @@ where
                         // make a new service
                         let http_service = match service_factory.new_service(addr).await {
                             Ok(service) => service,
-                            #[cfg(feature = "tracing")]
-                            Err(e) => {
-                                tracing::warn!(err = %e, "failed to create service");
+                            Err(_e) => {
+                                #[cfg(feature = "tracing")]
+                                tracing::warn!(err = %_e, "failed to create service");
                                 return;
                             }
-                            #[cfg(not(feature = "tracing"))]
-                            Err(_) => return,
                         };
 
                         #[cfg(feature = "tracing")]
@@ -189,7 +185,7 @@ where
             };
 
             #[cfg(feature = "tracing")]
-            let worker_fut = worker_fut.instrument(tracing::trace_span!("worker", n = n));
+            let worker_fut = worker_fut.instrument(tracing::trace_span!("worker", n = _n));
 
             worker_fut
         });

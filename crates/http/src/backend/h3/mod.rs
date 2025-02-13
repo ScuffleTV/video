@@ -55,7 +55,7 @@ where
 
         let endpoint = h3_quinn::quinn::Endpoint::server(server_config, self.bind)?;
 
-        let tasks = (0..self.worker_tasks).map(|n| {
+        let tasks = (0..self.worker_tasks).map(|_n| {
             let ctx = self.ctx.clone();
             let service_factory = self.service_factory.clone();
             let endpoint = endpoint.clone();
@@ -171,7 +171,7 @@ where
             };
 
             #[cfg(feature = "tracing")]
-            let worker_fut = worker_fut.instrument(tracing::trace_span!("worker", n = n));
+            let worker_fut = worker_fut.instrument(tracing::trace_span!("worker", n = _n));
 
             worker_fut
         });
