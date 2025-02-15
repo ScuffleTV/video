@@ -62,7 +62,7 @@ postcompile = { path = "crates/postcompile", version = "0.1.0" }
 scuffle-pprof = { path = "crates/pprof", version = "0.1.0" }
 scuffle-settings = { path = "crates/settings", version = "0.1.0" }
 scuffle-signal = { path = "crates/signal", version = "0.2.0" }
-nutype-enum = { path = "crates/nutype_enum", version = "0.1.0" }
+nutype-enum = { path = "crates/nutype_enum", version = "0.1.1" }
 scuffle-h264 = { path = "crates/h264", version = "0.1.0" }
 scuffle-h265 = { path = "crates/h265", version = "0.1.0" }
 scuffle-mp4 = { path = "crates/mp4", version = "0.1.0" }
